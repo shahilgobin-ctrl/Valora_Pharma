@@ -1,0 +1,145 @@
+@font-face{font-family:Poppins;src:url('fonts/Poppins-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Poppins;src:url('fonts/Poppins-SemiBold.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:Sacramento;src:url('fonts/Sacramento-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Kavivanar;src:url('fonts/Kavivanar-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+:root{--teal:#08766e;--brand:#06635c;--orange:#d57809;--card:#d9d9d9;--mint:#dcefed;--link:#1f5049;--error:#9b2525}
+*{box-sizing:border-box}
+body{margin:0;color:#000;font-family:Poppins,Arial,sans-serif;font-weight:400}
+h1,h2,p{margin:0;font-weight:400}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+button,input,select{font:inherit}
+button{cursor:pointer}
+input,select{min-width:0;border:0;color:#000;outline-offset:3px}
+input::placeholder{color:rgba(0,0,0,.25);opacity:1}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #167f75;outline-offset:3px}
+input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--error)}
+.brand{color:var(--brand);font-size:15px;font-weight:600;line-height:normal;display:flex;align-items:center;gap:5px}
+.brand img{flex:none;display:block}
+.brand-accent{color:var(--orange)}
+.primary-button{display:block;border:0;color:#fff;background:var(--teal);text-align:center;font-weight:400}
+.primary-button:hover{background:#06645e}
+.password-control,.date-control,.gender-control{position:relative}
+.password-control input{width:100%;padding-right:47px}
+.password-toggle{position:absolute;right:7px;top:0;height:100%;width:36px;padding:0;border:0;background:transparent;font-family:Poppins,Arial,sans-serif;color:rgba(0,0,0,.25);font-size:16px;line-height:1}
+.password-toggle.is-showing{color:var(--teal)}
+.field-errors{position:relative;margin-top:5px;color:var(--error);font-size:11px;line-height:1.5}
+.form-feedback{background:#f1fbf5;color:#215a46;border:1px solid #aecfbc;border-radius:12px;padding:12px 16px;font-family:Poppins,Arial,sans-serif;font-size:13px;line-height:1.5;margin:0 0 14px}
+.form-feedback p+p{margin-top:5px}
+.form-feedback--error{background:#fff1ef;border-color:#e7b5ad;color:var(--error)}
+.login-page{background:#e4efe6}
+.login-layout{isolation:isolate;position:relative;display:grid;grid-template-columns:40.077821% 1fr;min-height:900px;overflow:hidden}
+.login-background{position:absolute;z-index:-3;inset:0;overflow:hidden;pointer-events:none}
+.login-background img{position:absolute;left:.03%;top:0;width:105.06%;height:100%;max-width:none}
+.login-brand{position:absolute;z-index:-2;left:24px;top:27px;height:35px;gap:0}
+.login-brand>span{width:163px}
+.pharmacy-photo{position:absolute;z-index:-1;left:0;top:0;width:40.077821%;height:900px;opacity:.25;pointer-events:none}
+.pharmacy-photo img{width:100%;height:100%;display:block;object-fit:cover}
+.brand-pill-overlay{position:absolute;left:24px;top:28px;pointer-events:none}
+.brand-pill-overlay img{display:block}
+.login-story{position:relative;min-width:0}
+.story-heading{position:absolute;left:-135px;top:73px;width:447px;height:247px;display:flex;flex-direction:column;justify-content:center;white-space:pre-wrap;text-align:right;font-family:Sacramento,cursive;font-size:64px;line-height:normal}
+.story-signoff{position:absolute;right:11px;top:745px;width:326px;height:211px;display:flex;align-items:center;justify-content:flex-end;text-align:right;font-family:Sacramento,cursive;font-size:64px;line-height:normal}
+.login-main{min-width:0;display:flex;justify-content:center;padding-top:47px;padding-bottom:80px}
+.login-stack{width:430px;margin-left:-44px}
+.login-heading{height:121px;position:relative}
+.login-heading h1{width:341px;height:64px;margin-left:-63px;display:flex;align-items:center;font-family:Sacramento,cursive;font-size:44px;line-height:normal;transform:translateY(-26px)}
+.login-heading>p{width:295px;height:48px;margin-left:13px;margin-top:16px;display:flex;align-items:center;font-family:Kavivanar,cursive;font-size:16px;line-height:normal}
+.login-form{position:relative;padding:21px 26px 17px 34px;min-height:345px;isolation:isolate}
+.login-form:before{content:'';position:absolute;inset:0;z-index:-1;background:var(--card);border-radius:20px}
+.login-page--staff .login-form:before{left:4px;top:7px;width:430px;height:100%;right:auto;bottom:auto}
+.login-field>label{display:flex;align-items:center;height:30px;font-size:16px;line-height:normal;margin-left:2px}
+.login-field input{display:block;width:100%;height:56px;border-radius:18px;background:#fff;padding:0 21px;font-size:16px;line-height:normal;margin-top:13px}
+.login-field--password{margin-top:16px}
+.login-field--password>label{height:31px}
+.login-field--password input{margin-top:0}
+.login-field--password .password-control{margin-top:13px;margin-left:2px;width:100%}
+.login-field--password .password-control input{padding-right:47px}
+.password-control--quiet .password-toggle{opacity:0}
+.password-control--quiet:focus-within .password-toggle,.password-control--quiet .password-toggle:focus-visible{opacity:1}
+.login-submit{width:100%;height:62px;margin-top:30px;border-radius:18px;font-size:20px}
+.demo-card{position:relative;width:325px;height:152px;margin-top:34px;margin-left:41px;background:var(--card);border-radius:20px;font-family:Kavivanar,cursive;font-size:16px;line-height:normal;padding:0 13px}
+.demo-details{position:absolute;left:13px;top:-18px;width:360px;height:150px;display:flex;flex-direction:column;justify-content:center;white-space:nowrap}
+.demo-title{color:#5f8f88}
+.demo-note{position:absolute;left:17px;top:114px;height:33px;display:flex;align-items:center;white-space:pre-wrap}
+.account-link{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 16px;border-radius:20px;background:var(--teal);color:#fff;font-family:Poppins,Arial,sans-serif;font-size:12px;line-height:1.25;text-align:center;white-space:normal}
+.account-link:hover{background:#06645e;color:#fff;text-decoration:none}
+.account-link:focus-visible{outline:3px solid #fff;outline-offset:0;box-shadow:0 0 0 5px var(--teal)}
+.customer-links{width:max-content;max-width:100%;margin:28px auto 0;font-family:Kavivanar,cursive;font-size:14px;line-height:normal}
+.customer-links p{display:grid;grid-template-columns:132px auto;align-items:center;gap:12px;min-height:44px}
+.customer-links p+p{margin-top:7px}
+.staff-links{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:32px;font-family:Kavivanar,cursive;font-size:14px}
+.signed-in-card{min-height:345px;padding:36px 34px;background:var(--card);border-radius:20px;font-size:15px;line-height:1.7}
+.signed-in-card h2{font-size:24px;margin-bottom:16px}
+.signed-in-card .primary-button{width:100%;height:56px;margin-top:40px;border-radius:18px;font-size:18px}
+.registration-page{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 12px;background:#fff}
+.register-card{width:502px;max-width:100%;min-height:624px;padding:14px 35px 17px;background:var(--mint);border-radius:20px}
+.register-header{height:46px;display:flex;align-items:flex-start;justify-content:space-between}
+.register-brand{height:35px;gap:1px;margin-top:4px}
+.register-brand>span{width:163px}
+.register-brand img{position:relative;top:1px}
+.back-link{display:flex;align-items:center;justify-content:center;width:61px;height:22px;background:var(--card);border-radius:20px;font-size:12px;line-height:normal;color:#000}
+.register-card>h1{font-size:24px;line-height:1.35;text-align:center}
+.register-subtitle{width:min(410px,100%);margin:6px auto 0;font-size:11px;line-height:1.5;color:rgba(0,0,0,.4)}
+.register-card>.form-feedback{width:min(410px,100%);margin:12px auto 0}
+.register-form{width:min(410px,100%);margin:18px auto 0}
+.register-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.register-pair--personal{margin-top:14px}
+.register-field>label{display:block;margin-bottom:7px;font-size:13px;line-height:20px;text-align:left}
+.register-field input{display:block;width:100%;height:36px;background:var(--card);border-radius:20px;padding:0 12px;font-size:12px;line-height:normal}
+.date-control input{padding-right:30px}
+.date-control>span{position:absolute;right:12px;top:9px;opacity:.25;font-size:12px;pointer-events:none}
+.gender-control{height:36px;border-radius:20px;background:var(--card);overflow:hidden}
+.gender-control img{position:absolute;left:0;top:1px;display:block;pointer-events:none}
+.gender-control select{position:relative;width:100%;height:36px;border-radius:20px;background:transparent;padding:0 12px;appearance:none;font-size:12px;line-height:normal}
+.gender-control select:has(option[value='']:checked){color:rgba(0,0,0,.25)}
+.gender-control option{color:#000;background:#fff}
+.register-field--email{margin-top:22px}
+.register-field--phone,.register-field--password{margin-top:12px}
+.register-field--email input{padding-left:18px}
+.register-field--password input{padding-left:18px}
+.register-field--password .password-toggle{right:5px;font-size:12px}
+.register-submit{width:min(287px,100%);height:39px;margin:48px auto 0;border-radius:20px;font-size:16px;line-height:normal}
+.registration-page--staff .register-card{width:519px;min-height:651px}
+@media(max-width:1050px){
+ .login-layout{grid-template-columns:36% 1fr}
+ .pharmacy-photo{width:36%}
+ .login-stack{margin-left:0}
+ .login-heading h1{margin-left:0}
+ .login-main{padding-left:20px;padding-right:20px}
+ .story-heading{left:auto;right:24px;width:360px;font-size:56px}
+ .story-signoff{width:280px;font-size:56px}
+}
+@media(max-width:760px){
+ .login-layout{display:block;min-height:100svh}
+ .pharmacy-photo{width:100%;height:100%;opacity:.12}
+ .login-brand{z-index:0;left:20px;top:20px}
+ .brand-pill-overlay{left:20px;top:21px}
+ .login-story{display:none}
+ .login-main{padding:104px 20px 40px}
+ .login-stack{width:min(430px,100%);margin:0}
+ .login-heading{height:auto;margin-bottom:20px}
+ .login-heading h1{height:auto;min-height:64px;max-width:100%;transform:none;margin-left:0;text-align:center;justify-content:center}
+ .login-heading>p{width:auto;height:auto;margin:8px 0 0;text-align:center;display:block}
+ .login-form{padding:21px 24px 20px;min-height:auto}
+ .login-page--staff .login-form:before{inset:0;width:auto;height:auto}
+ .login-field--password .password-control{margin-left:0}
+ .demo-card{width:min(325px,100%);margin:34px auto 0}
+ .customer-links{width:100%;margin:30px auto 0;text-align:center}
+ .customer-links p{grid-template-columns:1fr;justify-items:center;gap:6px;min-height:0}
+ .customer-links p+p{margin-top:14px}
+ .staff-links{margin-top:30px}
+ .demo-details{width:calc(100% - 26px);white-space:normal}
+ .login-field input{font-size:16px}
+}
+@media(max-width:480px){
+ .registration-page{padding:12px;align-items:flex-start}
+ .register-card,.registration-page--staff .register-card{width:100%;min-height:624px;padding:14px 20px 22px}
+ .register-header{gap:10px}
+ .register-brand>span{width:auto}
+ .register-card>h1{font-size:22px}
+ .register-pair{gap:16px}
+ .register-submit{margin-top:36px}
+}
+@media(max-width:405px){.register-pair{grid-template-columns:1fr;row-gap:14px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
