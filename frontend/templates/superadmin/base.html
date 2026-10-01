@@ -1,0 +1,18 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#103b3b"><title>{% block title %}Administration{% endblock %} | {{ portal.portal_name|default:"ValoraPharma" }}</title><link rel="stylesheet" href="{% static 'superadmin/admin.css' %}"><script src="{% static 'superadmin/admin.js' %}" defer></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a>
+{% include 'superadmin/icons.html' %}
+<aside class="sidebar" aria-label="Administration sidebar">
+<a class="brand" href="{% url 'superadmin:overview' %}"><span class="brand-mark"><svg><use href="#i-pill"/></svg></span><span>{% if portal.portal_name == 'ValoraPharma' %}Valora<span class="brand-accent">Pharma</span>{% else %}{{ portal.portal_name }}{% endif %}</span></a>
+<p class="nav-label">NAVIGATION</p>
+<nav aria-label="Main navigation">
+<a href="{% url 'superadmin:overview' %}" {% if active == 'overview' %}class="selected" aria-current="page"{% endif %}><svg><use href="#i-home"/></svg><span>Overview</span></a>
+<a href="{% url 'superadmin:users' %}" {% if active == 'users' %}class="selected" aria-current="page"{% endif %}><svg><use href="#i-users"/></svg><span>User Management</span></a>
+<a href="{% url 'superadmin:roles' %}" {% if active == 'roles' %}class="selected" aria-current="page"{% endif %}><svg><use href="#i-role"/></svg><span>Roles &amp; Permissions</span></a>
+<a href="{% url 'superadmin:audit' %}" {% if active == 'audit' %}class="selected" aria-current="page"{% endif %}><svg><use href="#i-log"/></svg><span>Audit Log</span></a>
+<a href="{% url 'superadmin:settings' %}" {% if active == 'settings' %}class="selected" aria-current="page"{% endif %}><svg><use href="#i-settings"/></svg><span>System Settings</span></a>
+</nav>
+<div class="sidebar-bottom"><div class="signed-in"><svg><use href="#i-user"/></svg><div><strong>System Administrator</strong><span>{{ request.user.get_full_name|default:request.user.email }}</span></div></div>
+{% if portal.support_email %}<a class="support-link" href="mailto:{{ portal.support_email }}">Contact support</a>{% endif %}
+<form action="{% url 'superadmin:logout' %}" method="post">{% csrf_token %}<button class="signout" type="submit"><svg><use href="#i-out"/></svg>Sign Out</button></form></div></aside>
+<main id="main" class="main">{% if messages %}<div class="messages" role="status">{% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}</main></body></html>
