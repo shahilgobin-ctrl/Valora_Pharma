@@ -1,25 +1,26 @@
-# Verified authentication project
+# Verification — 24 October 2026
 
-The delivered scope is customer and staff login/registration from the supplied Figma file. There is no pharmacy dashboard, product catalogue, checkout, or prescription workflow.
+- Django 5.2.17, SQLite, Python 3.12.
+- System check: no issues.
+- 101 tests passed (accounts, prescriptions, pharmacist, inventory, orders).
+- Fresh database migrations applied successfully.
+- `makemigrations --check --dry-run`: no changes detected.
+- New JavaScript passed `node --check`.
+- Demo command created fictional OTC and prescription online orders.
+- Automated end-to-end HTTP test creates a walk-in draft, saves batch allocations,
+  records payment, completes the order and renders the receipt.
+- Rollback, repeated submission/completion, insufficient stock/cash, expiry,
+  split batches, prescription ownership, status order and permission checks pass.
+- Existing accounts and prescription migration files are unchanged.
 
-## Checks performed
+## Verification limits
 
-- Django 5.2.17 system check: no issues.
-- Migration consistency check: no changes required.
-- Migrations applied successfully to a temporary SQLite database outside the deliverable.
-- 20 automated authentication/security tests passed. These include hashed passwords, email uniqueness, input validation, CSRF, POST-only logout, customer/staff separation, staff approval, login throttling and protected demo seeding.
-- Browser flow verified: customer registration, password visibility, rejection of an incorrect password, successful login, logout, staff registration, and rejection of staff login while awaiting approval.
-- Registration layouts checked at desktop size and mobile widths 361, 375 and 390 pixels: no horizontal scrolling; vector dimensions preserved.
+Browser visual/interaction verification was not completed: Chromium download
+failed in this environment. Check desktop/mobile layout and native PDF display
+locally. No real payment gateway, production deployment or concurrency load test
+was performed. Do not interpret passing tests as production certification.
 
-A successful login shows a signed-in confirmation on the login page because only authentication screens are included. Staff registrations require administrator approval. The Figma demo customer is created only by the optional seed_demo command.
+## Package contents
 
-## Design references
-
-- Customer register: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-675
-- Customer login: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=49-76
-- Staff login: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559
-- Staff register: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=163-233
-
-Native Figma frames: customer register 502 x 624; staff register 519 x 651; login 1285 x 900. Layout adapts to smaller screens. Images and vectors are stored locally in frontend/static/accounts/assets. Poppins, Sacramento and Kavivanar are stored locally with their font licence notices.
-
-The ZIP excludes virtual environments, personal accounts, database files, temporary verification files and development secrets. First startup creates your own local database.
+Source, static assets, migrations, tests and setup guides only. No local database,
+user uploads, secret keys, virtual environment or Git history are included.

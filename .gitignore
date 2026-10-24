@@ -17,3 +17,4 @@ backend/staticfiles/
 Thumbs.db
 .idea/
 .vscode/
+backend/private_uploads/

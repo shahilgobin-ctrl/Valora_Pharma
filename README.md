@@ -1,3 +1,8 @@
+# Updated pharmacist workflows
+
+Start with [START_HERE.md](START_HERE.md) for installation, migration and demo instructions.
+See [PHARMACIST_IMPLEMENTATION.md](PHARMACIST_IMPLEMENTATION.md) for the six implemented stages and scope boundaries.
+
 # Pharmacy login and registration
 
 A Django project implementing the pharmacy design's customer and staff login and registration pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
@@ -171,3 +176,7 @@ The project uses **Django 5.2.17 LTS**, the latest 5.2 patch listed on the [offi
 - [Earlier staff reference — node 187:559](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559&m=dev)
 
 The requested screens are implemented as responsive pages, with working Django forms and locally bundled frontend assets.
+
+
+## Pharmacist workflows
+`/pharmacist/` is a protected live dashboard. See the implementation guide above.
