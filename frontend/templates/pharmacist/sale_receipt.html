@@ -1,0 +1,76 @@
+{% extends "pharmacist/base.html" %}
+{% load static %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/receipt.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content">
+  <article class="vp-receipt">
+    <p class="vp-watermark">SAMPLE — NOT A REAL TRANSACTION</p>
+
+    <h1>Valora Pharma</h1>
+    <h2>Walk-in sale receipt</h2>
+
+    <p>
+      Reference: DEMO-SALE-001<br>
+      <time datetime="2026-10-23T09:00:00+04:00">
+        23 October 2026, 09:00 (UTC+04:00)
+      </time>
+    </p>
+
+    <table>
+      <caption>Sample purchased items</caption>
+      <thead>
+        <tr>
+          <th scope="col">Medicine</th>
+          <th scope="col">Qty</th>
+          <th scope="col">Unit price</th>
+          <th scope="col">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Paracetamol 500 mg</td>
+          <td>10</td>
+          <td>Rs 2.50</td>
+          <td>Rs 25.00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="vp-total">Total: Rs 25.00</p>
+
+    <p>
+      Payment method: Cash (sample)<br>
+      Cash tendered: Rs 50.00<br>
+      Change: Rs 25.00
+    </p>
+
+    <div class="receipt-actions vp-no-print">
+      <button
+        type="button"
+        class="receipt-action receipt-action-primary"
+        data-print-receipt
+      >
+        Print sample receipt
+      </button>
+
+      <a
+        href="{% url 'pharmacist:sale_form' %}"
+        class="receipt-action receipt-action-secondary"
+      >
+        New sale
+      </a>
+
+      <a
+        href="{% url 'pharmacist:dashboard' %}"
+        class="receipt-action receipt-action-secondary"
+      >
+        Back to dashboard
+      </a>
+    </div>
+  </article>
+</main>
+{% endblock %}

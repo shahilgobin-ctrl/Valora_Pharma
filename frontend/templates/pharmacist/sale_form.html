@@ -1,0 +1,14 @@
+{% extends "pharmacist/base.html" %}
+{% load static %}
+{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">{% endblock %}
+{% block content %}<main id="main-content" class="wf">
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+
+<h1>New walk-in sale</h1><p class="muted">Select medicines and quantities. Prices are taken from the medicine catalogue. Choose batches and record payment on the next screen.</p>
+<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}
+<h2>Medicines</h2>{{ formset.management_form }}{{ formset.non_form_errors }}
+<div data-formset="lines">{% for line in formset %}<div class="form-row">{{ line.as_p }}</div>{% endfor %}</div>
+<template id="lines-empty"><div class="form-row">{{ formset.empty_form.as_p }}</div></template>
+<div class="actions"><button type="button" class="button secondary" data-add-row="lines">Add medicine row</button><button class="button" type="submit">Create sale draft</button></div>
+<p class="muted">Prescription medicines require an approved prescription belonging to the selected customer. No stock is deducted until payment and completion.</p></form>
+</main>{% endblock %}{% block page_scripts %}<script src="{% static 'pharmacist/js/workflows.js' %}" defer></script>{% endblock %}
