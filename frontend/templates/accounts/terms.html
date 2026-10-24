@@ -5,7 +5,7 @@
 {% block content %}
 <main class="register-card terms-card" aria-labelledby="terms-title">
   <header class="register-header">
-    <a class="register-brand brand" href="{{ login_url }}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
+    <a class="register-brand brand" href="{% url 'accounts:login' %}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
     <a class="back-link" href="{{ back_url }}">Back</a>
   </header>
   <h1 id="terms-title">Terms &amp; Conditions</h1>

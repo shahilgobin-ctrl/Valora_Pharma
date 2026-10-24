@@ -5,8 +5,8 @@
 {% block content %}
 <main class="register-card" aria-labelledby="register-title">
   <header class="register-header">
-    <a class="register-brand brand" href="{{ login_url }}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
-    <a class="back-link" href="{{ login_url }}">Back</a>
+    <a class="register-brand brand" href="{% url 'accounts:login' %}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
+    <a class="back-link" href="{% if is_staff_flow %}{% url 'accounts:register' %}{% else %}{% url 'accounts:login' %}{% endif %}">Back</a>
   </header>
   <h1 id="register-title">{% if is_staff_flow %}Staff Registration{% else %}Create Customer Account{% endif %}</h1>
   <p class="register-subtitle">Fill in your personal details to get started</p>
@@ -58,5 +58,6 @@
     </div>
     <button class="primary-button register-submit" type="submit"><span>Register</span></button>
   </form>
+  {% if not is_staff_flow %}<p class="register-switch"><span>Valora employee?</span><a class="account-link" href="{% url 'accounts:staff_register' %}">Create a staff account</a></p>{% else %}<p class="register-switch"><span>Already registered?</span><a class="account-link" href="{% url 'accounts:login' %}">Sign in</a></p>{% endif %}
 </main>
 {% endblock %}

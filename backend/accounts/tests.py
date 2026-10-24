@@ -198,7 +198,7 @@ class LoginTests(AuthTestCase):
 class StaffTests(AuthTestCase):
     def test_staff_signup_is_pending_and_has_no_admin_permissions(self):
         response = self.client.post(reverse("accounts:staff_register"), self.registration_data())
-        self.assertRedirects(response, reverse("accounts:staff_login"))
+        self.assertRedirects(response, reverse("accounts:login"))
         staff = User.objects.get()
         self.assertEqual(staff.account_type, User.AccountType.STAFF)
         self.assertFalse(staff.is_active)
@@ -207,7 +207,7 @@ class StaffTests(AuthTestCase):
         self.assertFalse(staff.groups.exists())
         self.assertFalse(staff.user_permissions.exists())
         pending = self.client.post(
-            reverse("accounts:staff_login"),
+            reverse("accounts:login"),
             {"email": staff.email, "password": PASSWORD},
         )
         self.assertTrue(pending.context["form"].non_field_errors())
@@ -217,36 +217,52 @@ class StaffTests(AuthTestCase):
         staff.is_active = True
         staff.save(update_fields=["is_active"])
         approved = self.client.post(
-            reverse("accounts:staff_login"),
+            reverse("accounts:login"),
             {"email": staff.email, "password": PASSWORD},
             follow=True,
         )
         self.assertTrue(approved.context["authenticated"])
         self.assertFalse(User.objects.get(pk=staff.pk).is_staff)
 
-    def test_customer_and_staff_credentials_are_isolated_by_route(self):
+    def test_customer_and_approved_staff_share_one_sign_in(self):
         customer = self.customer()
         staff = self.customer(email="staff@example.com", account_type=User.AccountType.STAFF)
-        for route, user in (("accounts:staff_login", customer), ("accounts:login", staff)):
-            with self.subTest(route=route):
-                response = self.client.post(reverse(route), {"email": user.email, "password": PASSWORD})
-                self.assertTrue(response.context["form"].non_field_errors())
-                self.assertNotIn("_auth_user_id", self.client.session)
+        for user in (customer, staff):
+            with self.subTest(email=user.email):
+                response = self.client.post(
+                    reverse("accounts:login"), {"email": user.email, "password": PASSWORD}, follow=True,
+                )
+                self.assertRedirects(response, reverse("accounts:login"))
+                self.assertTrue(response.context["authenticated"])
+                self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
+                self.client.post(reverse("accounts:logout"))
+        self.assertFalse(staff.is_staff)
+        self.assertFalse(staff.is_superuser)
 
-    def test_existing_customer_session_does_not_show_staff_authenticated_state(self):
+    def test_legacy_staff_login_redirects_to_shared_sign_in(self):
         self.client.force_login(self.customer())
         response = self.client.get(reverse("accounts:staff_login"))
-        self.assertTrue(response.context["is_staff_flow"])
-        self.assertFalse(response.context["authenticated"])
+        self.assertRedirects(response, reverse("accounts:login"))
+        post = self.client.post(reverse("accounts:staff_login"), {"email": "x@y.mu", "password": "x"})
+        self.assertEqual(post.status_code, 307)
+        self.assertEqual(post["Location"], reverse("accounts:login"))
+        self.assertTrue(self.client.get(reverse("accounts:login")).context["authenticated"])
+
+    def test_legacy_staff_login_post_preserves_credentials(self):
+        staff = self.customer(email="employee@example.com", account_type=User.AccountType.STAFF)
+        response = self.client.post(
+            reverse("accounts:staff_login"),
+            {"email": staff.email, "password": PASSWORD}, follow=True,
+        )
+        self.assertTrue(response.context["authenticated"])
+        self.assertEqual(self.client.session["_auth_user_id"], str(staff.pk))
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class PasswordRecoveryTests(AuthTestCase):
-    def request_code(self, *, staff=False, email="customer@example.com"):
-        route = "accounts:staff_password_forgot" if staff else "accounts:password_forgot"
-        verify = "accounts:staff_password_verify" if staff else "accounts:password_verify"
-        response = self.client.post(reverse(route), {"email": email})
-        self.assertRedirects(response, reverse(verify))
+    def request_code(self, *, email="customer@example.com"):
+        response = self.client.post(reverse("accounts:password_forgot"), {"email": email})
+        self.assertRedirects(response, reverse("accounts:password_verify"))
         self.assertEqual(len(mail.outbox), 1)
         match = re.search(r"\b\d{6}\b", mail.outbox[0].body)
         self.assertIsNotNone(match)
@@ -323,20 +339,49 @@ class PasswordRecoveryTests(AuthTestCase):
         user.refresh_from_db()
         self.assertTrue(user.check_password(PASSWORD))
 
-    def test_staff_reset_is_separate_from_customer_reset(self):
+    def test_approved_staff_can_reset_through_shared_recovery(self):
         staff = self.customer(email="employee@example.com", account_type=User.AccountType.STAFF)
-        response = self.client.post(reverse("accounts:password_forgot"), {"email": staff.email})
+        code = self.request_code(email=staff.email)
+        self.assertRedirects(
+            self.client.post(reverse("accounts:password_verify"), {"code": code}),
+            reverse("accounts:password_new"),
+        )
+        self.assertEqual(PasswordResetChallenge.objects.get().account_type, User.AccountType.STAFF)
+        self.assertRedirects(self.client.post(reverse("accounts:password_new"), {
+            "new_password1": "New!MeadowPath456", "new_password2": "New!MeadowPath456",
+        }), reverse("accounts:login"))
+        staff.refresh_from_db()
+        self.assertTrue(staff.check_password("New!MeadowPath456"))
+
+    def test_pending_staff_cannot_receive_reset_code(self):
+        self.customer(email="pending@example.com", account_type=User.AccountType.STAFF, is_active=False)
+        response = self.client.post(reverse("accounts:password_forgot"), {"email": "pending@example.com"}, follow=True)
         self.assertRedirects(response, reverse("accounts:password_verify"))
+        self.assertContains(response, "If an eligible account exists")
         self.assertEqual(len(mail.outbox), 0)
-        code = self.request_code(staff=True, email=staff.email)
-        self.assertRedirects(
-            self.client.post(reverse("accounts:staff_password_verify"), {"code": code}),
-            reverse("accounts:staff_password_new"),
+
+    def test_legacy_staff_recovery_urls_preserve_post_and_redirect_to_shared_flow(self):
+        for legacy, shared in (
+            ("staff_password_forgot", "password_forgot"),
+            ("staff_password_verify", "password_verify"),
+            ("staff_password_new", "password_new"),
+        ):
+            with self.subTest(legacy=legacy):
+                get_response = self.client.get(reverse("accounts:" + legacy))
+                self.assertEqual(get_response.status_code, 302)
+                self.assertEqual(get_response["Location"], reverse("accounts:" + shared))
+                response = self.client.post(reverse("accounts:" + legacy), {"email": "customer@example.com"})
+                self.assertEqual(response.status_code, 307)
+                self.assertEqual(response["Location"], reverse("accounts:" + shared))
+
+    def test_legacy_staff_forgot_post_sends_code_through_shared_flow(self):
+        staff = self.customer(email="employee@example.com", account_type=User.AccountType.STAFF)
+        response = self.client.post(
+            reverse("accounts:staff_password_forgot"), {"email": staff.email}, follow=True,
         )
-        self.assertRedirects(
-            self.client.get(reverse("accounts:password_new")),
-            reverse("accounts:password_forgot"),
-        )
+        self.assertEqual(response.redirect_chain[0], (reverse("accounts:password_forgot"), 307))
+        self.assertEqual(response.redirect_chain[1], (reverse("accounts:password_verify"), 302))
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_same_email_request_is_throttled(self):
         self.customer()

@@ -1,8 +1,8 @@
 # Pharmacy login and registration
 
-A Django project implementing the pharmacy design's customer and staff login, registration, and account-recovery pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
+A Django project implementing the pharmacy design's shared customer-and-staff login, registration, and account-recovery pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
 
-This package covers authentication only. A successful login displays a confirmation on the login page. Registration returns you to the corresponding login page. Pharmacy dashboards, medicine inventory, prescriptions, ordering and payments are outside this package.
+This package covers authentication only. Customers and approved staff use the same sign-in page. A successful login displays a confirmation on that page; registration returns there as well. The customer Home page and operational staff dashboard have not been integrated, so this package does not yet redirect either role to its eventual destination. Pharmacy dashboards, medicine inventory, prescriptions, ordering and payments are outside this package.
 
 ## Start on Windows
 
@@ -41,26 +41,24 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 
 | Page | Local URL |
 | --- | --- |
-| Customer login | http://127.0.0.1:8000/login/ |
+| Shared customer and staff login | http://127.0.0.1:8000/login/ |
 | Customer registration | http://127.0.0.1:8000/register/ |
-| Staff login | http://127.0.0.1:8000/staff/login/ |
 | Staff registration | http://127.0.0.1:8000/staff/register/ |
-| Customer password recovery | http://127.0.0.1:8000/password/forgot/ |
-| Staff password recovery | http://127.0.0.1:8000/staff/password/forgot/ |
+| Shared password recovery | http://127.0.0.1:8000/password/forgot/ |
 | Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
 | Django administration | http://127.0.0.1:8000/admin/ |
 
-Login uses email and password. Registration collects first name, last name, date of birth, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate email addresses are rejected.
+Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, date of birth, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate email addresses are rejected.
 
 The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 
-Customer accounts can log in after registering. Staff registration creates an **inactive account awaiting administrator approval**. A pharmacy staff account does not receive Django administration access. Customer and staff login forms accept their corresponding account types.
+Customer accounts can log in after registering. Staff registration creates an **inactive account awaiting administrator approval**. Once approved, a staff member uses the same `/login/` form as a customer. Django stores the account type and can route a signed-in customer to Home and a signed-in employee to a staff dashboard when those pages are integrated. Each destination must also check the account's role and permissions on every request. A pharmacy staff account does not receive Django administration access merely by being marked as staff in the pharmacy account type.
 
 Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited by IP address and login flow to eight attempts per fifteen minutes; the development limiter uses a per-process cache.
 
 ## Password recovery and email
 
-From either sign-in page, select **Forgot password?**, enter the account email, enter the six-digit code, then set a new password. Codes expire after ten minutes, allow five verification attempts, and cannot be reused after the password changes. The request page shows the same response for unknown addresses. Staff recovery works only for approved, active staff accounts.
+From the shared sign-in page, select **Forgot password?**, enter the account email, enter the six-digit code, then set a new password. Codes expire after ten minutes, allow five verification attempts, and cannot be reused after the password changes. The request page shows the same response for unknown addresses. Recovery is available only for active accounts; pending staff accounts require administrator approval first.
 
 In local development, Django prints the reset email and code in the **server terminal**. To deliver real email, configure your SMTP provider through the `DJANGO_EMAIL_*` settings below before starting Django. Never commit SMTP credentials. Production mode requires `DJANGO_DEFAULT_FROM_EMAIL` and uses SMTP by default. The project needs a shared cache when run with multiple workers for request limits; see the configuration section.
 
@@ -142,7 +140,7 @@ Run Django's system check and the included backend tests with:
 
 ```powershell
 python backend/manage.py check
-python backend/manage.py test
+python backend/manage.py test accounts
 ```
 
 ## Configuration and deployment
@@ -184,6 +182,6 @@ The project uses **Django 5.2.17 LTS**, the latest 5.2 patch listed on the [offi
 
 - [Registration reference — node 187:675](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-675&m=dev)
 - [Customer login reference — node 49:76](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=49-76&m=dev)
-- [Earlier staff reference — node 187:559](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559&m=dev)
+- [Earlier staff-specific reference — node 187:559](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559&m=dev)
 
 The requested screens are implemented as responsive pages, with working Django forms and locally bundled frontend assets.

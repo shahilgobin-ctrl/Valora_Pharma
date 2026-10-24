@@ -78,9 +78,11 @@ class LoginForm(forms.Form):
     email = forms.EmailField(label="Email")
     password = forms.CharField(strip=False, widget=forms.PasswordInput, label="Password")
 
-    def __init__(self, *args, request=None, account_type=User.AccountType.CUSTOMER, blocked=False, **kwargs):
+    def __init__(self, *args, request=None, allowed_account_types=None, blocked=False, **kwargs):
         self.request = request
-        self.account_type = account_type
+        if allowed_account_types is None:
+            allowed_account_types = (User.AccountType.CUSTOMER, User.AccountType.STAFF)
+        self.allowed_account_types = frozenset(allowed_account_types)
         self.blocked = blocked
         self.user = None
         super().__init__(*args, **kwargs)
@@ -96,7 +98,7 @@ class LoginForm(forms.Form):
             user = authenticate(
                 self.request, email=cleaned["email"], password=cleaned["password"],
             )
-            if user is None or user.account_type != self.account_type:
+            if user is None or user.account_type not in self.allowed_account_types:
                 raise ValidationError("Invalid email or password. Staff accounts must be approved before signing in.")
             self.user = user
         return cleaned

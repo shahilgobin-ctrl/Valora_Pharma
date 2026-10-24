@@ -1,22 +1,22 @@
 # Verified authentication project
 
-The delivered scope is customer and staff login/registration, password recovery by email code, and a draft Terms and Conditions page. There is no pharmacy dashboard, product catalogue, checkout, or prescription workflow.
+The delivered scope is one login for customers and approved staff, separate customer/staff registration, shared password recovery by email code, and a draft Terms and Conditions page. There is no integrated customer Home page, operational staff dashboard, product catalogue, checkout, or prescription workflow.
 
 ## Checks performed
 
 - Django 5.2.17 system check: no issues.
 - Migration consistency check: no changes required after migration `0002`; the migration was applied to the local development database after backing it up.
-- 28 automated authentication/security tests passed. These include hashed passwords, email uniqueness, input validation, CSRF, POST-only logout, customer/staff separation, staff approval, login throttling, protected demo seeding, terms acceptance, and password recovery code expiry, attempt limit and reuse prevention.
-- Browser checked the login, registration, recovery, and terms pages. The Terms Back button returned to registration.
-- Registration, recovery and terms layouts checked at desktop size and 390-pixel mobile width: no horizontal scrolling.
+- 32 automated authentication/security tests passed. These cover hashed passwords, email uniqueness, input validation, CSRF, POST-only logout, shared sign-in for customers and approved staff, pending-staff denial, legacy URL redirects, login throttling, protected demo seeding, terms acceptance, and password recovery code expiry, attempt limit and reuse prevention.
+- Local HTTP page checks returned 200 for login, customer and staff registration, forgot password, and terms. The older `/staff/login/` URL returned a 302 redirect to `/login/`. All authentication templates compiled.
+- Earlier visual checks of registration, recovery and terms at desktop size and 390-pixel mobile width found no horizontal scrolling. A fresh browser screenshot check of this change was unavailable because the local browser preview did not attach.
 
-A successful login shows a signed-in confirmation on the login page because only authentication screens are included. Staff registrations require administrator approval. The Figma demo customer is created only by the optional seed_demo command. In local development, reset emails print to the server terminal; real delivery needs SMTP configuration. The terms text is a draft and needs project approval before deployment.
+A successful login shows a signed-in confirmation on `/login/` because neither the customer Home page nor an operational staff dashboard has been integrated. Both account types use the same sign-in and forgot-password pages; old `/staff/login/` links redirect to `/login/`. Staff registrations require administrator approval. Future role-based routing should lead to separately protected customer and staff destinations. The Figma demo customer is created only by the optional seed_demo command. In local development, reset emails print to the server terminal; real delivery needs SMTP configuration. The terms text is a draft and needs project approval before deployment.
 
 ## Design references
 
 - Customer register: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-675
 - Customer login: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=49-76
-- Staff login: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559
+- Earlier staff-specific login reference: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559
 - Staff register: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=163-233
 
 Native Figma frames: customer register 502 x 624; staff register 519 x 651; login 1285 x 900. Layout adapts to smaller screens. Images and vectors are stored locally in frontend/static/accounts/assets. Poppins, Sacramento and Kavivanar are stored locally with their font licence notices.

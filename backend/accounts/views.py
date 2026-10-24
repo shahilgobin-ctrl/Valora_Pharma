@@ -28,25 +28,23 @@ RESET_SESSION_KEY = "password_reset_flow"
 INVALID_CODE_MESSAGE = "The code is invalid or expired. Request a new code if needed."
 
 def flow_context(request, staff):
-    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
     return {
         "is_staff_flow": staff,
-        "authenticated": request.user.is_authenticated and request.user.account_type == account_type,
-        "login_url": reverse("accounts:staff_login" if staff else "accounts:login"),
+        "authenticated": request.user.is_authenticated,
+        "login_url": reverse("accounts:login"),
         "register_url": reverse("accounts:staff_register" if staff else "accounts:register"),
-        "password_forgot_url": reverse("accounts:staff_password_forgot" if staff else "accounts:password_forgot"),
+        "password_forgot_url": reverse("accounts:password_forgot"),
         "terms_url": reverse("accounts:terms") + ("?from=staff" if staff else ""),
     }
 
 @never_cache
 @require_http_methods(["GET", "POST"])
-def login_view(request, staff=False):
-    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
-    key = key_for_request(request, account_type)
+def login_view(request):
+    key = key_for_request(request, "shared")
     blocked = request.method == "POST" and is_limited(key)
     form = LoginForm(
         request.POST if request.method == "POST" else None,
-        request=request, account_type=account_type, blocked=blocked,
+        request=request, blocked=blocked,
     )
     response_status = 429 if blocked else 200
     if request.method == "POST":
@@ -55,12 +53,19 @@ def login_view(request, staff=False):
             login(request, form.user)
             # Only auth pages are in scope. A fixed redirect also prevents
             # an untrusted next parameter from becoming an open redirect.
-            return redirect("accounts:staff_login" if staff else "accounts:login")
+            return redirect("accounts:login")
         if not blocked:
             record_failure(key)
-    context = flow_context(request, staff)
+    context = flow_context(request, False)
     context["form"] = form
     return render(request, "accounts/login.html", context, status=response_status)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def legacy_staff_login_view(request):
+    # Keep old bookmarks/forms working while /login/ is the only sign-in page.
+    return redirect("accounts:login", preserve_request=request.method == "POST")
 
 @never_cache
 @require_http_methods(["GET", "POST"])
@@ -85,31 +90,29 @@ def register_view(request, staff=False):
                 messages.success(request, "Your staff registration was submitted. An administrator must approve your account before you can sign in.")
             else:
                 messages.success(request, "Your account is ready. Sign in with your email and password.")
-            return redirect("accounts:staff_login" if staff else "accounts:login")
+            return redirect("accounts:login")
     context = flow_context(request, staff)
     context["form"] = form
     return render(request, "accounts/register.html", context)
 
 @require_POST
 def logout_view(request):
-    staff = request.user.is_authenticated and request.user.account_type == User.AccountType.STAFF
     logout(request)
     messages.success(request, "You have signed out.")
-    return redirect("accounts:staff_login" if staff else "accounts:login")
+    return redirect("accounts:login")
 
 
-def _reset_route(staff, stage):
-    prefix = "staff_password_" if staff else "password_"
-    return reverse("accounts:" + prefix + stage)
+def _reset_route(stage):
+    return reverse("accounts:password_" + stage)
 
 
 def _code_hash(token, code):
     return salted_hmac("accounts.password-reset-code", f"{token}:{code}").hexdigest()
 
 
-def _reset_request_allowed(request, account_type, email):
+def _reset_request_allowed(request, email):
     # Apply the same limits before looking up an account, including unknown emails.
-    email_key = "password-reset-email:" + hashlib.sha256(f"{account_type}:{email}".encode()).hexdigest()
+    email_key = "password-reset-email:" + hashlib.sha256(email.encode()).hexdigest()
     ip = request.META.get("REMOTE_ADDR", "unknown")
     ip_key = "password-reset-ip:" + hashlib.sha256(ip.encode()).hexdigest()
     if cache.get(ip_key, 0) >= settings.PASSWORD_RESET_IP_LIMIT:
@@ -124,9 +127,9 @@ def _reset_request_allowed(request, account_type, email):
     return True
 
 
-def _reset_flow(request, account_type):
+def _reset_flow(request):
     flow = request.session.get(RESET_SESSION_KEY)
-    if not isinstance(flow, dict) or flow.get("account_type") != account_type:
+    if not isinstance(flow, dict):
         return None
     try:
         uuid.UUID(flow.get("token", ""))
@@ -135,44 +138,46 @@ def _reset_flow(request, account_type):
     return flow
 
 
-def _challenge(request, account_type):
-    flow = _reset_flow(request, account_type)
+def _challenge(request):
+    flow = _reset_flow(request)
     if flow is None:
         return None
-    return PasswordResetChallenge.objects.select_related("user").filter(
-        token=flow["token"], account_type=account_type,
-    ).first()
+    return PasswordResetChallenge.objects.select_related("user").filter(token=flow["token"]).first()
 
 
-def _usable_challenge(challenge, account_type, *, verified=False):
-    if not challenge or challenge.account_type != account_type:
+def _usable_challenge(challenge, *, verified=False):
+    if not challenge:
         return False
     if challenge.consumed_at or challenge.expires_at <= timezone.now():
         return False
     if challenge.attempts >= settings.PASSWORD_RESET_MAX_ATTEMPTS:
         return False
-    if not challenge.user.is_active or challenge.user.account_type != account_type:
+    if (not challenge.user.is_active
+            or challenge.user.account_type != challenge.account_type
+            or challenge.account_type not in (User.AccountType.CUSTOMER, User.AccountType.STAFF)):
         return False
     return bool(challenge.verified_at) if verified else not challenge.verified_at
 
 
 @never_cache
 @require_http_methods(["GET", "POST"])
-def password_forgot_view(request, staff=False):
-    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
+def password_forgot_view(request):
     form = PasswordResetRequestForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
-        old_flow = _reset_flow(request, account_type)
+        old_flow = _reset_flow(request)
         token = (old_flow.get("token") if old_flow and old_flow.get("email") == email
                  else str(uuid.uuid4()))
-        if _reset_request_allowed(request, account_type, email):
-            user = User.objects.filter(email=email, account_type=account_type, is_active=True).first()
+        if _reset_request_allowed(request, email):
+            user = User.objects.filter(
+                email__iexact=email, is_active=True,
+                account_type__in=(User.AccountType.CUSTOMER, User.AccountType.STAFF),
+            ).first()
             if user:
                 code = f"{secrets.randbelow(1_000_000):06d}"
                 expiry = timezone.now() + timedelta(seconds=settings.PASSWORD_RESET_CODE_TTL_SECONDS)
                 challenge = PasswordResetChallenge.objects.create(
-                    user=user, account_type=account_type, code_hash="", expires_at=expiry,
+                    user=user, account_type=user.account_type, code_hash="", expires_at=expiry,
                 )
                 challenge.code_hash = _code_hash(challenge.token, code)
                 challenge.save(update_fields=["code_hash"])
@@ -193,77 +198,75 @@ def password_forgot_view(request, staff=False):
                     ).exclude(pk=challenge.pk).update(consumed_at=timezone.now())
                     token = str(challenge.token)
         request.session[RESET_SESSION_KEY] = {
-            "account_type": account_type, "email": email, "token": token, "attempts": 0,
+            "email": email, "token": token, "attempts": 0,
         }
         messages.success(request, "If an eligible account exists, we have sent a verification code to that email address.")
-        if _usable_challenge(_challenge(request, account_type), account_type, verified=True):
-            return redirect(_reset_route(staff, "new"))
-        return redirect(_reset_route(staff, "verify"))
-    context = flow_context(request, staff)
+        if _usable_challenge(_challenge(request), verified=True):
+            return redirect(_reset_route("new"))
+        return redirect(_reset_route("verify"))
+    context = flow_context(request, False)
     context.update(form=form, back_url=context["login_url"])
     return render(request, "accounts/password_forgot.html", context)
 
 
 @never_cache
 @require_http_methods(["GET", "POST"])
-def password_verify_view(request, staff=False):
-    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
-    flow = _reset_flow(request, account_type)
+def password_verify_view(request):
+    flow = _reset_flow(request)
     if flow is None:
-        return redirect(_reset_route(staff, "forgot"))
-    challenge = _challenge(request, account_type)
-    if _usable_challenge(challenge, account_type, verified=True):
-        return redirect(_reset_route(staff, "new"))
-    if challenge and not _usable_challenge(challenge, account_type):
+        return redirect(_reset_route("forgot"))
+    challenge = _challenge(request)
+    if _usable_challenge(challenge, verified=True):
+        return redirect(_reset_route("new"))
+    if challenge and not _usable_challenge(challenge):
         request.session.pop(RESET_SESSION_KEY, None)
         messages.error(request, INVALID_CODE_MESSAGE)
-        return redirect(_reset_route(staff, "forgot"))
+        return redirect(_reset_route("forgot"))
     if flow.get("attempts", 0) >= settings.PASSWORD_RESET_MAX_ATTEMPTS:
         request.session.pop(RESET_SESSION_KEY, None)
         messages.error(request, INVALID_CODE_MESSAGE)
-        return redirect(_reset_route(staff, "forgot"))
+        return redirect(_reset_route("forgot"))
     form = PasswordResetVerifyForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         if challenge:
             with transaction.atomic():
                 challenge = PasswordResetChallenge.objects.select_for_update().select_related("user").get(pk=challenge.pk)
-                if _usable_challenge(challenge, account_type) and constant_time_compare(
+                if _usable_challenge(challenge) and constant_time_compare(
                     challenge.code_hash, _code_hash(challenge.token, form.cleaned_data["code"]),
                 ):
                     challenge.verified_at = timezone.now()
                     challenge.save(update_fields=["verified_at"])
-                    return redirect(_reset_route(staff, "new"))
-                if _usable_challenge(challenge, account_type):
+                    return redirect(_reset_route("new"))
+                if _usable_challenge(challenge):
                     challenge.attempts += 1
                     challenge.save(update_fields=["attempts"])
         else:
             flow["attempts"] = flow.get("attempts", 0) + 1
             request.session[RESET_SESSION_KEY] = flow
         form.add_error("code", INVALID_CODE_MESSAGE)
-    context = flow_context(request, staff)
-    context.update(form=form, back_url=_reset_route(staff, "forgot"))
+    context = flow_context(request, False)
+    context.update(form=form, back_url=_reset_route("forgot"))
     return render(request, "accounts/password_verify.html", context)
 
 
 @never_cache
 @require_http_methods(["GET", "POST"])
-def password_new_view(request, staff=False):
-    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
-    challenge = _challenge(request, account_type)
-    if not _usable_challenge(challenge, account_type, verified=True):
+def password_new_view(request):
+    challenge = _challenge(request)
+    if not _usable_challenge(challenge, verified=True):
         request.session.pop(RESET_SESSION_KEY, None)
         messages.error(request, "Start password recovery again to set a new password.")
-        return redirect(_reset_route(staff, "forgot"))
+        return redirect(_reset_route("forgot"))
     form = PasswordResetNewPasswordForm(
         request.POST if request.method == "POST" else None, user=challenge.user,
     )
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             locked = PasswordResetChallenge.objects.select_for_update().select_related("user").get(pk=challenge.pk)
-            if not _usable_challenge(locked, account_type, verified=True):
+            if not _usable_challenge(locked, verified=True):
                 request.session.pop(RESET_SESSION_KEY, None)
                 messages.error(request, "Start password recovery again to set a new password.")
-                return redirect(_reset_route(staff, "forgot"))
+                return redirect(_reset_route("forgot"))
             locked.user.set_password(form.cleaned_data["new_password1"])
             locked.user.save(update_fields=["password"])
             locked.consumed_at = timezone.now()
@@ -273,10 +276,28 @@ def password_new_view(request, staff=False):
             ).exclude(pk=locked.pk).update(consumed_at=timezone.now())
         logout(request)
         messages.success(request, "Your password has been changed. Sign in with your new password.")
-        return redirect("accounts:staff_login" if staff else "accounts:login")
-    context = flow_context(request, staff)
-    context.update(form=form, back_url=_reset_route(staff, "forgot"))
+        return redirect("accounts:login")
+    context = flow_context(request, False)
+    context.update(form=form, back_url=_reset_route("forgot"))
     return render(request, "accounts/password_new.html", context)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def legacy_staff_password_forgot_view(request):
+    return redirect("accounts:password_forgot", preserve_request=request.method == "POST")
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def legacy_staff_password_verify_view(request):
+    return redirect("accounts:password_verify", preserve_request=request.method == "POST")
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def legacy_staff_password_new_view(request):
+    return redirect("accounts:password_new", preserve_request=request.method == "POST")
 
 
 @never_cache

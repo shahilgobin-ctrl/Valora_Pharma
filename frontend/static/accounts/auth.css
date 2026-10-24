@@ -47,7 +47,6 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .login-heading>p{width:295px;height:48px;margin-left:13px;margin-top:16px;display:flex;align-items:center;font-family:Kavivanar,cursive;font-size:16px;line-height:normal}
 .login-form{position:relative;padding:21px 26px 17px 34px;min-height:345px;isolation:isolate}
 .login-form:before{content:'';position:absolute;inset:0;z-index:-1;background:var(--card);border-radius:20px}
-.login-page--staff .login-form:before{left:4px;top:7px;width:430px;height:100%;right:auto;bottom:auto}
 .login-field>label{display:flex;align-items:center;height:30px;font-size:16px;line-height:normal;margin-left:2px}
 .login-field input{display:block;width:100%;height:56px;border-radius:18px;background:#fff;padding:0 21px;font-size:16px;line-height:normal;margin-top:13px}
 .login-field--password{margin-top:16px}
@@ -68,9 +67,9 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .customer-links{width:max-content;max-width:100%;margin:28px auto 0;font-family:Kavivanar,cursive;font-size:14px;line-height:normal}
 .customer-links p{display:grid;grid-template-columns:132px auto;align-items:center;gap:12px;min-height:44px}
 .customer-links p+p{margin-top:7px}
-.staff-links{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:32px;font-family:Kavivanar,cursive;font-size:14px}
 .signed-in-card{min-height:345px;padding:36px 34px;background:var(--card);border-radius:20px;font-size:15px;line-height:1.7}
 .signed-in-card h2{font-size:24px;margin-bottom:16px}
+.signed-in-role{display:inline-flex;margin-top:12px;padding:5px 12px;border-radius:20px;background:#edf8f1;color:var(--brand);font-size:12px}
 .signed-in-card .primary-button{width:100%;height:56px;margin-top:40px;border-radius:18px;font-size:18px}
 .registration-page{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 12px;background:#fff}
 .register-card{width:502px;max-width:100%;min-height:624px;padding:14px 35px 17px;background:var(--mint);border-radius:20px}
@@ -101,6 +100,7 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .register-field--password .password-toggle{right:5px;font-size:12px}
 .register-submit{width:min(287px,100%);height:39px;margin:48px auto 0;border-radius:20px;font-size:16px;line-height:normal}
 .registration-page--staff .register-card{width:519px;min-height:651px}
+.register-switch{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin:16px auto 0;font-size:12px;line-height:1.5;text-align:center}
 @media(max-width:1050px){
  .login-layout{grid-template-columns:36% 1fr}
  .pharmacy-photo{width:36%}
@@ -122,13 +122,11 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
  .login-heading h1{height:auto;min-height:64px;max-width:100%;transform:none;margin-left:0;text-align:center;justify-content:center}
  .login-heading>p{width:auto;height:auto;margin:8px 0 0;text-align:center;display:block}
  .login-form{padding:21px 24px 20px;min-height:auto}
- .login-page--staff .login-form:before{inset:0;width:auto;height:auto}
  .login-field--password .password-control{margin-left:0}
  .demo-card{width:min(325px,100%);margin:34px auto 0}
  .customer-links{width:100%;margin:30px auto 0;text-align:center}
  .customer-links p{grid-template-columns:1fr;justify-items:center;gap:6px;min-height:0}
  .customer-links p+p{margin-top:14px}
- .staff-links{margin-top:30px}
  .demo-details{width:calc(100% - 26px);white-space:normal}
  .login-field input{font-size:16px}
 }
@@ -145,7 +143,6 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 
 /* Account recovery and consent use the same colors, fields and buttons as sign in. */
-.login-page-back{position:absolute;z-index:2;top:27px;right:28px;width:70px;height:30px}
 .login-form-options{display:flex;justify-content:flex-end;margin-top:10px}
 .forgot-link{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:5px 14px;border-radius:20px;background:var(--teal);color:#fff;font-family:Poppins,Arial,sans-serif;font-size:12px;line-height:1.25}
 .forgot-link:hover{background:#06645e;color:#fff;text-decoration:none}
@@ -171,5 +168,4 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .terms-draft{padding:12px 14px;background:#f3faf7;border-left:3px solid var(--teal);border-radius:8px}
 .terms-return{display:flex;align-items:center;justify-content:center;width:min(287px,100%);min-height:43px;margin:28px auto 0;border-radius:20px;font-size:16px}
 .terms-return:hover{color:#fff;text-decoration:none}
-@media(max-width:760px){.login-page-back{top:26px;right:20px}}
 @media(max-width:480px){.recovery-card,.terms-card{min-height:0}.terms-content{font-size:12px}}
