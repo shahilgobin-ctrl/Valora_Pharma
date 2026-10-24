@@ -3,6 +3,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 
 urlpatterns = [
+    path("pharmacist/", include("pharmacist.urls")),
     path("", RedirectView.as_view(pattern_name="accounts:login", permanent=False)),
     path("admin/", admin.site.urls),
     path("", include("accounts.urls")),

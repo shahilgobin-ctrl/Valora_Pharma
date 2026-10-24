@@ -45,6 +45,10 @@ INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "accounts.apps.AccountsConfig",
+    "pharmacist.apps.PharmacistConfig",
+    "prescriptions.apps.PrescriptionsConfig",
+    "inventory.apps.InventoryConfig",
+    "orders.apps.OrdersConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -111,3 +115,7 @@ CACHES = {"default": {
 }}
 LOGIN_MAX_FAILURES = 8
 LOGIN_LOCKOUT_SECONDS = 15 * 60
+
+# Uploaded documents are served through permission-checked views.
+MEDIA_ROOT = BASE_DIR / "private_uploads"
+MEDIA_URL = "/private-uploads/"
