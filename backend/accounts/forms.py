@@ -21,6 +21,11 @@ class RegistrationForm(forms.ModelForm):
         strip=False, widget=forms.PasswordInput, label="Password",
         help_text="Use at least 8 characters. Avoid common or entirely numeric passwords.",
     )
+    agree_terms = forms.BooleanField(
+        required=True,
+        label="I agree to the Terms and Conditions",
+        error_messages={"required": "You must agree to the Terms and Conditions."},
+    )
 
     class Meta:
         model = User
@@ -94,4 +99,40 @@ class LoginForm(forms.Form):
             if user is None or user.account_type != self.account_type:
                 raise ValidationError("Invalid email or password. Staff accounts must be approved before signing in.")
             self.user = user
+        return cleaned
+
+
+class PasswordResetRequestForm(forms.Form):
+    email = forms.EmailField(label="Email Address")
+
+    def clean_email(self):
+        return canonical_email(self.cleaned_data["email"])
+
+
+class PasswordResetVerifyForm(forms.Form):
+    code = forms.RegexField(
+        regex=r"^\d{6}$", label="Verification Code",
+        error_messages={"invalid": "Enter the six-digit code from your email."},
+    )
+
+
+class PasswordResetNewPasswordForm(forms.Form):
+    new_password1 = forms.CharField(strip=False, widget=forms.PasswordInput, label="New Password")
+    new_password2 = forms.CharField(strip=False, widget=forms.PasswordInput, label="Confirm New Password")
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        password1 = cleaned.get("new_password1")
+        password2 = cleaned.get("new_password2")
+        if password1 and password2 and password1 != password2:
+            self.add_error("new_password2", "The passwords do not match.")
+        if password1:
+            try:
+                validate_password(password1, self.user)
+            except ValidationError as error:
+                self.add_error("new_password1", error)
         return cleaned

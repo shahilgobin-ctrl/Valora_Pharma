@@ -111,3 +111,28 @@ CACHES = {"default": {
 }}
 LOGIN_MAX_FAILURES = 8
 LOGIN_LOCKOUT_SECONDS = 15 * 60
+
+# Local development prints reset emails to the terminal; deployment uses SMTP.
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "ValoraPharma <no-reply@example.com>")
+if not DEBUG and not os.environ.get("DJANGO_DEFAULT_FROM_EMAIL"):
+    raise ImproperlyConfigured("DJANGO_DEFAULT_FROM_EMAIL is required when DJANGO_DEBUG=false.")
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("DJANGO_EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("DJANGO_EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = 10
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured("Enable only one of DJANGO_EMAIL_USE_TLS or DJANGO_EMAIL_USE_SSL.")
+
+PASSWORD_RESET_CODE_TTL_SECONDS = 10 * 60
+PASSWORD_RESET_MAX_ATTEMPTS = 5
+PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS = 60
+PASSWORD_RESET_IP_LIMIT = 10
+PASSWORD_RESET_IP_WINDOW_SECONDS = 60 * 60

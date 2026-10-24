@@ -1,6 +1,6 @@
 # Pharmacy login and registration
 
-A Django project implementing the pharmacy design's customer and staff login and registration pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
+A Django project implementing the pharmacy design's customer and staff login, registration, and account-recovery pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
 
 This package covers authentication only. A successful login displays a confirmation on the login page. Registration returns you to the corresponding login page. Pharmacy dashboards, medicine inventory, prescriptions, ordering and payments are outside this package.
 
@@ -45,13 +45,24 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Customer registration | http://127.0.0.1:8000/register/ |
 | Staff login | http://127.0.0.1:8000/staff/login/ |
 | Staff registration | http://127.0.0.1:8000/staff/register/ |
+| Customer password recovery | http://127.0.0.1:8000/password/forgot/ |
+| Staff password recovery | http://127.0.0.1:8000/staff/password/forgot/ |
+| Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
 | Django administration | http://127.0.0.1:8000/admin/ |
 
-Login uses email and password. Registration collects first name, last name, date of birth, gender, email, phone number and password. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate email addresses are rejected.
+Login uses email and password. Registration collects first name, last name, date of birth, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate email addresses are rejected.
+
+The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 
 Customer accounts can log in after registering. Staff registration creates an **inactive account awaiting administrator approval**. A pharmacy staff account does not receive Django administration access. Customer and staff login forms accept their corresponding account types.
 
 Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited by IP address and login flow to eight attempts per fifteen minutes; the development limiter uses a per-process cache.
+
+## Password recovery and email
+
+From either sign-in page, select **Forgot password?**, enter the account email, enter the six-digit code, then set a new password. Codes expire after ten minutes, allow five verification attempts, and cannot be reused after the password changes. The request page shows the same response for unknown addresses. Staff recovery works only for approved, active staff accounts.
+
+In local development, Django prints the reset email and code in the **server terminal**. To deliver real email, configure your SMTP provider through the `DJANGO_EMAIL_*` settings below before starting Django. Never commit SMTP credentials. Production mode requires `DJANGO_DEFAULT_FROM_EMAIL` and uses SMTP by default. The project needs a shared cache when run with multiple workers for request limits; see the configuration section.
 
 ## Create an administrator and approve staff
 
@@ -100,7 +111,7 @@ pharmacy-auth/
 │   ├── manage.py
 │   └── db.sqlite3       Created after the first migration
 ├── frontend/
-│   ├── templates/       Login and registration HTML
+│   ├── templates/       Login, registration, recovery and terms HTML
 │   └── static/          Styles, scripts and design assets
 ├── requirements.txt     Pinned Python dependency
 ├── .env.example         Environment-variable reference
@@ -157,6 +168,11 @@ On macOS/Linux, use `export DJANGO_DEBUG=false`, and similarly export the other 
 | `DJANGO_SECURE_SSL_REDIRECT` | `false` in development, `true` in production |
 | `DJANGO_CACHE_BACKEND` | `django.core.cache.backends.locmem.LocMemCache`; choose a shared cache for multiple server workers |
 | `DJANGO_CACHE_LOCATION` | `pharmacy-auth`; the cache location or table name required by the selected backend |
+| `DJANGO_EMAIL_BACKEND` | Console in development; SMTP in production |
+| `DJANGO_DEFAULT_FROM_EMAIL` | Sender address; required in production |
+| `DJANGO_EMAIL_HOST` / `DJANGO_EMAIL_PORT` | SMTP server and port (default port `587`) |
+| `DJANGO_EMAIL_HOST_USER` / `DJANGO_EMAIL_HOST_PASSWORD` | SMTP credentials |
+| `DJANGO_EMAIL_USE_TLS` / `DJANGO_EMAIL_USE_SSL` | SMTP transport security (`true` / `false` by default) |
 
 For Django's built-in shared database cache, set `DJANGO_CACHE_BACKEND=django.core.cache.backends.db.DatabaseCache` and `DJANGO_CACHE_LOCATION=pharmacy_auth_cache`, then run `python backend/manage.py createcachetable` after applying migrations. All server workers must use the same database and cache configuration.
 

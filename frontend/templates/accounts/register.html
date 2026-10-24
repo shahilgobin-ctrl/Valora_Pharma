@@ -52,6 +52,10 @@
       <div class="password-control"><input id="id_password" name="password" type="password" autocomplete="new-password" placeholder="🔒  Create a password" required{% if form.password.errors %} aria-invalid="true" aria-describedby="password-errors"{% endif %}><button class="password-toggle" type="button" aria-label="Show password" aria-controls="id_password" aria-pressed="false" data-password-toggle><span aria-hidden="true">👁</span></button></div>
       {% if form.password.errors %}<div class="field-errors" id="password-errors">{% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
+    <div class="register-consent">
+      <label for="id_agree_terms"><input id="id_agree_terms" name="agree_terms" type="checkbox" required{% if form.agree_terms.value %} checked{% endif %}{% if form.agree_terms.errors %} aria-invalid="true" aria-describedby="terms-errors"{% endif %}><span>I agree to the <a href="{% url 'accounts:terms' %}{% if is_staff_flow %}?from=staff{% endif %}">Terms &amp; Conditions</a>.</span></label>
+      {% if form.agree_terms.errors %}<div class="field-errors" id="terms-errors">{% for error in form.agree_terms.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+    </div>
     <button class="primary-button register-submit" type="submit"><span>Register</span></button>
   </form>
 </main>

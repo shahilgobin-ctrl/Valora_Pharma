@@ -1,9 +1,11 @@
 """Behavior and security tests for the customer/staff authentication flows."""
 from datetime import date, timedelta
 from io import StringIO
+import re
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core import mail
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.management.base import CommandError
@@ -13,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import RegistrationForm
-from .models import User
+from .models import PasswordResetChallenge, TERMS_VERSION, User
 
 
 PASSWORD = "Maple!River42Sun"
@@ -34,6 +36,7 @@ class AuthTestCase(TestCase):
             "email": "Jamie@example.com",
             "phone": "+230 5912-3456",
             "password": PASSWORD,
+            "agree_terms": "on",
         }
         data.update(changes)
         return data
@@ -66,6 +69,15 @@ class RegistrationTests(AuthTestCase):
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
         self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertIsNotNone(user.terms_accepted_at)
+        self.assertEqual(user.terms_version, TERMS_VERSION)
+
+    def test_registration_rejects_missing_terms_acceptance(self):
+        data = self.registration_data()
+        data.pop("agree_terms")
+        response = self.client.post(reverse("accounts:register"), data)
+        self.assertIn("agree_terms", response.context["form"].errors)
+        self.assertFalse(User.objects.exists())
 
     def test_duplicate_email_is_case_insensitive(self):
         self.customer(email="Jamie@example.com")
@@ -226,6 +238,117 @@ class StaffTests(AuthTestCase):
         response = self.client.get(reverse("accounts:staff_login"))
         self.assertTrue(response.context["is_staff_flow"])
         self.assertFalse(response.context["authenticated"])
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class PasswordRecoveryTests(AuthTestCase):
+    def request_code(self, *, staff=False, email="customer@example.com"):
+        route = "accounts:staff_password_forgot" if staff else "accounts:password_forgot"
+        verify = "accounts:staff_password_verify" if staff else "accounts:password_verify"
+        response = self.client.post(reverse(route), {"email": email})
+        self.assertRedirects(response, reverse(verify))
+        self.assertEqual(len(mail.outbox), 1)
+        match = re.search(r"\b\d{6}\b", mail.outbox[0].body)
+        self.assertIsNotNone(match)
+        return match.group()
+
+    def test_customer_can_reset_password_with_emailed_code(self):
+        user = self.customer()
+        code = self.request_code()
+        challenge = PasswordResetChallenge.objects.get()
+        self.assertNotIn(code, challenge.code_hash)
+        self.assertEqual(mail.outbox[0].to, [user.email])
+        self.assertRedirects(
+            self.client.post(reverse("accounts:password_verify"), {"code": code}),
+            reverse("accounts:password_new"),
+        )
+        response = self.client.post(reverse("accounts:password_new"), {
+            "new_password1": "New!MeadowPath456", "new_password2": "New!MeadowPath456",
+        })
+        self.assertRedirects(response, reverse("accounts:login"))
+        user.refresh_from_db()
+        challenge.refresh_from_db()
+        self.assertTrue(user.check_password("New!MeadowPath456"))
+        self.assertFalse(user.check_password(PASSWORD))
+        self.assertIsNotNone(challenge.consumed_at)
+        self.assertNotIn("password_reset_flow", self.client.session)
+        self.assertRedirects(self.client.get(reverse("accounts:password_new")), reverse("accounts:password_forgot"))
+
+    def test_unknown_and_inactive_accounts_get_generic_response_without_email(self):
+        self.customer(email="inactive@example.com", is_active=False)
+        for email in ("missing@example.com", "inactive@example.com"):
+            with self.subTest(email=email):
+                response = self.client.post(reverse("accounts:password_forgot"), {"email": email}, follow=True)
+                self.assertRedirects(response, reverse("accounts:password_verify"))
+                self.assertContains(response, "If an eligible account exists")
+                self.assertEqual(len(mail.outbox), 0)
+
+    def test_wrong_code_attempt_limit_and_expiry(self):
+        self.customer()
+        correct_code = self.request_code()
+        wrong_code = "000000" if correct_code != "000000" else "111111"
+        for _ in range(settings.PASSWORD_RESET_MAX_ATTEMPTS):
+            response = self.client.post(reverse("accounts:password_verify"), {"code": wrong_code})
+            self.assertContains(response, "invalid or expired")
+        challenge = PasswordResetChallenge.objects.get()
+        self.assertEqual(challenge.attempts, settings.PASSWORD_RESET_MAX_ATTEMPTS)
+        self.assertRedirects(
+            self.client.post(reverse("accounts:password_verify"), {"code": correct_code}),
+            reverse("accounts:password_forgot"),
+        )
+        cache.clear()
+        mail.outbox.clear()
+        correct_code = self.request_code()
+        challenge = PasswordResetChallenge.objects.latest("pk")
+        challenge.expires_at = timezone.now() - timedelta(seconds=1)
+        challenge.save(update_fields=["expires_at"])
+        self.assertRedirects(
+            self.client.post(reverse("accounts:password_verify"), {"code": correct_code}),
+            reverse("accounts:password_forgot"),
+        )
+
+    def test_code_replay_and_weak_or_mismatched_passwords_are_rejected(self):
+        user = self.customer()
+        code = self.request_code()
+        self.client.post(reverse("accounts:password_verify"), {"code": code})
+        self.assertRedirects(
+            self.client.post(reverse("accounts:password_verify"), {"code": code}),
+            reverse("accounts:password_new"),
+        )
+        response = self.client.post(reverse("accounts:password_new"), {
+            "new_password1": "123", "new_password2": "different",
+        })
+        self.assertIn("new_password1", response.context["form"].errors)
+        self.assertIn("new_password2", response.context["form"].errors)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password(PASSWORD))
+
+    def test_staff_reset_is_separate_from_customer_reset(self):
+        staff = self.customer(email="employee@example.com", account_type=User.AccountType.STAFF)
+        response = self.client.post(reverse("accounts:password_forgot"), {"email": staff.email})
+        self.assertRedirects(response, reverse("accounts:password_verify"))
+        self.assertEqual(len(mail.outbox), 0)
+        code = self.request_code(staff=True, email=staff.email)
+        self.assertRedirects(
+            self.client.post(reverse("accounts:staff_password_verify"), {"code": code}),
+            reverse("accounts:staff_password_new"),
+        )
+        self.assertRedirects(
+            self.client.get(reverse("accounts:password_new")),
+            reverse("accounts:password_forgot"),
+        )
+
+    def test_same_email_request_is_throttled(self):
+        self.customer()
+        self.request_code()
+        self.client.post(reverse("accounts:password_forgot"), {"email": "customer@example.com"})
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_recovery_post_requires_csrf(self):
+        client = Client(enforce_csrf_checks=True)
+        for route in ("accounts:password_forgot", "accounts:password_verify", "accounts:password_new"):
+            with self.subTest(route=route):
+                self.assertEqual(client.post(reverse(route), {"email": "customer@example.com"}).status_code, 403)
 
 
 class SecurityAndManagementTests(AuthTestCase):

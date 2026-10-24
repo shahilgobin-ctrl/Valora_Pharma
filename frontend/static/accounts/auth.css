@@ -143,3 +143,33 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 }
 @media(max-width:405px){.register-pair{grid-template-columns:1fr;row-gap:14px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+
+/* Account recovery and consent use the same colors, fields and buttons as sign in. */
+.login-page-back{position:absolute;z-index:2;top:27px;right:28px;width:70px;height:30px}
+.login-form-options{display:flex;justify-content:flex-end;margin-top:10px}
+.forgot-link{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:5px 14px;border-radius:20px;background:var(--teal);color:#fff;font-family:Poppins,Arial,sans-serif;font-size:12px;line-height:1.25}
+.forgot-link:hover{background:#06645e;color:#fff;text-decoration:none}
+.login-form .login-submit{margin-top:17px}
+.register-consent{margin-top:18px}
+.register-consent label{display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.5;cursor:pointer}
+.register-consent input[type=checkbox]{flex:none;width:18px;height:18px;min-width:18px;margin:1px 0 0;accent-color:var(--teal);cursor:pointer}
+.register-consent a{color:var(--brand);text-decoration:underline;text-underline-offset:2px}
+.register-consent .field-errors{margin-left:28px}
+.register-form .register-submit{margin-top:24px}
+.recovery-card,.terms-card{min-height:0;padding-bottom:30px}
+.recovery-subtitle{text-align:center;font-size:12px;color:#5c7772}
+.recovery-form{margin-top:28px}
+.recovery-form .register-field input{height:44px;padding-left:17px}
+.recovery-form .password-control input{padding-right:48px}
+.recovery-field-spaced{margin-top:20px}
+.recovery-submit{width:min(287px,100%);min-height:43px;margin:30px auto 0;border-radius:20px;font-size:16px}
+.recovery-footer{margin-top:22px;text-align:center;font-size:12px;line-height:1.5}
+.recovery-footer a{color:var(--brand);text-decoration:underline;text-underline-offset:2px}
+.terms-card{width:min(640px,100%)}
+.terms-content{max-width:520px;margin:24px auto 0;font-size:13px;line-height:1.65}
+.terms-content h2{margin:20px 0 5px;font-size:17px;font-weight:600}
+.terms-draft{padding:12px 14px;background:#f3faf7;border-left:3px solid var(--teal);border-radius:8px}
+.terms-return{display:flex;align-items:center;justify-content:center;width:min(287px,100%);min-height:43px;margin:28px auto 0;border-radius:20px;font-size:16px}
+.terms-return:hover{color:#fff;text-decoration:none}
+@media(max-width:760px){.login-page-back{top:26px;right:20px}}
+@media(max-width:480px){.recovery-card,.terms-card{min-height:0}.terms-content{font-size:12px}}

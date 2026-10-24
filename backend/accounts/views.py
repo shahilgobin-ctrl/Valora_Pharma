@@ -1,13 +1,31 @@
+import hashlib
+import logging
+import secrets
+import uuid
+from datetime import timedelta
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.crypto import constant_time_compare, salted_hmac
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_http_methods, require_POST
-from .forms import LoginForm, RegistrationForm
-from .models import User
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from .forms import (
+    LoginForm, PasswordResetNewPasswordForm, PasswordResetRequestForm,
+    PasswordResetVerifyForm, RegistrationForm,
+)
+from .models import PasswordResetChallenge, TERMS_VERSION, User
 from .rate_limit import is_limited, key_for_request, record_failure, reset_failures
+
+logger = logging.getLogger(__name__)
+RESET_SESSION_KEY = "password_reset_flow"
+INVALID_CODE_MESSAGE = "The code is invalid or expired. Request a new code if needed."
 
 def flow_context(request, staff):
     account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
@@ -16,6 +34,8 @@ def flow_context(request, staff):
         "authenticated": request.user.is_authenticated and request.user.account_type == account_type,
         "login_url": reverse("accounts:staff_login" if staff else "accounts:login"),
         "register_url": reverse("accounts:staff_register" if staff else "accounts:register"),
+        "password_forgot_url": reverse("accounts:staff_password_forgot" if staff else "accounts:password_forgot"),
+        "terms_url": reverse("accounts:terms") + ("?from=staff" if staff else ""),
     }
 
 @never_cache
@@ -54,6 +74,8 @@ def register_view(request, staff=False):
                 user.is_active = not staff
                 user.is_staff = False
                 user.is_superuser = False
+                user.terms_accepted_at = timezone.now()
+                user.terms_version = TERMS_VERSION
                 user.save()
         except IntegrityError:
             # The database catches two registrations arriving at once.
@@ -74,3 +96,193 @@ def logout_view(request):
     logout(request)
     messages.success(request, "You have signed out.")
     return redirect("accounts:staff_login" if staff else "accounts:login")
+
+
+def _reset_route(staff, stage):
+    prefix = "staff_password_" if staff else "password_"
+    return reverse("accounts:" + prefix + stage)
+
+
+def _code_hash(token, code):
+    return salted_hmac("accounts.password-reset-code", f"{token}:{code}").hexdigest()
+
+
+def _reset_request_allowed(request, account_type, email):
+    # Apply the same limits before looking up an account, including unknown emails.
+    email_key = "password-reset-email:" + hashlib.sha256(f"{account_type}:{email}".encode()).hexdigest()
+    ip = request.META.get("REMOTE_ADDR", "unknown")
+    ip_key = "password-reset-ip:" + hashlib.sha256(ip.encode()).hexdigest()
+    if cache.get(ip_key, 0) >= settings.PASSWORD_RESET_IP_LIMIT:
+        return False
+    if not cache.add(email_key, 1, timeout=settings.PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS):
+        return False
+    if not cache.add(ip_key, 1, timeout=settings.PASSWORD_RESET_IP_WINDOW_SECONDS):
+        try:
+            cache.incr(ip_key)
+        except ValueError:
+            cache.add(ip_key, 1, timeout=settings.PASSWORD_RESET_IP_WINDOW_SECONDS)
+    return True
+
+
+def _reset_flow(request, account_type):
+    flow = request.session.get(RESET_SESSION_KEY)
+    if not isinstance(flow, dict) or flow.get("account_type") != account_type:
+        return None
+    try:
+        uuid.UUID(flow.get("token", ""))
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return flow
+
+
+def _challenge(request, account_type):
+    flow = _reset_flow(request, account_type)
+    if flow is None:
+        return None
+    return PasswordResetChallenge.objects.select_related("user").filter(
+        token=flow["token"], account_type=account_type,
+    ).first()
+
+
+def _usable_challenge(challenge, account_type, *, verified=False):
+    if not challenge or challenge.account_type != account_type:
+        return False
+    if challenge.consumed_at or challenge.expires_at <= timezone.now():
+        return False
+    if challenge.attempts >= settings.PASSWORD_RESET_MAX_ATTEMPTS:
+        return False
+    if not challenge.user.is_active or challenge.user.account_type != account_type:
+        return False
+    return bool(challenge.verified_at) if verified else not challenge.verified_at
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def password_forgot_view(request, staff=False):
+    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
+    form = PasswordResetRequestForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        email = form.cleaned_data["email"]
+        old_flow = _reset_flow(request, account_type)
+        token = (old_flow.get("token") if old_flow and old_flow.get("email") == email
+                 else str(uuid.uuid4()))
+        if _reset_request_allowed(request, account_type, email):
+            user = User.objects.filter(email=email, account_type=account_type, is_active=True).first()
+            if user:
+                code = f"{secrets.randbelow(1_000_000):06d}"
+                expiry = timezone.now() + timedelta(seconds=settings.PASSWORD_RESET_CODE_TTL_SECONDS)
+                challenge = PasswordResetChallenge.objects.create(
+                    user=user, account_type=account_type, code_hash="", expires_at=expiry,
+                )
+                challenge.code_hash = _code_hash(challenge.token, code)
+                challenge.save(update_fields=["code_hash"])
+                try:
+                    send_mail(
+                        "ValoraPharma password reset code",
+                        f"Your ValoraPharma password reset code is {code}. "
+                        f"It expires in {settings.PASSWORD_RESET_CODE_TTL_SECONDS // 60} minutes. "
+                        "If you did not request this, you can ignore this email.",
+                        settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False,
+                    )
+                except Exception:
+                    logger.exception("Password reset email delivery failed")
+                    challenge.delete()
+                else:
+                    PasswordResetChallenge.objects.filter(
+                        user=user, consumed_at__isnull=True,
+                    ).exclude(pk=challenge.pk).update(consumed_at=timezone.now())
+                    token = str(challenge.token)
+        request.session[RESET_SESSION_KEY] = {
+            "account_type": account_type, "email": email, "token": token, "attempts": 0,
+        }
+        messages.success(request, "If an eligible account exists, we have sent a verification code to that email address.")
+        if _usable_challenge(_challenge(request, account_type), account_type, verified=True):
+            return redirect(_reset_route(staff, "new"))
+        return redirect(_reset_route(staff, "verify"))
+    context = flow_context(request, staff)
+    context.update(form=form, back_url=context["login_url"])
+    return render(request, "accounts/password_forgot.html", context)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def password_verify_view(request, staff=False):
+    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
+    flow = _reset_flow(request, account_type)
+    if flow is None:
+        return redirect(_reset_route(staff, "forgot"))
+    challenge = _challenge(request, account_type)
+    if _usable_challenge(challenge, account_type, verified=True):
+        return redirect(_reset_route(staff, "new"))
+    if challenge and not _usable_challenge(challenge, account_type):
+        request.session.pop(RESET_SESSION_KEY, None)
+        messages.error(request, INVALID_CODE_MESSAGE)
+        return redirect(_reset_route(staff, "forgot"))
+    if flow.get("attempts", 0) >= settings.PASSWORD_RESET_MAX_ATTEMPTS:
+        request.session.pop(RESET_SESSION_KEY, None)
+        messages.error(request, INVALID_CODE_MESSAGE)
+        return redirect(_reset_route(staff, "forgot"))
+    form = PasswordResetVerifyForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        if challenge:
+            with transaction.atomic():
+                challenge = PasswordResetChallenge.objects.select_for_update().select_related("user").get(pk=challenge.pk)
+                if _usable_challenge(challenge, account_type) and constant_time_compare(
+                    challenge.code_hash, _code_hash(challenge.token, form.cleaned_data["code"]),
+                ):
+                    challenge.verified_at = timezone.now()
+                    challenge.save(update_fields=["verified_at"])
+                    return redirect(_reset_route(staff, "new"))
+                if _usable_challenge(challenge, account_type):
+                    challenge.attempts += 1
+                    challenge.save(update_fields=["attempts"])
+        else:
+            flow["attempts"] = flow.get("attempts", 0) + 1
+            request.session[RESET_SESSION_KEY] = flow
+        form.add_error("code", INVALID_CODE_MESSAGE)
+    context = flow_context(request, staff)
+    context.update(form=form, back_url=_reset_route(staff, "forgot"))
+    return render(request, "accounts/password_verify.html", context)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def password_new_view(request, staff=False):
+    account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
+    challenge = _challenge(request, account_type)
+    if not _usable_challenge(challenge, account_type, verified=True):
+        request.session.pop(RESET_SESSION_KEY, None)
+        messages.error(request, "Start password recovery again to set a new password.")
+        return redirect(_reset_route(staff, "forgot"))
+    form = PasswordResetNewPasswordForm(
+        request.POST if request.method == "POST" else None, user=challenge.user,
+    )
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            locked = PasswordResetChallenge.objects.select_for_update().select_related("user").get(pk=challenge.pk)
+            if not _usable_challenge(locked, account_type, verified=True):
+                request.session.pop(RESET_SESSION_KEY, None)
+                messages.error(request, "Start password recovery again to set a new password.")
+                return redirect(_reset_route(staff, "forgot"))
+            locked.user.set_password(form.cleaned_data["new_password1"])
+            locked.user.save(update_fields=["password"])
+            locked.consumed_at = timezone.now()
+            locked.save(update_fields=["consumed_at"])
+            PasswordResetChallenge.objects.filter(
+                user=locked.user, consumed_at__isnull=True,
+            ).exclude(pk=locked.pk).update(consumed_at=timezone.now())
+        logout(request)
+        messages.success(request, "Your password has been changed. Sign in with your new password.")
+        return redirect("accounts:staff_login" if staff else "accounts:login")
+    context = flow_context(request, staff)
+    context.update(form=form, back_url=_reset_route(staff, "forgot"))
+    return render(request, "accounts/password_new.html", context)
+
+
+@never_cache
+@require_GET
+def terms_view(request):
+    staff = request.GET.get("from") == "staff"
+    context = flow_context(request, staff)
+    context.update(form=None, back_url=context["register_url"], terms_version=TERMS_VERSION)
+    return render(request, "accounts/terms.html", context)
