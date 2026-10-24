@@ -1,0 +1,210 @@
+{% extends "pharmacist/base.html" %}
+{% load static %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/prescription_review.css' %}">
+<link rel="stylesheet" href="{% static 'pharmacist/css/document_preview.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content">
+  <div class="container vp-prescription-detail">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="{% url 'pharmacist:prescription_queue' %}">
+        Prescriptions
+      </a>
+      <span aria-hidden="true"> / </span>
+      <span aria-current="page">RX-{{ prescription.pk }}</span>
+    </nav>
+
+    <div class="title-row">
+      <h1>Prescription review</h1>
+      <span class="badge {{ prescription.status }}">
+        {{ prescription.get_status_display }}
+      </span>
+    </div>
+
+    {% for message in messages %}
+      <p class="vp-review-message" role="status">{{ message }}</p>
+    {% endfor %}
+
+    {% if form.non_field_errors %}
+      <div class="vp-review-errors" role="alert">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="grid">
+      <section class="card vp-document-card" aria-labelledby="document-heading">
+        <h2 id="document-heading">Prescription document</h2>
+
+        <p>
+          <strong>Reference:</strong> RX-{{ prescription.pk }}<br>
+          <strong>Submitted:</strong>
+          <time datetime="{{ prescription.uploaded_at|date:'c' }}">
+            {{ prescription.uploaded_at|date:"d M Y, H:i" }}
+            (UTC+04:00)
+          </time>
+        </p>
+
+        {% if prescription.document %}
+          {% url 'pharmacist:prescription_document_preview' prescription.pk as preview_url %}
+
+          <div class="vp-document-viewer">
+            {% if document_extension == ".pdf" %}
+              <iframe
+                class="vp-document-pdf"
+                src="{{ preview_url }}"
+                title="Prescription RX-{{ prescription.pk }} PDF document">
+              </iframe>
+            {% elif document_extension == ".jpg" or document_extension == ".jpeg" or document_extension == ".png" %}
+              <img
+                class="vp-document-image"
+                src="{{ preview_url }}"
+                alt="Uploaded prescription RX-{{ prescription.pk }}">
+            {% else %}
+              <p class="vp-document-help">
+                A preview is not available for this document format.
+              </p>
+            {% endif %}
+          </div>
+
+          <div class="vp-document-actions">
+            <a
+              class="vp-document-link"
+              href="{{ preview_url }}"
+              target="_blank"
+              rel="noopener noreferrer">
+              Open in new tab
+            </a>
+
+            <a
+              class="vp-document-link vp-document-link-secondary"
+              href="{% url 'pharmacist:prescription_document' prescription.pk %}">
+              Download document
+            </a>
+          </div>
+
+          <p class="vp-document-help">
+            If the preview does not appear, open the document in a new
+            tab or download it. Inspect the document before making a decision.
+          </p>
+        {% else %}
+          <p class="vp-review-errors">
+            No document is available for this prescription.
+          </p>
+        {% endif %}
+      </section>
+
+      <div class="right">
+        <section class="card">
+          <h2>Associated order</h2>
+          {% if prescription.order %}
+            <p><a href="{% url 'pharmacist:order_record' prescription.order.pk %}">{{ prescription.order }}</a> · {{ prescription.order.get_status_display }}</p>
+            <ul>{% for item in prescription.order.items.all %}<li>{{ item.medicine_name }} × {{ item.quantity }}</li>{% endfor %}</ul>
+          {% else %}<p>No order has been linked to this prescription.</p>{% endif %}
+        </section>
+        <section class="card" aria-labelledby="customer-heading">
+          <h2 id="customer-heading">Customer details</h2>
+
+          <dl class="vp-review-details">
+            <dt>Name</dt>
+            <dd>
+              {% firstof prescription.customer.get_full_name prescription.customer.email %}
+            </dd>
+
+            <dt>Email</dt>
+            <dd>{{ prescription.customer.email }}</dd>
+
+            <dt>Phone</dt>
+            <dd>{{ prescription.customer.phone|default:"Not provided" }}</dd>
+          </dl>
+        </section>
+
+        {% if prescription.status == "pending" %}
+          <section class="card decision" aria-labelledby="decision-heading">
+            <h2 id="decision-heading">Decision</h2>
+
+            <form
+              method="post"
+              action="{% url 'pharmacist:prescription_detail' prescription.pk %}">
+              {% csrf_token %}
+
+              {% if form.decision.errors %}
+                <div class="vp-review-errors" role="alert">
+                  {{ form.decision.errors }}
+                </div>
+              {% endif %}
+
+              <label for="{{ form.rejection_reason.id_for_label }}">
+                Rejection reason
+              </label>
+
+              <p class="vp-document-help">
+                Required when rejecting a prescription.
+              </p>
+
+              {{ form.rejection_reason }}
+
+              {% if form.rejection_reason.errors %}
+                <div class="vp-review-errors" role="alert">
+                  {{ form.rejection_reason.errors }}
+                </div>
+              {% endif %}
+
+              <div class="actions">
+                <button
+                  class="btn approve"
+                  type="submit"
+                  name="decision"
+                  value="approved">
+                  Approve prescription
+                </button>
+
+                <button
+                  class="btn reject"
+                  type="submit"
+                  name="decision"
+                  value="rejected">
+                  Reject prescription
+                </button>
+              </div>
+            </form>
+          </section>
+        {% else %}
+          <section class="card" aria-labelledby="review-heading">
+            <h2 id="review-heading">Review record</h2>
+
+            <dl class="vp-review-details">
+              <dt>Decision</dt>
+              <dd>{{ prescription.get_status_display }}</dd>
+
+              <dt>Reviewed by</dt>
+              <dd>
+                {% firstof prescription.reviewed_by.get_full_name prescription.reviewed_by.email %}
+              </dd>
+
+              <dt>Reviewed at</dt>
+              <dd>
+                <time datetime="{{ prescription.reviewed_at|date:'c' }}">
+                  {{ prescription.reviewed_at|date:"d M Y, H:i" }}
+                  (UTC+04:00)
+                </time>
+              </dd>
+
+              {% if prescription.rejection_reason %}
+                <dt>Rejection reason</dt>
+                <dd>{{ prescription.rejection_reason|linebreaksbr }}</dd>
+              {% endif %}
+            </dl>
+
+            <p class="vp-document-help">
+              This review has been recorded.
+            </p>
+          </section>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

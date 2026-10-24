@@ -1,0 +1,164 @@
+.vp-queue-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px auto;
+  gap: 16px;
+  align-items: start;
+  margin: 24px 0 16px;
+  padding: 20px;
+  border: 1px solid #dce3ed;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.vp-filter-field {
+  min-width: 0;
+}
+
+.vp-filter-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.vp-filter-field input,
+.vp-filter-field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.vp-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 28px;
+}
+
+.vp-filter-button,
+.vp-page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.vp-filter-button:hover,
+.vp-page-link:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.vp-filter-reset {
+  padding: 10px 4px;
+  color: #334155;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.vp-queue-filters :focus-visible,
+.vp-queue-pagination a:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+.vp-filter-error {
+  margin-top: 8px;
+  color: #991b1b;
+  font-size: 0.9rem;
+}
+
+.vp-filter-error ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.vp-result-summary {
+  margin: 16px 0;
+  color: #475569;
+}
+
+.vp-customer-email,
+.vp-timezone {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.vp-prescription-queue .badge.vp-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.vp-prescription-queue .badge.vp-status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vp-prescription-queue .badge.vp-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.vp-prescription-queue .vp-queue-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.vp-queue-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.vp-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 900px) {
+  .vp-queue-filters {
+    grid-template-columns: minmax(0, 1fr) 180px;
+  }
+
+  .vp-filter-actions {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .vp-queue-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
