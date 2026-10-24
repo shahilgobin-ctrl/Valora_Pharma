@@ -1,24 +1,249 @@
 {% extends "pharmacist/base.html" %}
 {% load static %}
-{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">{% endblock %}
-{% block content %}<main id="main-content" class="wf">
-{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
 
-<p><a href="{% url 'pharmacist:order_queue' %}?kind=all&amp;status=all">All orders</a></p><h1>{{ order }} <span class="badge">{{ order.get_status_display }}</span></h1>
-{% for error in errors %}<p class="error" role="alert">{{ error }}</p>{% endfor %}
-<div class="columns"><section class="panel"><h2>Order details</h2><p>{{ order.get_kind_display }} · {{ order.created_at|date:'d M Y H:i' }}</p>
-<p>Customer: {% firstof order.contact_name order.customer.email 'Walk-in customer' %}<br>Phone: {{ order.contact_phone|default:'Not provided' }}<br>Pickup: {{ order.pickup_time|default:'Not specified' }}</p>
-{% if order.prescription_id %}<p><a href="{% url 'pharmacist:prescription_detail' order.prescription_id %}">Prescription RX-{{ order.prescription_id }}</a> — {{ order.prescription.get_status_display }}</p>{% endif %}
-</section><section class="panel"><h2>Items</h2><div class="table-wrap"><table><thead><tr><th>Medicine</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead><tbody>
-{% for item in order.items.all %}<tr><td>{{ item.medicine_name }}{% if item.prescription_required %}<br><small>Prescription required</small>{% endif %}</td><td>{{ item.quantity }}</td><td>Rs {{ item.unit_price }}</td><td>Rs {{ item.line_total }}</td></tr>{% endfor %}</tbody></table></div><p><strong>Total: Rs {{ order.total_amount }}</strong></p></section></div>
-{% if order.status == 'completed' %}<p><a class="button" href="{% url 'pharmacist:receipt' order.pk %}">View receipt</a></p>
-{% else %}
-{% if next_status %}<form method="post" class="panel actions">{% csrf_token %}<input type="hidden" name="action" value="advance"><input type="hidden" name="target" value="{{ next_status }}"><button class="button">Mark {{ next_label }}</button><span>Prescription approval is checked before processing.</span></form>{% endif %}
-<section class="panel"><h2>Batch allocation</h2><p>Choose a matching batch for each medicine. Split a quantity across batches using additional rows. Quantities must match the order exactly.</p><p class="muted">Selections do not reserve stock. Availability and expiry are checked again when completing the order.</p>
-<form method="post">{% csrf_token %}<input type="hidden" name="action" value="allocate">{{ formset.management_form }}{{ formset.non_form_errors }}
-<div data-formset="allocations">{% for line in formset %}<div class="form-row">{{ line.as_p }}</div>{% endfor %}</div>
-<template id="allocations-empty"><div class="form-row">{{ formset.empty_form.as_p }}</div></template>
-<div class="actions"><button type="button" class="button secondary" data-add-row="allocations">Add batch row</button><button class="button">Save allocations</button></div></form></section>
-{% if can_complete %}<section class="panel"><h2>Payment and completion</h2><p>Card payments are simulated for this university project. No card details are collected.</p><form method="post">{% csrf_token %}<input type="hidden" name="action" value="complete">{{ payment_form.as_p }}<button class="button">Record payment and complete</button></form></section>{% endif %}
-{% endif %}
-</main>{% endblock %}{% block page_scripts %}<script src="{% static 'pharmacist/js/workflows.js' %}" defer></script>{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="wf">
+
+  {% for message in messages %}
+    <p class="notice" role="status">{{ message }}</p>
+  {% endfor %}
+
+  <p>
+    <a href="{% url 'pharmacist:order_queue' %}?kind=all&amp;status=all">
+      All orders
+    </a>
+  </p>
+
+  <h1>
+    {{ order }}
+    <span class="badge">{{ order.get_status_display }}</span>
+  </h1>
+
+  {% for error in errors %}
+    <p class="error" role="alert">{{ error }}</p>
+  {% endfor %}
+
+  {% if order.prescription_id %}
+    <section
+      class="rx-status-box rx-status-box--{{ order.prescription.status }}"
+      aria-labelledby="rx-status-heading">
+
+      <h2 id="rx-status-heading">
+        Prescription RX-{{ order.prescription_id }}
+        — {{ order.prescription.get_status_display }}
+      </h2>
+
+      {% if order.prescription.status == "pending" %}
+        <p>
+          This prescription is awaiting review.
+          Review and approve it before processing this order.
+        </p>
+
+      {% elif order.prescription.status == "approved" %}
+        <p>
+          This prescription has been approved.
+          Continue with the order's remaining processing steps.
+        </p>
+
+      {% elif order.prescription.status == "rejected" %}
+        <p>
+          <strong>Order processing is blocked.</strong>
+          The linked prescription has been rejected.
+        </p>
+
+        <p class="rx-rejection-reason">
+          <strong>Reason:</strong>
+          {{ order.prescription.rejection_reason }}
+        </p>
+      {% endif %}
+
+      <a
+        class="rx-status-link"
+        href="{% url 'pharmacist:prescription_detail' order.prescription_id %}">
+        {% if order.prescription.status == "pending" %}
+          Review prescription
+        {% else %}
+          View prescription review
+        {% endif %}
+      </a>
+    </section>
+  {% endif %}
+
+  <div class="columns">
+    <section class="panel">
+      <h2>Order details</h2>
+
+      <p>
+        {{ order.get_kind_display }}
+        · {{ order.created_at|date:"d M Y H:i" }}
+      </p>
+
+      <p>
+        Customer:
+        {% firstof order.contact_name order.customer.email "Walk-in customer" %}
+        <br>
+        Phone: {{ order.contact_phone|default:"Not provided" }}
+        <br>
+        Pickup: {{ order.pickup_time|default:"Not specified" }}
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Items</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Medicine</th>
+              <th scope="col">Qty</th>
+              <th scope="col">Unit price</th>
+              <th scope="col">Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for item in order.items.all %}
+              <tr>
+                <td>
+                  {{ item.medicine_name }}
+                  {% if item.prescription_required %}
+                    <br>
+                    <small>Prescription required</small>
+                  {% endif %}
+                </td>
+                <td>{{ item.quantity }}</td>
+                <td>Rs {{ item.unit_price }}</td>
+                <td>Rs {{ item.line_total }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Total: Rs {{ order.total_amount }}</strong>
+      </p>
+    </section>
+  </div>
+
+  {% if order.status == "completed" %}
+
+    <p>
+      <a
+        class="button"
+        href="{% url 'pharmacist:receipt' order.pk %}">
+        View receipt
+      </a>
+    </p>
+
+  {% else %}
+
+    {% if next_status %}
+      <form method="post" class="panel actions">
+        {% csrf_token %}
+
+        <input type="hidden" name="action" value="advance">
+        <input type="hidden" name="target" value="{{ next_status }}">
+
+        <button class="button" type="submit">
+          Mark {{ next_label }}
+        </button>
+
+        {% if order.prescription_id %}
+          <span>
+            Prescription approval is checked before processing.
+          </span>
+        {% endif %}
+      </form>
+    {% endif %}
+
+    <section class="panel">
+      <h2>Batch allocation</h2>
+
+      <p>
+        Choose a matching batch for each medicine.
+        Split a quantity across batches using additional rows.
+        Quantities must match the order exactly.
+      </p>
+
+      <p class="muted">
+        Selections do not reserve stock.
+        Availability and expiry are checked again when completing the order.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <input type="hidden" name="action" value="allocate">
+
+        {{ formset.management_form }}
+        {{ formset.non_form_errors }}
+
+        <div data-formset="allocations">
+          {% for line in formset %}
+            <div class="form-row">
+              {{ line.as_p }}
+            </div>
+          {% endfor %}
+        </div>
+
+        <template id="allocations-empty">
+          <div class="form-row">
+            {{ formset.empty_form.as_p }}
+          </div>
+        </template>
+
+        <div class="actions">
+          <button
+            type="button"
+            class="button secondary"
+            data-add-row="allocations">
+            Add batch row
+          </button>
+
+          <button class="button" type="submit">
+            Save allocations
+          </button>
+        </div>
+      </form>
+    </section>
+
+    {% if can_complete %}
+      <section class="panel">
+        <h2>Payment and completion</h2>
+
+        <p>
+          Card payments are simulated for this university project.
+          No card details are collected.
+        </p>
+
+        <form method="post">
+          {% csrf_token %}
+
+          <input type="hidden" name="action" value="complete">
+
+          {{ payment_form.as_p }}
+
+          <button class="button" type="submit">
+            Record payment and complete
+          </button>
+        </form>
+      </section>
+    {% endif %}
+
+  {% endif %}
+
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+<script
+  src="{% static 'pharmacist/js/workflows.js' %}"
+  defer>
+</script>
+{% endblock %}
