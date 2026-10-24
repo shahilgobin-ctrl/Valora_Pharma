@@ -1,20 +1,329 @@
+
 {% extends "pharmacist/base.html" %}
 {% load static %}
-{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">{% endblock %}
-{% block content %}<main id="main-content" class="wf">
-{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
 
-<h1>Pharmacist dashboard</h1><p class="muted">Today's activity and work awaiting your attention.</p>
-<div class="stats">
-<a class="panel" href="{% url 'pharmacist:prescription_queue' %}"><strong>{{ pending_prescriptions }}</strong>Pending prescriptions</a>
-<a class="panel" href="{% url 'pharmacist:order_queue' %}"><strong>{{ open_orders }}</strong>Open online orders</a>
-<div class="panel"><strong>{{ sales_today }}</strong>Orders completed today</div>
-<div class="panel"><strong>Rs {{ revenue_today|floatformat:2 }}</strong>Payments recorded today</div>
-</div>
-<p><a class="button" href="{% url 'pharmacist:sale_form' %}">New walk-in sale</a></p>
-<div class="columns"><section class="panel"><h2>Recent orders</h2>
-<ul>{% for order in recent_orders %}<li><a href="{% url 'pharmacist:order_record' order.pk %}">{{ order }}</a> — {{ order.get_status_display }} · Rs {{ order.total_amount }}</li>{% empty %}<li>No orders yet.</li>{% endfor %}</ul>
-</section><section class="panel"><h2>Low available stock</h2><p class="muted">Excludes batches expiring today or earlier.</p>
-<ul>{% for medicine in low_stock %}<li>{{ medicine }} — {{ medicine.available }} available (reorder level {{ medicine.reorder_level }})</li>{% empty %}<li>No low-stock medicines.</li>{% endfor %}</ul>
-</section></div>
-</main>{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="pd-dashboard">
+  <div class="pd-container">
+
+    <!-- Page Header -->
+    <header class="pd-header">
+      <div class="pd-heading">
+        <p class="pd-date">{% now "l, j F Y" %}</p>
+
+        <h1>
+          Welcome back,
+          {% if request.user.first_name %}
+            {{ request.user.first_name }}
+          {% else %}
+            Pharmacist
+          {% endif %}
+        </h1>
+
+        <p class="pd-subtitle">
+          Here's what's happening in your pharmacy today.
+        </p>
+      </div>
+
+      <a href="{% url 'pharmacist:sale_form' %}"
+         class="pd-primary-btn">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="8" cy="21" r="1"/>
+          <circle cx="19" cy="21" r="1"/>
+          <path d="M2 2h2l2.7 12.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6L22 7H5"/>
+        </svg>
+        New walk-in sale
+      </a>
+    </header>
+
+    <!-- Django Messages -->
+    {% if messages %}
+    <div class="pd-messages">
+      {% for message in messages %}
+      <div class="pd-message" role="status">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Statistics -->
+    <section class="pd-stats" aria-label="Pharmacy overview">
+
+      <a href="{% url 'pharmacist:prescription_queue' %}"
+         class="pd-card pd-stat">
+
+        <div class="pd-stat-content">
+          <span class="pd-stat-label">
+            Pending prescriptions
+          </span>
+
+          <strong class="pd-stat-number">
+            {{ pending_prescriptions }}
+          </strong>
+
+          <span class="pd-stat-description">
+            Awaiting pharmacist review
+          </span>
+        </div>
+
+        <span class="pd-stat-icon pd-blue">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M8 13h8M8 17h8"/>
+          </svg>
+        </span>
+      </a>
+
+      <a href="{% url 'pharmacist:order_queue' %}"
+         class="pd-card pd-stat">
+
+        <div class="pd-stat-content">
+          <span class="pd-stat-label">
+            Open online orders
+          </span>
+
+          <strong class="pd-stat-number">
+            {{ open_orders }}
+          </strong>
+
+          <span class="pd-stat-description">
+            Orders requiring attention
+          </span>
+        </div>
+
+        <span class="pd-stat-icon pd-amber">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m12 2 9 5-9 5-9-5 9-5Z"/>
+            <path d="M3 7v10l9 5 9-5V7"/>
+            <path d="M12 12v10"/>
+          </svg>
+        </span>
+      </a>
+
+      <div class="pd-card pd-stat">
+        <div class="pd-stat-content">
+          <span class="pd-stat-label">
+            Completed today
+          </span>
+
+          <strong class="pd-stat-number">
+            {{ sales_today }}
+          </strong>
+
+          <span class="pd-stat-description">
+            Completed orders and sales
+          </span>
+        </div>
+
+        <span class="pd-stat-icon pd-green">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m7 12 3.5 3.5L17 9"/>
+          </svg>
+        </span>
+      </div>
+
+      <div class="pd-card pd-stat">
+        <div class="pd-stat-content">
+          <span class="pd-stat-label">
+            Payments today
+          </span>
+
+          <strong class="pd-stat-number pd-money">
+            Rs {{ revenue_today|floatformat:2 }}
+          </strong>
+
+          <span class="pd-stat-description">
+            Total payments recorded
+          </span>
+        </div>
+
+        <span class="pd-stat-icon pd-purple">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 10h20"/>
+            <path d="M6 15h4"/>
+          </svg>
+        </span>
+      </div>
+
+    </section>
+
+    <!-- Recent Orders and Inventory -->
+    <div class="pd-content-grid">
+
+      <!-- Recent Orders -->
+      <section class="pd-card pd-panel">
+        <div class="pd-panel-header">
+          <div>
+            <h2>Recent orders</h2>
+            <p>Latest pharmacy transactions</p>
+          </div>
+
+          <a href="{% url 'pharmacist:order_queue' %}"
+             class="pd-view-all">
+            View all <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <div class="pd-order-list">
+
+          {% for order in recent_orders %}
+          <a href="{% url 'pharmacist:order_record' order.pk %}"
+             class="pd-order-item">
+
+            <span class="pd-order-avatar" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M20 21a8 8 0 0 0-16 0"/>
+                <circle cx="12" cy="8" r="4"/>
+              </svg>
+            </span>
+
+            <span class="pd-order-info">
+              <strong>
+                {% if order.contact_name %}
+                  {{ order.contact_name }}
+                {% elif order.customer %}
+                  {% firstof order.customer.get_full_name order.customer.email "Customer" %}
+                {% else %}
+                  Walk-in customer
+                {% endif %}
+              </strong>
+
+              <small>
+                ORD-{{ order.pk }}
+                <span aria-hidden="true">·</span>
+                {{ order.get_kind_display }}
+              </small>
+            </span>
+
+            <span class="pd-order-end">
+              <strong>
+                Rs {{ order.total_amount|floatformat:2 }}
+              </strong>
+
+              <span class="pd-order-status">
+                {{ order.get_status_display }}
+              </span>
+            </span>
+
+            <span class="pd-arrow" aria-hidden="true">›</span>
+          </a>
+
+          {% empty %}
+          <div class="pd-empty">
+            <p>No orders have been recorded yet.</p>
+          </div>
+          {% endfor %}
+
+        </div>
+      </section>
+
+      <!-- Low Stock -->
+      <section class="pd-card pd-panel">
+        <div class="pd-panel-header">
+          <div>
+            <h2>Inventory alerts</h2>
+            <p>Medicines requiring attention</p>
+          </div>
+        </div>
+
+        <div class="pd-inventory-list">
+
+          {% for medicine in low_stock %}
+          <div class="pd-inventory-item">
+            <span class="pd-inventory-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="m10.5 20.5 10-10a5 5 0 0 0-7-7l-10 10a5 5 0 0 0 7 7Z"/>
+                <path d="m8.5 8.5 7 7"/>
+              </svg>
+            </span>
+
+            <div class="pd-inventory-info">
+              <strong>{{ medicine }}</strong>
+
+              <small>
+                Reorder level: {{ medicine.reorder_level }}
+              </small>
+            </div>
+
+            <div class="pd-inventory-quantity">
+              <strong>{{ medicine.available }}</strong>
+              <span>Available</span>
+            </div>
+          </div>
+
+          {% empty %}
+          <div class="pd-empty pd-empty-success">
+            <span class="pd-success-icon" aria-hidden="true">✓</span>
+            <strong>No low-stock alerts</strong>
+            <p>
+              All active medicines are above their
+              reorder levels.
+            </p>
+          </div>
+          {% endfor %}
+
+        </div>
+
+        <p class="pd-inventory-note">
+          Available stock excludes expired batches.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- Quick Actions -->
+    <section class="pd-card pd-quick-actions">
+
+      <div class="pd-panel-header">
+        <div>
+          <h2>Quick actions</h2>
+          <p>Frequently used pharmacist workflows</p>
+        </div>
+      </div>
+
+      <div class="pd-actions-grid">
+
+        <a href="{% url 'pharmacist:prescription_queue' %}"
+           class="pd-action">
+          <span class="pd-action-icon pd-blue">Rx</span>
+          <span>
+            <strong>Review prescriptions</strong>
+            <small>Check pending documents</small>
+          </span>
+          <span class="pd-action-arrow" aria-hidden="true">→</span>
+        </a>
+
+        <a href="{% url 'pharmacist:order_queue' %}"
+           class="pd-action">
+          <span class="pd-action-icon pd-amber">◫</span>
+          <span>
+            <strong>Manage orders</strong>
+            <small>Process customer orders</small>
+          </span>
+          <span class="pd-action-arrow" aria-hidden="true">→</span>
+        </a>
+
+        <a href="{% url 'pharmacist:sale_form' %}"
+           class="pd-action">
+          <span class="pd-action-icon pd-green">+</span>
+          <span>
+            <strong>New walk-in sale</strong>
+            <small>Record a pharmacy sale</small>
+          </span>
+          <span class="pd-action-arrow" aria-hidden="true">→</span>
+        </a>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+{% endblock %}

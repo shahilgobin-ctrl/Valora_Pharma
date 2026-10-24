@@ -16,6 +16,7 @@ body.vp-body { display: block; margin: 0; border: 0; background: #f6f8fb; color:
 .vp-skip { position: fixed; left: 12px; top: -100px; z-index: 999; padding: 12px; background: white; color: #1f5a96; }
 .vp-skip:focus { top: 12px; }
 :focus-visible { outline: 3px solid #1f5a96; outline-offset: 3px; }
+
 @media (max-width: 800px) {
   .vp-shell { grid-template-columns: minmax(0, 1fr); }
   .vp-sidebar { position: static; height: auto; padding: 16px; border-right: 0; border-bottom: 1px solid #dce3eb; }
@@ -25,7 +26,359 @@ body.vp-body { display: block; margin: 0; border: 0; background: #f6f8fb; color:
   .vp-workspace > main { padding: 24px 14px 48px; }
   .vp-preview { padding: 12px 14px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-@media print { .vp-sidebar, .vp-preview, .vp-skip, .vp-no-print { display: none !important; } .vp-shell { display: block; } }
+
+@media print {
+  .vp-sidebar, .vp-preview, .vp-skip, .vp-no-print { display: none !important; }
+  .vp-shell { display: block; }
+}
+
+/* Consistent sidebar logout control across all pharmacist pages. */
+.vp-sidebar form {
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+.vp-sidebar .vp-signout {
+  display: block;
+  width: 100%;
+  padding: 13px 12px;
+  margin: 0;
+
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+
+  color: #445465;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: normal;
+  text-align: left;
+
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+
+.vp-sidebar .vp-signout:hover {
+  background: #eaf2fa;
+  color: #1f5a96;
+}
+
+.vp-sidebar .vp-signout:focus-visible {
+  outline: 3px solid #1f5a96;
+  outline-offset: 3px;
+}
+
+
+
+/* Bottom-aligned sidebar logout */
+
+.vp-sidebar {
+    display: flex;
+    flex-direction: column;
+}
+
+.vp-sidebar .vp-logout-form {
+    margin-top: auto;
+    padding-top: 20px;
+    width: 100%;
+}
+
+.vp-sidebar .vp-signout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 18px;
+
+    background-color: #245ac5;
+    color: #ffffff;
+
+    border: 1px solid #245ac5;
+    border-radius: 10px;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.vp-sidebar .vp-signout:hover {
+    background-color: #1b469d;
+    border-color: #1b469d;
+    color: #ffffff;
+}
+
+.vp-sidebar .vp-signout:focus-visible {
+    outline: 3px solid #86b2ff;
+    outline-offset: 3px;
+}
+
+@media (max-width: 800px) {
+    .vp-sidebar .vp-logout-form {
+        margin-top: 20px;
+        padding-top: 12px;
+        border-top: 1px solid #e4eaf2;
+    }
+}
+
+
+/* Keep the pharmacist sidebar fixed to the viewport */
+
+@media (min-width: 801px) {
+    .vp-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .vp-sidebar .vp-logout-form {
+        margin-top: auto;
+        flex-shrink: 0;
+        padding-top: 20px;
+    }
+}
+
+
+
+/* ==========================================
+   VALORA — UPDATED PHARMACIST SIDEBAR
+   ========================================== */
+
+.vp-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 256px;
+    padding: 24px 12px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    background: #ffffff;
+    border-right: 1px solid #e5e8ee;
+}
+
+/* Branding */
+
+.vp-brand-new {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    margin-bottom: 32px;
+    color: #0f172a;
+    text-decoration: none;
+}
+
+.vp-brand-logo {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: #17508c;
+    border-radius: 10px;
+    color: #ffffff;
+    transition: transform 0.3s ease;
+}
+
+.vp-brand-new:hover .vp-brand-logo {
+    transform: rotate(-10deg) scale(1.05);
+}
+
+.vp-brand-logo svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.vp-brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vp-brand-text strong {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.vp-brand-text small {
+    font-size: 12px;
+    font-weight: 400;
+    color: #64748b;
+}
+
+/* Navigation */
+
+.vp-sidebar .vp-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vp-sidebar .vp-nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.vp-sidebar .vp-nav a:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    transform: translateX(3px);
+}
+
+.vp-sidebar .vp-nav a[aria-current="page"] {
+    background: #e8f1fb;
+    color: #17508c;
+    font-weight: 600;
+}
+
+.vp-sidebar .vp-nav a[aria-current="page"]:hover {
+    transform: none;
+}
+
+.vp-nav-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.vp-nav-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Bottom Sign Out */
+
+.vp-sidebar .vp-logout-form {
+    margin-top: auto;
+    padding-top: 24px;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.vp-sidebar .vp-signout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    width: 100%;
+    min-height: 46px;
+    padding: 12px 18px;
+    margin: 0;
+
+    background: #17508c;
+    color: #ffffff;
+    border: 1px solid #17508c;
+    border-radius: 10px;
+
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: background 0.2s ease;
+}
+
+.vp-sidebar .vp-signout:hover {
+    background: #0f3f72;
+    color: #ffffff;
+    border-color: #0f3f72;
+}
+
+.vp-sidebar .vp-signout svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.vp-sidebar .vp-signout:focus-visible {
+    outline: 3px solid #86b2ff;
+    outline-offset: 3px;
+}
+
+/* Match sidebar width to application layout */
+
+@media (min-width: 801px) {
+    .vp-shell {
+        grid-template-columns: 256px minmax(0, 1fr);
+    }
+}
+
+/* Mobile */
+
+@media (max-width: 800px) {
+    .vp-sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        overflow: visible;
+        padding: 16px;
+    }
+
+    .vp-sidebar .vp-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .vp-sidebar .vp-nav a {
+        padding: 11px 10px;
+        font-size: 13px;
+    }
+
+    .vp-sidebar .vp-logout-form {
+        margin-top: 18px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e8ee;
+    }
+}
+
+@media (max-width: 420px) {
+    .vp-sidebar .vp-nav {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
