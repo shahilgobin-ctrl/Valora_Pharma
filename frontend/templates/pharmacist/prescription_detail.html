@@ -97,29 +97,92 @@
       </section>
 
       <div class="right">
-        <section class="card">
-          <h2>Associated order</h2>
-          {% if prescription.order %}
-            <p><a href="{% url 'pharmacist:order_record' prescription.order.pk %}">{{ prescription.order }}</a> · {{ prescription.order.get_status_display }}</p>
-            <ul>{% for item in prescription.order.items.all %}<li>{{ item.medicine_name }} × {{ item.quantity }}</li>{% endfor %}</ul>
-          {% else %}<p>No order has been linked to this prescription.</p>{% endif %}
-        </section>
-        <section class="card" aria-labelledby="customer-heading">
-          <h2 id="customer-heading">Customer details</h2>
+        
+        <!-- Customer and Associated Order -->
+        <div class="vp-review-info-grid">
 
-          <dl class="vp-review-details">
-            <dt>Name</dt>
-            <dd>
-              {% firstof prescription.customer.get_full_name prescription.customer.email %}
-            </dd>
+          <!-- Customer Card -->
+          <section class="card vp-review-info-card"
+                  aria-labelledby="customer-heading">
 
-            <dt>Email</dt>
-            <dd>{{ prescription.customer.email }}</dd>
+            <h2 id="customer-heading" class="vp-info-heading">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>
+              </svg>
+              Customer
+            </h2>
 
-            <dt>Phone</dt>
-            <dd>{{ prescription.customer.phone|default:"Not provided" }}</dd>
-          </dl>
-        </section>
+            <dl class="vp-review-details">
+              <dt>Name</dt>
+              <dd>
+                {% firstof prescription.customer.get_full_name prescription.customer.email %}
+              </dd>
+
+              <dt>Email</dt>
+              <dd>{{ prescription.customer.email }}</dd>
+
+              <dt>Phone</dt>
+              <dd>{{ prescription.customer.phone|default:"Not provided" }}</dd>
+
+              <dt>Status</dt>
+              <dd>{{ prescription.get_status_display }}</dd>
+            </dl>
+          </section>
+
+          <!-- Associated Order Card -->
+          <section class="card vp-review-info-card"
+                  aria-labelledby="order-heading">
+
+            <h2 id="order-heading" class="vp-info-heading">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m12 2 9 5-9 5-9-5Z"/>
+                <path d="M3 7v10l9 5 9-5V7"/>
+                <path d="M12 12v10"/>
+              </svg>
+              Associated order
+            </h2>
+
+            {% if prescription.order %}
+              <dl class="vp-review-details">
+
+                <dt>Order</dt>
+                <dd>
+                  <a href="{% url 'pharmacist:order_record' prescription.order.pk %}">
+                    {{ prescription.order }}
+                  </a>
+                </dd>
+
+                <dt>Placed</dt>
+                <dd>{{ prescription.order.created_at|date:"d M Y, H:i" }}</dd>
+
+                <dt>Status</dt>
+                <dd>{{ prescription.order.get_status_display }}</dd>
+
+                <dt>Total</dt>
+                <dd>Rs {{ prescription.order.total_amount|floatformat:2 }}</dd>
+
+                <dt>Items</dt>
+                <dd>
+                  {% for item in prescription.order.items.all %}
+                    <div class="vp-order-medicine">
+                      {{ item.medicine_name }} × {{ item.quantity }}
+                    </div>
+                  {% empty %}
+                    No items recorded.
+                  {% endfor %}
+                </dd>
+
+              </dl>
+            {% else %}
+              <p class="vp-info-empty">
+                No order has been linked to this prescription.
+              </p>
+            {% endif %}
+
+          </section>
+
+        </div>
 
         {% if prescription.status == "pending" %}
           <section class="card decision" aria-labelledby="decision-heading">

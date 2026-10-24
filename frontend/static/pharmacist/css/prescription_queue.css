@@ -177,3 +177,64 @@
   }
 
 .export-style-0 { position:absolute;left:-9999px }
+
+
+/* ==========================================
+   PRESCRIPTION QUEUE — REVIEW BUTTON
+   ========================================== */
+
+.vp-prescription-queue th.vp-review-column,
+.vp-prescription-queue td.vp-review-column {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.vp-prescription-queue .vp-review-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 86px;
+    min-height: 37px;
+    padding: 8px 17px;
+
+    background: #1b5a9b;
+    color: #ffffff;
+
+    border: 1px solid #1b5a9b;
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.2s ease;
+}
+
+.vp-prescription-queue .vp-review-btn:hover {
+    background: #144a82;
+    border-color: #144a82;
+    color: #ffffff;
+    text-decoration: none;
+
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(27, 90, 155, 0.25);
+}
+
+.vp-prescription-queue .vp-review-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.vp-prescription-queue .vp-review-btn:focus-visible {
+    outline: 3px solid rgba(27, 90, 155, 0.35);
+    outline-offset: 3px;
+}

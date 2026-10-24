@@ -87,6 +87,7 @@
               <th scope="col">Customer</th>
               <th scope="col">Submitted</th>
               <th scope="col">Status</th>
+              <th scope="col" class="vp-review-column">Action</th>
             </tr>
           </thead>
 
@@ -120,10 +121,21 @@
                     {{ prescription.get_status_display }}
                   </span>
                 </td>
+
+                <td class="vp-review-column">
+                  <a
+                    href="{% url 'pharmacist:prescription_detail' prescription.pk %}"
+                    class="vp-review-btn"
+                    aria-label="View prescription RX-{{ prescription.pk }}">
+                    Review
+                  </a>
+                </td>
+
+
               </tr>
             {% empty %}
               <tr>
-                <td colspan="4" class="vp-queue-empty">
+                <td colspan="5" class="vp-queue-empty">
                   {% if filter_form.errors %}
                     No results displayed because the filters are invalid.
                   {% elif selected_status == "pending" and not search_query %}
