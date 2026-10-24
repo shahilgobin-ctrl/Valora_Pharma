@@ -1,0 +1,6 @@
+<header class="vp-preview" role="note">
+{% if uses_database %}<strong>Pharmacist workspace</strong>
+{% else %}<strong>Development preview</strong> — Sample data only. Actions are simulations; nothing is saved.
+{% if page_key == 'sale_form' %}<a href="{% url 'pharmacist:sale_receipt' %}">View sample receipt</a>{% endif %}
+{% endif %}
+</header>

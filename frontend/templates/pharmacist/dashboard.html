@@ -1,0 +1,20 @@
+{% extends "pharmacist/base.html" %}
+{% load static %}
+{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">{% endblock %}
+{% block content %}<main id="main-content" class="wf">
+{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+
+<h1>Pharmacist dashboard</h1><p class="muted">Today's activity and work awaiting your attention.</p>
+<div class="stats">
+<a class="panel" href="{% url 'pharmacist:prescription_queue' %}"><strong>{{ pending_prescriptions }}</strong>Pending prescriptions</a>
+<a class="panel" href="{% url 'pharmacist:order_queue' %}"><strong>{{ open_orders }}</strong>Open online orders</a>
+<div class="panel"><strong>{{ sales_today }}</strong>Orders completed today</div>
+<div class="panel"><strong>Rs {{ revenue_today|floatformat:2 }}</strong>Payments recorded today</div>
+</div>
+<p><a class="button" href="{% url 'pharmacist:sale_form' %}">New walk-in sale</a></p>
+<div class="columns"><section class="panel"><h2>Recent orders</h2>
+<ul>{% for order in recent_orders %}<li><a href="{% url 'pharmacist:order_record' order.pk %}">{{ order }}</a> — {{ order.get_status_display }} · Rs {{ order.total_amount }}</li>{% empty %}<li>No orders yet.</li>{% endfor %}</ul>
+</section><section class="panel"><h2>Low available stock</h2><p class="muted">Excludes batches expiring today or earlier.</p>
+<ul>{% for medicine in low_stock %}<li>{{ medicine }} — {{ medicine.available }} available (reorder level {{ medicine.reorder_level }})</li>{% empty %}<li>No low-stock medicines.</li>{% endfor %}</ul>
+</section></div>
+</main>{% endblock %}

@@ -1,0 +1,24 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title }} | Valora Pharma</title>
+  {% block page_styles %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'pharmacist/css/pharmacist.css' %}">
+</head>
+<body class="vp-body" data-review-url="{% url 'pharmacist:prescription_review' %}" data-order-url="{% url 'pharmacist:order_detail' %}">
+  <a class="vp-skip" href="#main-content">Skip to content</a>
+  <div class="vp-shell">
+    {% include "pharmacist/includes/sidebar.html" %}
+    <div class="vp-workspace">
+      {% include "pharmacist/includes/header.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  {% block page_scripts %}{% endblock %}
+  <script src="{% static 'pharmacist/js/pharmacist.js' %}" defer></script>
+</body>
+</html>

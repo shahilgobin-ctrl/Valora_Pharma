@@ -1,0 +1,31 @@
+/* Shared shell loaded after each exported page stylesheet. */
+* { box-sizing: border-box; }
+body.vp-body { display: block; margin: 0; border: 0; background: #f6f8fb; color: #16202a; font-family: Inter, "Segoe UI", sans-serif; }
+.vp-shell { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: 100vh; }
+.vp-sidebar { padding: 28px 16px; background: white; border-right: 1px solid #dce3eb; position: sticky; top: 0; height: 100vh; }
+.vp-brand { display: block; color: #1f5a96; font-size: 22px; font-weight: 750; text-decoration: none; margin-bottom: 32px; }
+.vp-brand span { display: block; color: #667382; font-size: 12px; font-weight: 400; margin-top: 5px; }
+.vp-nav { display: grid; gap: 8px; }
+.vp-nav a { display: block; padding: 13px 12px; border-radius: 9px; color: #445465; text-decoration: none; font-size: 14px; }
+.vp-nav a:hover, .vp-nav a[aria-current="page"] { background: #eaf2fa; color: #1f5a96; }
+.vp-note { margin-top: 32px; font-size: 12px; line-height: 1.6; color: #667382; }
+.vp-workspace { min-width: 0; }
+.vp-preview { margin: 0; padding: 12px 24px; background: #fff3d8; color: #65480b; font-size: 13px; line-height: 1.6; border-bottom: 1px solid #e7d7b0; }
+.vp-preview a { color: #1f5a96; margin-left: 12px; text-decoration: underline; }
+.vp-workspace > main { width: 100%; min-width: 0; margin: 0; }
+.vp-skip { position: fixed; left: 12px; top: -100px; z-index: 999; padding: 12px; background: white; color: #1f5a96; }
+.vp-skip:focus { top: 12px; }
+:focus-visible { outline: 3px solid #1f5a96; outline-offset: 3px; }
+@media (max-width: 800px) {
+  .vp-shell { grid-template-columns: minmax(0, 1fr); }
+  .vp-sidebar { position: static; height: auto; padding: 16px; border-right: 0; border-bottom: 1px solid #dce3eb; }
+  .vp-brand { margin-bottom: 12px; }
+  .vp-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .vp-note { margin-top: 10px; }
+  .vp-workspace > main { padding: 24px 14px 48px; }
+  .vp-preview { padding: 12px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media print { .vp-sidebar, .vp-preview, .vp-skip, .vp-no-print { display: none !important; } .vp-shell { display: block; } }

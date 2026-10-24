@@ -1,0 +1,9 @@
+<aside class="vp-sidebar">
+  <a class="vp-brand" href="{% url 'pharmacist:dashboard' %}">Valora Pharma<span>Pharmacist workspace</span></a>
+  <nav class="vp-nav" aria-label="Pharmacist navigation">
+    {% for item in navigation %}
+    <a href="{% url item.route %}"{% if active_nav == item.key %} aria-current="page"{% endif %}>{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+  <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="vp-signout" type="submit">Sign out</button></form>
+</aside>
