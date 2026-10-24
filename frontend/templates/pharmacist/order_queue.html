@@ -1,12 +1,90 @@
+
 {% extends "pharmacist/base.html" %}
 {% load static %}
-{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">{% endblock %}
-{% block content %}<main id="main-content" class="wf">
-{% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
 
-<h1>Orders</h1><form method="get" class="panel filters">{{ filter_form.as_p }}<button class="button">Apply filters</button><a href="{% url 'pharmacist:order_queue' %}">Reset</a></form>
-<div class="panel table-wrap"><table><caption>{{ page_obj.paginator.count }} matching orders</caption><thead><tr><th>Reference</th><th>Type</th><th>Customer</th><th>Status</th><th>Total</th></tr></thead><tbody>
-{% for order in page_obj %}<tr><td><a href="{% url 'pharmacist:order_record' order.pk %}">{{ order }}</a></td><td>{{ order.get_kind_display }}</td><td>{% firstof order.contact_name order.customer.email 'Walk-in customer' %}</td><td>{{ order.get_status_display }}</td><td>Rs {{ order.total_amount }}</td></tr>{% empty %}<tr><td colspan="5">No matching orders.</td></tr>{% endfor %}
-</tbody></table></div>
-<nav class="actions" aria-label="Order pages">{% if page_obj.has_previous %}<a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>{% if page_obj.has_next %}<a href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">Next</a>{% endif %}</nav>
-</main>{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="wf">
+
+  {% for message in messages %}
+    <p class="notice" role="status">{{ message }}</p>
+  {% endfor %}
+
+  <h1>Orders</h1>
+
+  <form method="get" class="panel filters">
+    {{ filter_form.as_p }}
+
+    <div class="wf-filter-actions">
+      <button class="button" type="submit">
+        Apply filters
+      </button>
+
+      <a class="wf-filter-reset"
+         href="{% url 'pharmacist:order_queue' %}">
+        Reset
+      </a>
+    </div>
+  </form>
+
+  <div class="panel table-wrap">
+    <table>
+      <caption>{{ page_obj.paginator.count }} matching orders</caption>
+
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Type</th>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for order in page_obj %}
+          <tr>
+            <td>
+              <a href="{% url 'pharmacist:order_record' order.pk %}">
+                {{ order }}
+              </a>
+            </td>
+            <td>{{ order.get_kind_display }}</td>
+            <td>
+              {% firstof order.contact_name order.customer.email 'Walk-in customer' %}
+            </td>
+            <td>{{ order.get_status_display }}</td>
+            <td>Rs {{ order.total_amount }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">No matching orders.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <nav class="actions" aria-label="Order pages">
+    {% if page_obj.has_previous %}
+      <a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">
+        Previous
+      </a>
+    {% endif %}
+
+    <span>
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+      <a href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">
+        Next
+      </a>
+    {% endif %}
+  </nav>
+
+</main>
+{% endblock %}
