@@ -1,9 +1,87 @@
+
 <aside class="vp-sidebar">
-  <a class="vp-brand" href="{% url 'pharmacist:dashboard' %}">Valora Pharma<span>Pharmacist workspace</span></a>
+
+  <!-- Valora Branding -->
+  <a class="vp-brand-new" href="{% url 'pharmacist:dashboard' %}">
+    <span class="vp-brand-logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
+        <path d="m8.5 8.5 7 7"/>
+      </svg>
+    </span>
+
+    <span class="vp-brand-text">
+      <strong>Valora</strong>
+      <small>Pharmacist</small>
+    </span>
+  </a>
+
+  <!-- Navigation -->
   <nav class="vp-nav" aria-label="Pharmacist navigation">
     {% for item in navigation %}
-    <a href="{% url item.route %}"{% if active_nav == item.key %} aria-current="page"{% endif %}>{{ item.label }}</a>
+      <a href="{% url item.route %}"
+         {% if active_nav == item.key %}aria-current="page"{% endif %}>
+
+        <span class="vp-nav-icon" aria-hidden="true">
+
+          {% if item.key == "dashboard" %}
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="9" rx="1"/>
+              <rect x="14" y="3" width="7" height="5" rx="1"/>
+              <rect x="14" y="12" width="7" height="9" rx="1"/>
+              <rect x="3" y="16" width="7" height="5" rx="1"/>
+            </svg>
+
+          {% elif item.key == "prescriptions" %}
+            <svg viewBox="0 0 24 24">
+              <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+              <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+              <path d="M10 9H8M16 13H8M16 17H8"/>
+            </svg>
+
+          {% elif item.key == "orders" %}
+            <svg viewBox="0 0 24 24">
+              <path d="m7.5 4.27 9 5.15"/>
+              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+              <path d="m3.3 7 8.7 5 8.7-5"/>
+              <path d="M12 22V12"/>
+            </svg>
+
+          {% elif item.key == "sale" %}
+            <svg viewBox="0 0 24 24">
+              <circle cx="8" cy="21" r="1"/>
+              <circle cx="19" cy="21" r="1"/>
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+            </svg>
+
+          {% else %}
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+          {% endif %}
+
+        </span>
+
+        <span>{{ item.label }}</span>
+      </a>
     {% endfor %}
   </nav>
-  <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="vp-signout" type="submit">Sign out</button></form>
+
+  <!-- Bottom Sign Out -->
+  <form class="vp-logout-form"
+        method="post"
+        action="{% url 'accounts:logout' %}">
+    {% csrf_token %}
+
+    <button class="vp-signout" type="submit">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <path d="m16 17 5-5-5-5"/>
+        <path d="M21 12H9"/>
+      </svg>
+      Sign out
+    </button>
+  </form>
+
 </aside>
