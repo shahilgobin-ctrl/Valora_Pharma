@@ -2,9 +2,12 @@
   const cookie=(name)=>document.cookie.split('; ').find(row=>row.startsWith(name+'='))?.split('=').slice(1).join('=');
   const toast=(message)=>{document.querySelector('.toast')?.remove();const el=document.createElement('div');el.className='toast';el.textContent=message;document.body.append(el);setTimeout(()=>el.remove(),2600)};
   async function post(url,data){const response=await fetch(url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':decodeURIComponent(cookie('csrftoken')||'')},body:JSON.stringify(data)});let result={};try{result=await response.json()}catch{}if(!response.ok)throw new Error(result.error||'Something went wrong.');return result}
+  const syncProceedButton=(itemCount)=>{const proceed=document.querySelector('#proceed-to-cart');if(proceed)proceed.hidden=Number(itemCount||0)<1};
+  syncProceedButton(document.querySelector('.cart-count')?.textContent);
+  document.querySelectorAll('.filters select').forEach(select=>select.addEventListener('change',()=>select.form.requestSubmit()));
   document.addEventListener('click',async event=>{
     const add=event.target.closest('[data-add-product]');
-    if(add){event.preventDefault();try{await post('/api/cart/add/',{product_id:add.dataset.addProduct});toast('Added to cart');const count=document.querySelector('.cart-count');if(count)count.textContent=Number(count.textContent||0)+1;}catch(error){if(error.message==='Authentication required.')location.href='/login/?next='+encodeURIComponent(location.pathname);else toast(error.message)}return}
+    if(add){event.preventDefault();try{const cart=await post('/api/cart/add/',{product_id:add.dataset.addProduct});toast('Added to cart');const count=document.querySelector('.cart-count');if(count)count.textContent=cart.item_count;syncProceedButton(cart.item_count);}catch(error){if(error.message==='Authentication required.')location.href='/login/?next='+encodeURIComponent(location.pathname);else toast(error.message)}return}
     const remove=event.target.closest('[data-remove-item]');
     if(remove){try{await post('/api/cart/remove/',{item_id:remove.dataset.removeItem});location.reload()}catch(error){toast(error.message)}return}
     const quantity=event.target.closest('[data-quantity]');

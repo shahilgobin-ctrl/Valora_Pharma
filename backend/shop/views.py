@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -30,17 +31,33 @@ def _cart_for(user):
     return Cart.objects.get_or_create(user=user)[0]
 
 
-@require_GET
-def api_products(request):
+def _filtered_products(request):
     products = Product.objects.filter(is_active=True).select_related("category")
     search = request.GET.get("search", "").strip()
     category = request.GET.get("category", "").strip()
+    product_type = request.GET.get("type", "").strip()
+    availability = request.GET.get("availability", "").strip()
+    prescription = request.GET.get("prescription", "").strip()
     if search:
         products = products.filter(Q(name__icontains=search) | Q(description__icontains=search) | Q(strength__icontains=search) | Q(category__name__icontains=search))
     if category and category.lower() not in {"all", "all-conditions"}:
         products = products.filter(Q(category__slug__iexact=category) | Q(category__name__iexact=category))
-    return JsonResponse([product_data(product) for product in products], safe=False)
+    if product_type and product_type.lower() != "all":
+        products = products.filter(strength__iendswith=f"- {product_type}")
+    if availability == "in_stock":
+        products = products.filter(stock_quantity__gt=0)
+    elif availability == "out_of_stock":
+        products = products.filter(stock_quantity=0)
+    if prescription == "required":
+        products = products.filter(is_prescription=True)
+    elif prescription == "not_required":
+        products = products.filter(is_prescription=False)
+    return products
 
+
+@require_GET
+def api_products(request):
+    return JsonResponse([product_data(product) for product in _filtered_products(request)], safe=False)
 
 @require_GET
 def api_product_detail(request, slug):
@@ -144,28 +161,74 @@ def api_checkout(request):
     return JsonResponse(order_data(order), status=201)
 
 
-def _catalog_context(request, cart_page=False):
-    products = Product.objects.filter(is_active=True).select_related("category")
+def _catalog_context(request, cart_page=False, paginate=False):
+    products = _filtered_products(request)
     search = request.GET.get("search", "").strip()
     chosen_category = request.GET.get("category", "All Conditions")
-    if search:
-        products = products.filter(Q(name__icontains=search) | Q(description__icontains=search) | Q(strength__icontains=search))
-    if chosen_category != "All Conditions":
-        products = products.filter(category__name__iexact=chosen_category)
-    cart = None
-    if request.user.is_authenticated:
-        cart = Cart.objects.filter(user=request.user).first()
-    items = list(cart.items.select_related("product", "product__category") if cart else []) if cart_page else []
-    subtotal = sum(item.quantity * item.product.price for item in items)
-    return {"products": products, "categories": Category.objects.all(), "search": search,
-            "chosen_category": chosen_category, "cart_count": cart.items.count() if cart else 0,
-            "cart_items": items, "subtotal": subtotal, "delivery": DELIVERY_FEE if items else 0,
-            "total": subtotal + (DELIVERY_FEE if items else 0), "cart_page": cart_page}
+    selected_type = request.GET.get("type", "")
+    availability = request.GET.get("availability", "")
+    prescription = request.GET.get("prescription", "")
 
+    def url_with(**updates):
+        params = request.GET.copy()
+        params.pop("page", None)
+        for key, value in updates.items():
+            if value:
+                params[key] = value
+            elif key in params:
+                del params[key]
+        query = params.urlencode()
+        return f"?{query}" if query else "/shop/"
+
+    categories = Category.objects.all()
+    category_links = [{"name": "All Conditions", "url": url_with(category=""), "active": not chosen_category or chosen_category.lower() in {"all", "all-conditions"}}]
+    category_links.extend({"name": c.name, "url": url_with(category=c.slug or c.name), "active": chosen_category.lower() in {c.name.lower(), (c.slug or "").lower()}} for c in categories)
+    product_types = sorted({item.strength.rsplit(" - ", 1)[1] for item in Product.objects.filter(is_active=True) if " - " in item.strength})
+    active_filters = []
+    if search:
+        active_filters.append({"label": f"Search: {search}", "url": url_with(search="")})
+    if selected_type and selected_type.lower() != "all":
+        active_filters.append({"label": f"Type: {selected_type}", "url": url_with(type="")})
+    if availability:
+        active_filters.append({"label": f"Availability: {availability.replace('_', ' ')}", "url": url_with(availability="")})
+    if prescription:
+        active_filters.append({"label": "Prescription: " + ("Required" if prescription == "required" else "Not required"), "url": url_with(prescription="")})
+    if chosen_category and chosen_category.lower() not in {"all", "all-conditions"}:
+        active_filters.append({"label": f"Category: {chosen_category}", "url": url_with(category="")})
+
+    result_count = products.count()
+    pagination = Paginator(products, 12).get_page(request.GET.get("page")) if paginate else None
+    page_links = [{"number": n, "url": url_with(page=n), "current": n == pagination.number} for n in pagination.paginator.page_range] if pagination else []
+    if pagination:
+        products = pagination.object_list
+    cart = Cart.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    all_cart_items = list(cart.items.select_related("product", "product__category") if cart else []) if cart_page else []
+    cart_categories = {item.product.category_id: item.product.category for item in all_cart_items}
+    cart_categories = sorted(cart_categories.values(), key=lambda category: category.name.lower())
+    selected_cart_category = request.GET.get("category", "").strip()
+    items = all_cart_items
+    if selected_cart_category:
+        items = [item for item in all_cart_items if item.product.category.slug == selected_cart_category]
+    subtotal = sum(item.quantity * item.product.price for item in all_cart_items)
+    delivery = DELIVERY_FEE if all_cart_items else 0
+    cart_count = cart.items.count() if cart else 0
+    return {
+        "products": products, "categories": categories, "category_links": category_links,
+        "product_types": product_types, "search": search, "chosen_category": chosen_category,
+        "selected_type": selected_type, "availability": availability, "prescription": prescription,
+        "active_filters": active_filters, "has_filters": bool(active_filters), "result_count": result_count,
+        "pagination": pagination, "page_links": page_links,
+        "previous_url": url_with(page=pagination.previous_page_number()) if pagination and pagination.has_previous() else "",
+        "next_url": url_with(page=pagination.next_page_number()) if pagination and pagination.has_next() else "",
+        "cart_count": cart_count, "has_cart_items": cart_count > 0, "cart_items": items, "subtotal": subtotal,
+        "cart_categories": cart_categories, "selected_cart_category": selected_cart_category,
+        "delivery": delivery, "total": subtotal + delivery,
+        "cart_page": cart_page,
+    }
 
 @ensure_csrf_cookie
 def shop_page(request):
-    return render(request, "shop/shop.html", _catalog_context(request))
+    return render(request, "shop/shop.html", _catalog_context(request, paginate=True))
 
 
 @ensure_csrf_cookie
