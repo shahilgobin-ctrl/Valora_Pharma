@@ -1,14 +1,14 @@
 {% extends 'accounts/base.html' %}
 {% load static %}
-{% block title %}{% if is_staff_flow %}Staff Registration{% else %}Customer Registration{% endif %} · ValoraPharma{% endblock %}
-{% block body_class %}registration-page{% if is_staff_flow %} registration-page--staff{% endif %}{% endblock %}
+{% block title %}Customer Registration · ValoraPharma{% endblock %}
+{% block body_class %}registration-page{% endblock %}
 {% block content %}
 <main class="register-card" aria-labelledby="register-title">
   <header class="register-header">
     <a class="register-brand brand" href="{% url 'accounts:login' %}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
-    <a class="back-link" href="{% if is_staff_flow %}{% url 'accounts:register' %}{% else %}{% url 'accounts:login' %}{% endif %}">Back</a>
+    <a class="back-link" href="{% url 'accounts:login' %}">Back</a>
   </header>
-  <h1 id="register-title">{% if is_staff_flow %}Staff Registration{% else %}Create Customer Account{% endif %}</h1>
+  <h1 id="register-title">Create Customer Account</h1>
   <p class="register-subtitle">Fill in your personal details to get started</p>
   {% include 'accounts/feedback.html' %}
   <form class="register-form" action="{{ register_url }}" method="post">
@@ -53,11 +53,11 @@
       {% if form.password.errors %}<div class="field-errors" id="password-errors">{% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
     <div class="register-consent">
-      <label for="id_agree_terms"><input id="id_agree_terms" name="agree_terms" type="checkbox" required{% if form.agree_terms.value %} checked{% endif %}{% if form.agree_terms.errors %} aria-invalid="true" aria-describedby="terms-errors"{% endif %}><span>I agree to the <a href="{% url 'accounts:terms' %}{% if is_staff_flow %}?from=staff{% endif %}">Terms &amp; Conditions</a>.</span></label>
+      <label for="id_agree_terms"><input id="id_agree_terms" name="agree_terms" type="checkbox" required{% if form.agree_terms.value %} checked{% endif %}{% if form.agree_terms.errors %} aria-invalid="true" aria-describedby="terms-errors"{% endif %}><span>I agree to the <a href="{% url 'accounts:terms' %}">Terms &amp; Conditions</a>.</span></label>
       {% if form.agree_terms.errors %}<div class="field-errors" id="terms-errors">{% for error in form.agree_terms.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
     <button class="primary-button register-submit" type="submit"><span>Register</span></button>
   </form>
-  {% if not is_staff_flow %}<p class="register-switch"><span>Valora employee?</span><a class="account-link" href="{% url 'accounts:staff_register' %}">Create a staff account</a></p>{% else %}<p class="register-switch"><span>Already registered?</span><a class="account-link" href="{% url 'accounts:login' %}">Sign in</a></p>{% endif %}
+  <p class="register-switch">Staff accounts are created by the pharmacy administrator.</p>
 </main>
 {% endblock %}

@@ -199,34 +199,22 @@ class LoginTests(AuthTestCase):
 
 
 class StaffTests(AuthTestCase):
-    def test_staff_signup_is_pending_and_has_no_admin_permissions(self):
-        response = self.client.post(reverse("accounts:staff_register"), self.registration_data())
-        self.assertRedirects(response, reverse("accounts:login"))
-        staff = User.objects.get()
-        self.assertEqual(staff.account_type, User.AccountType.STAFF)
-        self.assertFalse(staff.is_active)
-        self.assertFalse(staff.is_staff)
-        self.assertFalse(staff.is_superuser)
-        self.assertFalse(staff.groups.exists())
-        self.assertFalse(staff.user_permissions.exists())
-        pending = self.client.post(
-            reverse("accounts:login"),
-            {"email": staff.email, "password": PASSWORD},
-        )
-        self.assertTrue(pending.context["form"].non_field_errors())
+    def test_inactive_staff_cannot_sign_in(self):
+        staff = self.customer(email="pending@example.com", account_type=User.AccountType.STAFF, is_active=False)
+        response = self.client.post(reverse("accounts:login"), {"email": staff.email, "password": PASSWORD})
+        self.assertTrue(response.context["form"].non_field_errors())
         self.assertNotIn("_auth_user_id", self.client.session)
 
-        # An administrator approves the pharmacy staff account by activating it.
-        staff.is_active = True
-        staff.save(update_fields=["is_active"])
-        approved = self.client.post(
-            reverse("accounts:login"),
-            {"email": staff.email, "password": PASSWORD},
-            follow=True,
-        )
-        self.assertRedirects(approved, reverse("accounts:staff_landing"))
-        self.assertEqual(approved.context["landing_role"], User.AccountType.STAFF)
-        self.assertFalse(User.objects.get(pk=staff.pk).is_staff)
+    def test_public_staff_registration_cannot_create_accounts(self):
+        url = reverse("accounts:staff_register")
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url, self.registration_data()).status_code, 403)
+        self.assertFalse(User.objects.exists())
+
+    def test_customer_registration_does_not_link_to_staff_signup(self):
+        response = self.client.get(reverse("accounts:register"))
+        self.assertNotContains(response, reverse("accounts:staff_register"))
+        self.assertContains(response, "Staff accounts are created by the pharmacy administrator.")
 
     def test_customer_and_approved_staff_share_one_sign_in(self):
         customer = self.customer()
@@ -454,6 +442,24 @@ class PasswordRecoveryTests(AuthTestCase):
 
 
 class SecurityAndManagementTests(AuthTestCase):
+    def test_administrator_can_create_pharmacy_staff_without_admin_permissions(self):
+        administrator = User.objects.create_superuser("admin@example.com", PASSWORD)
+        self.client.force_login(administrator)
+        response = self.client.post(reverse("admin:accounts_user_add"), {
+            "email": "new.employee@example.com",
+            "password1": PASSWORD,
+            "password2": PASSWORD,
+            "account_type": User.AccountType.STAFF,
+            "is_active": "on",
+            "_save": "Save",
+        })
+        self.assertEqual(response.status_code, 302)
+        employee = User.objects.get(email="new.employee@example.com")
+        self.assertTrue(employee.is_active)
+        self.assertEqual(employee.account_type, User.AccountType.STAFF)
+        self.assertFalse(employee.is_staff)
+        self.assertFalse(employee.is_superuser)
+
     def test_csrf_is_required_for_signup_login_and_logout(self):
         client = Client(enforce_csrf_checks=True)
         for name in ("accounts:register", "accounts:login", "accounts:logout"):

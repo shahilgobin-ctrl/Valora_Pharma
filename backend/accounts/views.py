@@ -82,14 +82,13 @@ def customer_landing_view(request):
 def staff_landing_view(request):
     return _landing_view(request, User.AccountType.STAFF)
 
-def flow_context(request, staff):
+def flow_context(request):
     return {
-        "is_staff_flow": staff,
         "authenticated": request.user.is_authenticated,
         "login_url": reverse("accounts:login"),
-        "register_url": reverse("accounts:staff_register" if staff else "accounts:register"),
+        "register_url": reverse("accounts:register"),
         "password_forgot_url": reverse("accounts:password_forgot"),
-        "terms_url": reverse("accounts:terms") + ("?from=staff" if staff else ""),
+        "terms_url": reverse("accounts:terms"),
     }
 
 @never_cache
@@ -111,7 +110,7 @@ def login_view(request):
             return _redirect_to_landing(request)
         if not blocked:
             record_failure(key)
-    context = flow_context(request, False)
+    context = flow_context(request)
     context["form"] = form
     return render(request, "accounts/login.html", context, status=response_status)
 
@@ -124,14 +123,14 @@ def legacy_staff_login_view(request):
 
 @never_cache
 @require_http_methods(["GET", "POST"])
-def register_view(request, staff=False):
+def register_view(request):
     form = RegistrationForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
                 user = form.save(commit=False)
-                user.account_type = User.AccountType.STAFF if staff else User.AccountType.CUSTOMER
-                user.is_active = not staff
+                user.account_type = User.AccountType.CUSTOMER
+                user.is_active = True
                 user.is_staff = False
                 user.is_superuser = False
                 user.terms_accepted_at = timezone.now()
@@ -141,14 +140,17 @@ def register_view(request, staff=False):
             # The database catches two registrations arriving at once.
             form.add_error("email", "An account with this email already exists.")
         else:
-            if staff:
-                messages.success(request, "Your staff registration was submitted. An administrator must approve your account before you can sign in.")
-            else:
-                messages.success(request, "Your account is ready. Sign in with your email and password.")
+            messages.success(request, "Your account is ready. Sign in with your email and password.")
             return redirect("accounts:login")
-    context = flow_context(request, staff)
+    context = flow_context(request)
     context["form"] = form
     return render(request, "accounts/register.html", context)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def staff_registration_closed_view(request):
+    return HttpResponseForbidden("Staff accounts are created by a pharmacy administrator.")
 
 @require_POST
 def logout_view(request):
@@ -259,7 +261,7 @@ def password_forgot_view(request):
         if _usable_challenge(_challenge(request), verified=True):
             return redirect(_reset_route("new"))
         return redirect(_reset_route("verify"))
-    context = flow_context(request, False)
+    context = flow_context(request)
     context.update(form=form, back_url=context["login_url"])
     return render(request, "accounts/password_forgot.html", context)
 
@@ -299,7 +301,7 @@ def password_verify_view(request):
             flow["attempts"] = flow.get("attempts", 0) + 1
             request.session[RESET_SESSION_KEY] = flow
         form.add_error("code", INVALID_CODE_MESSAGE)
-    context = flow_context(request, False)
+    context = flow_context(request)
     context.update(form=form, back_url=_reset_route("forgot"))
     return render(request, "accounts/password_verify.html", context)
 
@@ -332,7 +334,7 @@ def password_new_view(request):
         logout(request)
         messages.success(request, "Your password has been changed. Sign in with your new password.")
         return redirect("accounts:login")
-    context = flow_context(request, False)
+    context = flow_context(request)
     context.update(form=form, back_url=_reset_route("forgot"))
     return render(request, "accounts/password_new.html", context)
 
@@ -358,7 +360,6 @@ def legacy_staff_password_new_view(request):
 @never_cache
 @require_GET
 def terms_view(request):
-    staff = request.GET.get("from") == "staff"
-    context = flow_context(request, staff)
+    context = flow_context(request)
     context.update(form=None, back_url=context["register_url"], terms_version=TERMS_VERSION)
     return render(request, "accounts/terms.html", context)
