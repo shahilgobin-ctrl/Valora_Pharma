@@ -169,3 +169,32 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .terms-return{display:flex;align-items:center;justify-content:center;width:min(287px,100%);min-height:43px;margin:28px auto 0;border-radius:20px;font-size:16px}
 .terms-return:hover{color:#fff;text-decoration:none}
 @media(max-width:480px){.recovery-card,.terms-card{min-height:0}.terms-content{font-size:12px}}
+
+/* A signed-in destination for each account type until the team connects its full page. */
+.landing-page{min-height:100svh;background:#e4efe6}
+.landing-layout{position:relative;display:flex;align-items:center;justify-content:center;min-height:100svh;padding:32px;overflow:hidden}
+.landing-photo{position:absolute;inset:0;opacity:.17;pointer-events:none}
+.landing-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.landing-card{position:relative;width:min(780px,100%);min-height:560px;background:var(--mint);border-radius:24px;padding:28px 44px 44px;box-shadow:0 20px 60px rgba(6,99,92,.14)}
+.landing-header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.landing-brand{font-size:20px}
+.landing-brand img{width:30px;height:30px}
+.landing-role{display:inline-flex;align-items:center;justify-content:center;min-height:33px;padding:6px 14px;background:#f6fbf8;border-radius:20px;color:var(--brand);font-size:12px;white-space:nowrap}
+.landing-content{width:min(570px,100%);margin:70px auto 0;text-align:center}
+.landing-eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+.landing-content h1{margin-top:12px;font-size:clamp(28px,4vw,40px);line-height:1.25}
+.landing-greeting{margin-top:16px;font-size:17px}
+.landing-next{margin-top:34px;padding:22px 26px;background:#f8fcfa;border-radius:18px;border-left:4px solid var(--teal);text-align:left}
+.landing-next p{color:#466963;font-size:14px;line-height:1.6}
+.landing-signout{width:min(260px,100%);margin:30px auto 0}
+.landing-signout .primary-button{width:100%;min-height:46px;border-radius:20px;font-size:16px}
+@media(max-width:600px){
+ .landing-layout{align-items:flex-start;padding:16px}
+ .landing-card{min-height:calc(100svh - 32px);padding:24px 22px 32px}
+ .landing-brand{font-size:16px}
+ .landing-brand img{width:26px;height:26px}
+ .landing-role{font-size:11px;padding:6px 11px}
+ .landing-content{margin-top:56px}
+ .landing-next{padding:20px}
+}
+@media(max-width:360px){.landing-header{align-items:flex-start;flex-direction:column}.landing-content{margin-top:42px}}

@@ -128,16 +128,16 @@ class RegistrationTests(AuthTestCase):
 
 
 class LoginTests(AuthTestCase):
-    def test_email_login_is_case_insensitive_and_returns_authenticated_screen(self):
+    def test_email_login_is_case_insensitive_and_opens_customer_area(self):
         user = self.customer()
         response = self.client.post(
             reverse("accounts:login"),
             {"email": " CUSTOMER@EXAMPLE.COM ", "password": PASSWORD},
             follow=True,
         )
-        self.assertRedirects(response, reverse("accounts:login"))
+        self.assertRedirects(response, reverse("accounts:customer_landing"))
         self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
-        self.assertTrue(response.context["authenticated"])
+        self.assertEqual(response.context["landing_role"], User.AccountType.CUSTOMER)
 
     def test_invalid_password_does_not_open_session(self):
         self.customer()
@@ -160,11 +160,14 @@ class LoginTests(AuthTestCase):
 
     def test_external_next_parameter_never_causes_open_redirect(self):
         self.customer()
-        response = self.client.post(
-            reverse("accounts:login") + "?next=https://untrusted.example/",
-            {"email": "customer@example.com", "password": PASSWORD},
-        )
-        self.assertEqual(response["Location"], reverse("accounts:login"))
+        for target in ("https://untrusted.example/", reverse("accounts:staff_landing")):
+            with self.subTest(next=target):
+                response = self.client.post(
+                    reverse("accounts:login") + "?next=" + target,
+                    {"email": "customer@example.com", "password": PASSWORD},
+                )
+                self.assertEqual(response["Location"], reverse("accounts:customer_landing"))
+                self.client.post(reverse("accounts:logout"))
 
     def test_failure_limit_blocks_authentication_until_counter_expires(self):
         self.customer()
@@ -221,7 +224,8 @@ class StaffTests(AuthTestCase):
             {"email": staff.email, "password": PASSWORD},
             follow=True,
         )
-        self.assertTrue(approved.context["authenticated"])
+        self.assertRedirects(approved, reverse("accounts:staff_landing"))
+        self.assertEqual(approved.context["landing_role"], User.AccountType.STAFF)
         self.assertFalse(User.objects.get(pk=staff.pk).is_staff)
 
     def test_customer_and_approved_staff_share_one_sign_in(self):
@@ -232,8 +236,9 @@ class StaffTests(AuthTestCase):
                 response = self.client.post(
                     reverse("accounts:login"), {"email": user.email, "password": PASSWORD}, follow=True,
                 )
-                self.assertRedirects(response, reverse("accounts:login"))
-                self.assertTrue(response.context["authenticated"])
+                destination = "accounts:staff_landing" if user == staff else "accounts:customer_landing"
+                self.assertRedirects(response, reverse(destination))
+                self.assertEqual(response.context["landing_role"], user.account_type)
                 self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
                 self.client.post(reverse("accounts:logout"))
         self.assertFalse(staff.is_staff)
@@ -242,11 +247,11 @@ class StaffTests(AuthTestCase):
     def test_legacy_staff_login_redirects_to_shared_sign_in(self):
         self.client.force_login(self.customer())
         response = self.client.get(reverse("accounts:staff_login"))
-        self.assertRedirects(response, reverse("accounts:login"))
+        self.assertRedirects(response, reverse("accounts:login"), fetch_redirect_response=False)
         post = self.client.post(reverse("accounts:staff_login"), {"email": "x@y.mu", "password": "x"})
         self.assertEqual(post.status_code, 307)
         self.assertEqual(post["Location"], reverse("accounts:login"))
-        self.assertTrue(self.client.get(reverse("accounts:login")).context["authenticated"])
+        self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("accounts:customer_landing"))
 
     def test_legacy_staff_login_post_preserves_credentials(self):
         staff = self.customer(email="employee@example.com", account_type=User.AccountType.STAFF)
@@ -254,8 +259,60 @@ class StaffTests(AuthTestCase):
             reverse("accounts:staff_login"),
             {"email": staff.email, "password": PASSWORD}, follow=True,
         )
-        self.assertTrue(response.context["authenticated"])
+        self.assertEqual(response.context["landing_role"], User.AccountType.STAFF)
         self.assertEqual(self.client.session["_auth_user_id"], str(staff.pk))
+
+
+class LandingAccessTests(AuthTestCase):
+    def test_anonymous_visitors_are_sent_to_shared_sign_in(self):
+        for area in ("customer_landing", "staff_landing"):
+            with self.subTest(area=area):
+                self.assertRedirects(
+                    self.client.get(reverse("accounts:" + area)), reverse("accounts:login"),
+                )
+
+    def test_only_matching_account_role_can_open_each_area(self):
+        customer = self.customer()
+        staff = self.customer(email="staff@example.com", account_type=User.AccountType.STAFF)
+        for user, allowed, forbidden in (
+            (customer, "customer_landing", "staff_landing"),
+            (staff, "staff_landing", "customer_landing"),
+        ):
+            with self.subTest(role=user.account_type):
+                self.client.force_login(user)
+                response = self.client.get(reverse("accounts:" + allowed))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["landing_role"], user.account_type)
+                self.assertEqual(self.client.get(reverse("accounts:" + forbidden)).status_code, 403)
+                self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("accounts:" + allowed))
+                self.client.post(reverse("accounts:logout"))
+        self.assertFalse(staff.is_staff)
+
+    def test_role_change_takes_effect_on_next_request(self):
+        user = self.customer()
+        self.client.force_login(user)
+        user.account_type = User.AccountType.STAFF
+        user.save(update_fields=["account_type"])
+        self.assertEqual(self.client.get(reverse("accounts:customer_landing")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("accounts:staff_landing")).status_code, 200)
+
+    def test_deactivated_account_cannot_keep_using_either_area(self):
+        user = self.customer()
+        self.client.force_login(user)
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        for area in ("customer_landing", "staff_landing"):
+            with self.subTest(area=area):
+                self.assertRedirects(self.client.get(reverse("accounts:" + area)), reverse("accounts:login"))
+
+    def test_unrecognized_role_is_denied_without_a_redirect_loop(self):
+        user = self.customer()
+        user.account_type = "unknown"
+        user.save(update_fields=["account_type"])
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse("accounts:login")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("accounts:customer_landing")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("accounts:staff_landing")).status_code, 403)
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")

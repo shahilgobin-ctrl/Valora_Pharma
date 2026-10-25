@@ -10,6 +10,7 @@ from django.contrib.auth import login, logout
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
+from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -27,6 +28,60 @@ logger = logging.getLogger(__name__)
 RESET_SESSION_KEY = "password_reset_flow"
 INVALID_CODE_MESSAGE = "The code is invalid or expired. Request a new code if needed."
 
+
+def _landing_name(user):
+    """Choose a pharmacy area from the verified account role, never a URL parameter."""
+    if not user.is_active:
+        return None
+    return {
+        User.AccountType.CUSTOMER: "accounts:customer_landing",
+        User.AccountType.STAFF: "accounts:staff_landing",
+    }.get(user.account_type)
+
+
+def _redirect_to_landing(request):
+    destination = _landing_name(request.user)
+    if destination is None:
+        if not request.user.is_active:
+            logout(request)
+            return redirect("accounts:login")
+        return HttpResponseForbidden("This account does not have an assigned pharmacy area.")
+    return redirect(destination)
+
+
+def _landing_view(request, required_role):
+    if not request.user.is_authenticated:
+        return redirect("accounts:login")
+    if not request.user.is_active:
+        logout(request)
+        return redirect("accounts:login")
+    if request.user.account_type != required_role:
+        return HttpResponseForbidden("This page is not available for your account.")
+    if required_role == User.AccountType.STAFF:
+        title = "Staff area"
+        message = "Your staff dashboard is coming soon."
+    else:
+        title = "Customer area"
+        message = "Your customer home is coming soon."
+    return render(request, "accounts/landing.html", {
+        "landing_role": required_role,
+        "landing_title": title,
+        "landing_message": message,
+        "first_name": request.user.first_name or request.user.email,
+    })
+
+
+@never_cache
+@require_GET
+def customer_landing_view(request):
+    return _landing_view(request, User.AccountType.CUSTOMER)
+
+
+@never_cache
+@require_GET
+def staff_landing_view(request):
+    return _landing_view(request, User.AccountType.STAFF)
+
 def flow_context(request, staff):
     return {
         "is_staff_flow": staff,
@@ -40,6 +95,8 @@ def flow_context(request, staff):
 @never_cache
 @require_http_methods(["GET", "POST"])
 def login_view(request):
+    if request.user.is_authenticated:
+        return _redirect_to_landing(request)
     key = key_for_request(request, "shared")
     blocked = request.method == "POST" and is_limited(key)
     form = LoginForm(
@@ -51,9 +108,7 @@ def login_view(request):
         if form.is_valid():
             reset_failures(key)
             login(request, form.user)
-            # Only auth pages are in scope. A fixed redirect also prevents
-            # an untrusted next parameter from becoming an open redirect.
-            return redirect("accounts:login")
+            return _redirect_to_landing(request)
         if not blocked:
             record_failure(key)
     context = flow_context(request, False)

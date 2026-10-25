@@ -2,7 +2,7 @@
 
 A Django project implementing the pharmacy design's shared customer-and-staff login, registration, and account-recovery pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
 
-This package covers authentication only. Customers and approved staff use the same sign-in page. A successful login displays a confirmation on that page; registration returns there as well. The customer Home page and operational staff dashboard have not been integrated, so this package does not yet redirect either role to its eventual destination. Pharmacy dashboards, medicine inventory, prescriptions, ordering and payments are outside this package.
+This package covers authentication and temporary role-specific landing pages. Customers and approved staff use the same sign-in page. After login, Django sends customers to `/account/customer/` and staff to `/account/staff/`; both pages are clearly marked as placeholders until the team's customer Home and operational staff dashboard are integrated. Pharmacy operations, medicine inventory, prescriptions, ordering and payments are outside this package.
 
 ## Start on Windows
 
@@ -42,6 +42,8 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Page | Local URL |
 | --- | --- |
 | Shared customer and staff login | http://127.0.0.1:8000/login/ |
+| Customer landing page (temporary) | http://127.0.0.1:8000/account/customer/ |
+| Staff landing page (temporary) | http://127.0.0.1:8000/account/staff/ |
 | Customer registration | http://127.0.0.1:8000/register/ |
 | Staff registration | http://127.0.0.1:8000/staff/register/ |
 | Shared password recovery | http://127.0.0.1:8000/password/forgot/ |
@@ -52,7 +54,7 @@ Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and pass
 
 The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 
-Customer accounts can log in after registering. Staff registration creates an **inactive account awaiting administrator approval**. Once approved, a staff member uses the same `/login/` form as a customer. Django stores the account type and can route a signed-in customer to Home and a signed-in employee to a staff dashboard when those pages are integrated. Each destination must also check the account's role and permissions on every request. A pharmacy staff account does not receive Django administration access merely by being marked as staff in the pharmacy account type.
+Customer accounts can log in after registering. Staff registration creates an **inactive account awaiting administrator approval**. Once approved, a staff member uses the same `/login/` form as a customer. Django checks the account type after sign-in and redirects to the matching temporary landing page. Each landing page checks the role again: an employee cannot open the customer page, and a customer cannot open the employee page by typing its URL. When the team's real pages arrive, replace these temporary destinations and protect their views and APIs the same way. A pharmacy staff account does not receive Django administration access merely by being marked as staff in the pharmacy account type.
 
 Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited by IP address and login flow to eight attempts per fifteen minutes; the development limiter uses a per-process cache.
 
@@ -109,7 +111,7 @@ pharmacy-auth/
 │   ├── manage.py
 │   └── db.sqlite3       Created after the first migration
 ├── frontend/
-│   ├── templates/       Login, registration, recovery and terms HTML
+│   ├── templates/       Login, registration, recovery, landing and terms HTML
 │   └── static/          Styles, scripts and design assets
 ├── requirements.txt     Pinned Python dependency
 ├── .env.example         Environment-variable reference

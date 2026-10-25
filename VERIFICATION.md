@@ -1,16 +1,16 @@
 # Verified authentication project
 
-The delivered scope is one login for customers and approved staff, separate customer/staff registration, shared password recovery by email code, and a draft Terms and Conditions page. There is no integrated customer Home page, operational staff dashboard, product catalogue, checkout, or prescription workflow.
+The delivered scope is one login for customers and approved staff, protected temporary landing pages for each role, separate customer/staff registration, shared password recovery by email code, and a draft Terms and Conditions page. There is no integrated customer Home page, operational staff dashboard, product catalogue, checkout, or prescription workflow.
 
 ## Checks performed
 
 - Django 5.2.17 system check: no issues.
 - Migration consistency check: no changes required after migration `0002`; the migration was applied to the local development database after backing it up.
-- 32 automated authentication/security tests passed. These cover hashed passwords, email uniqueness, input validation, CSRF, POST-only logout, shared sign-in for customers and approved staff, pending-staff denial, legacy URL redirects, login throttling, protected demo seeding, terms acceptance, and password recovery code expiry, attempt limit and reuse prevention.
-- Local HTTP page checks returned 200 for login, customer and staff registration, forgot password, and terms. The older `/staff/login/` URL returned a 302 redirect to `/login/`. All authentication templates compiled.
+- 37 automated authentication/security tests passed. These cover hashed passwords, email uniqueness, input validation, CSRF, POST-only logout, shared sign-in for customers and approved staff, role-specific redirects and direct-page access checks, pending-staff denial, legacy URL redirects, login throttling, protected demo seeding, terms acceptance, and password recovery code expiry, attempt limit and reuse prevention.
+- Local HTTP page checks returned 200 for login, customer and staff registration, forgot password, and terms. Anonymous requests to both role landing pages and the older `/staff/login/` URL returned a 302 redirect to `/login/`. All authentication templates compiled.
 - Earlier visual checks of registration, recovery and terms at desktop size and 390-pixel mobile width found no horizontal scrolling. A fresh browser screenshot check of this change was unavailable because the local browser preview did not attach.
 
-A successful login shows a signed-in confirmation on `/login/` because neither the customer Home page nor an operational staff dashboard has been integrated. Both account types use the same sign-in and forgot-password pages; old `/staff/login/` links redirect to `/login/`. Staff registrations require administrator approval. Future role-based routing should lead to separately protected customer and staff destinations. The Figma demo customer is created only by the optional seed_demo command. In local development, reset emails print to the server terminal; real delivery needs SMTP configuration. The terms text is a draft and needs project approval before deployment.
+A successful login sends customers to `/account/customer/` and approved staff to `/account/staff/`. Both pages say that the full customer Home or employee dashboard is coming soon; they enforce the account role on every request. Both account types use the same sign-in and forgot-password pages; old `/staff/login/` links redirect to `/login/`. Staff registrations require administrator approval. When the team's real pages are integrated, replace these temporary destinations and protect their views and APIs by account role. The Figma demo customer is created only by the optional seed_demo command. In local development, reset emails print to the server terminal; real delivery needs SMTP configuration. The terms text is a draft and needs project approval before deployment.
 
 ## Design references
 
