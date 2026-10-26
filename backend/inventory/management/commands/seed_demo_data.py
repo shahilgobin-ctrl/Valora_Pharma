@@ -14,7 +14,7 @@ from inventory.models import Medicine, Batch
 from orders.models import Order
 from orders.services import create_order
 from prescriptions.models import Prescription
-from prescriptions.management.commands.seed_prescription_demo import create_demo_pdf
+from prescriptions.sample_documents import create_demo_pdf
 
 # Descriptive demonstration catalogue; prices and stock are fictional.
 CATALOGUE = [

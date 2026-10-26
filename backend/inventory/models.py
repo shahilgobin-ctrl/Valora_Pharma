@@ -11,6 +11,7 @@ class Medicine(models.Model):
     name = models.CharField(max_length=150)
     strength = models.CharField(max_length=80)
     dosage_form = models.CharField(max_length=80)
+    selling_unit = models.CharField(max_length=80, default="unit")
     description = models.TextField(blank=True)
     category_name = models.CharField(max_length=80, blank=True)
     prescription_required = models.BooleanField(default=False)

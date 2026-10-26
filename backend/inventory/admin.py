@@ -8,6 +8,7 @@ class MedicineAdmin(admin.ModelAdmin):
         "name",
         "strength",
         "selling_price",
+        "selling_unit",
         "prescription_required",
         "is_active",
     )
