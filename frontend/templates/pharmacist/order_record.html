@@ -27,6 +27,23 @@
     <p class="error" role="alert">{{ error }}</p>
   {% endfor %}
 
+  <!-- Cancellation details -->
+
+  {% if order.status == "cancelled" %}
+    <section class="panel" aria-labelledby="cancellation-heading">
+      <h2 id="cancellation-heading">Order cancelled</h2>
+
+      <p>This order is closed and cannot be processed.</p>
+
+      <p>
+        <strong>Reason:</strong>
+        {{ order.cancellation_reason }}
+      </p>
+    </section>
+  {% endif %}
+
+  <!-- Linked prescription -->
+
   {% if order.prescription_id %}
     <section
       class="rx-status-box rx-status-box--{{ order.prescription.status }}"
@@ -38,22 +55,28 @@
       </h2>
 
       {% if order.prescription.status == "pending" %}
-        <p>
-          This prescription is awaiting review.
-          Review and approve it before processing this order.
-        </p>
+        <p>This prescription is awaiting review.</p>
+
+        {% if not is_closed %}
+          <p>Review and approve it before processing this order.</p>
+        {% endif %}
 
       {% elif order.prescription.status == "approved" %}
-        <p>
-          This prescription has been approved.
-          Continue with the order's remaining processing steps.
-        </p>
+        <p>This prescription has been approved.</p>
+
+        {% if not is_closed %}
+          <p>Continue with the order's remaining processing steps.</p>
+        {% endif %}
 
       {% elif order.prescription.status == "rejected" %}
-        <p>
-          <strong>Order processing is blocked.</strong>
-          The linked prescription has been rejected.
-        </p>
+        <p>The linked prescription has been rejected.</p>
+
+        {% if not is_closed %}
+          <p>
+            <strong>Order processing is blocked.</strong>
+            You can cancel the order below.
+          </p>
+        {% endif %}
 
         <p class="rx-rejection-reason">
           <strong>Reason:</strong>
@@ -73,6 +96,8 @@
     </section>
   {% endif %}
 
+  <!-- Order details and item snapshots -->
+
   <div class="columns">
     <section class="panel">
       <h2>Order details</h2>
@@ -83,13 +108,37 @@
       </p>
 
       <p>
-        Customer:
-        {% firstof order.contact_name order.customer.email "Walk-in customer" %}
-        <br>
-        Phone: {{ order.contact_phone|default:"Not provided" }}
-        <br>
-        Pickup: {{ order.pickup_time|default:"Not specified" }}
+        <strong>Customer:</strong>
+        {% firstof order.contact_name order.customer.get_full_name order.customer.email "Walk-in customer" %}
       </p>
+
+      <p>
+        <strong>Phone:</strong>
+        {{ order.contact_phone|default:"Not provided" }}
+      </p>
+
+      <p>
+        <strong>Pickup:</strong>
+        {% if order.pickup_time %}
+          {{ order.pickup_time|date:"d M Y H:i" }}
+        {% else %}
+          Not specified
+        {% endif %}
+      </p>
+
+      {% if order.processed_by %}
+        <p>
+          <strong>Last processed by:</strong>
+          {% firstof order.processed_by.get_full_name order.processed_by.email %}
+        </p>
+      {% endif %}
+
+      {% if order.completed_at %}
+        <p>
+          <strong>Completed:</strong>
+          {{ order.completed_at|date:"d M Y H:i" }}
+        </p>
+      {% endif %}
     </section>
 
     <section class="panel">
@@ -111,14 +160,26 @@
               <tr>
                 <td>
                   {{ item.medicine_name }}
+
                   {% if item.prescription_required %}
                     <br>
                     <small>Prescription required</small>
                   {% endif %}
                 </td>
+
                 <td>{{ item.quantity }}</td>
-                <td>Rs {{ item.unit_price }}</td>
-                <td>Rs {{ item.line_total }}</td>
+
+                <td>
+                  Rs {{ item.unit_price|floatformat:2 }}
+                  <br>
+                  <small>Per {{ item.selling_unit }}</small>
+                </td>
+
+                <td>Rs {{ item.line_total|floatformat:2 }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4">No items recorded.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -126,22 +187,114 @@
       </div>
 
       <p>
-        <strong>Total: Rs {{ order.total_amount }}</strong>
+        <strong>
+          Total: Rs {{ order.total_amount|floatformat:2 }}
+        </strong>
       </p>
     </section>
   </div>
 
-  {% if order.status == "completed" %}
+  <!-- Saved payment -->
 
-    <p>
-      <a
-        class="button"
-        href="{% url 'pharmacist:receipt' order.pk %}">
-        View receipt
-      </a>
-    </p>
+  <section class="panel">
+    <h2>Payment details</h2>
 
-  {% else %}
+    {% if payment %}
+      <p>
+        <strong>Method:</strong>
+        {{ payment.get_method_display }}
+      </p>
+
+      <p>
+        <strong>Amount:</strong>
+        Rs {{ payment.amount|floatformat:2 }}
+      </p>
+
+      {% if payment.method == "cash" %}
+        <p>
+          <strong>Cash tendered:</strong>
+          Rs {{ payment.cash_tendered|floatformat:2 }}
+        </p>
+
+        <p>
+          <strong>Change:</strong>
+          Rs {{ payment.change|floatformat:2 }}
+        </p>
+      {% endif %}
+
+      <p>
+        <strong>Recorded:</strong>
+        {{ payment.recorded_at|date:"d M Y H:i" }}
+      </p>
+
+      <p>
+        <strong>Recorded by:</strong>
+        {% firstof payment.recorded_by.get_full_name payment.recorded_by.email %}
+      </p>
+    {% else %}
+      <p>No payment has been recorded.</p>
+    {% endif %}
+
+    {% if order.status == "completed" %}
+      <p>
+        <a
+          class="button"
+          href="{% url 'pharmacist:receipt' order.pk %}">
+          View receipt
+        </a>
+      </p>
+    {% endif %}
+  </section>
+
+  <!-- Saved batch selections -->
+
+  <section class="panel">
+    <h2>Saved batch allocations</h2>
+
+    {% if order.status == "cancelled" %}
+      <p class="muted">
+        These selections are retained for reference.
+        They do not reserve stock.
+      </p>
+    {% elif order.status != "completed" %}
+      <p class="muted">
+        These selections do not reserve stock.
+        Stock is deducted only when the order is completed.
+      </p>
+    {% endif %}
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Medicine</th>
+            <th scope="col">Batch</th>
+            <th scope="col">Expiry</th>
+            <th scope="col">Quantity</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for allocation in allocations %}
+            <tr>
+              <td>{{ allocation.item.medicine_name }}</td>
+              <td>{{ allocation.batch.batch_number }}</td>
+              <td>{{ allocation.batch.expiry_date|date:"d M Y" }}</td>
+              <td>{{ allocation.quantity }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">No batch allocations saved.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Processing controls are available only for open orders -->
+
+  {% if not is_closed %}
 
     {% if next_status %}
       <form method="post" class="panel actions">
@@ -237,6 +390,84 @@
     {% endif %}
 
   {% endif %}
+
+  <!-- Cancellation remains available when prescription approval is blocked -->
+
+  {% if can_cancel %}
+    <section class="panel" aria-labelledby="cancel-order-heading">
+      <h2 id="cancel-order-heading">Cancel order</h2>
+
+      <p>
+        Cancelling closes this order without recording a payment
+        or deducting stock.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <input type="hidden" name="action" value="cancel">
+
+        <p>
+          <label for="cancellation-reason">
+            Cancellation reason
+          </label>
+
+          <textarea
+            id="cancellation-reason"
+            name="reason"
+            rows="3"
+            maxlength="500"
+            required></textarea>
+        </p>
+
+        <button class="button secondary" type="submit">
+          Cancel order
+        </button>
+      </form>
+    </section>
+  {% endif %}
+
+  <!-- Actual recorded history -->
+
+  <section class="panel">
+    <h2>Order history</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Date and time</th>
+            <th scope="col">Status</th>
+            <th scope="col">Recorded by</th>
+            <th scope="col">Note</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for event in status_events %}
+            <tr>
+              <td>{{ event.recorded_at|date:"d M Y H:i" }}</td>
+              <td>{{ event.get_status_display }}</td>
+
+              <td>
+                {% if event.recorded_by %}
+                  {% firstof event.recorded_by.get_full_name event.recorded_by.email %}
+                {% else %}
+                  Not recorded
+                {% endif %}
+              </td>
+
+              <td>{{ event.note|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">No status history recorded.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
 </main>
 {% endblock %}

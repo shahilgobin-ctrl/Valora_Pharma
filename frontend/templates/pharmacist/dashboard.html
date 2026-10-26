@@ -166,7 +166,7 @@
             <p>Latest pharmacy transactions</p>
           </div>
 
-          <a href="{% url 'pharmacist:order_queue' %}"
+          <a href="{% url 'pharmacist:order_queue' %}?kind=all&amp;status=all"
              class="pd-view-all">
             View all <span aria-hidden="true">→</span>
           </a>
@@ -230,7 +230,7 @@
         <div class="pd-panel-header">
           <div>
             <h2>Inventory alerts</h2>
-            <p>Medicines requiring attention</p>
+            <p><a href="{% url 'pharmacist:inventory' %}?availability=low">View inventory alerts</a></p>
           </div>
         </div>
 

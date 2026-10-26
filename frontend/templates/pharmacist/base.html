@@ -8,7 +8,7 @@
   {% block page_styles %}{% endblock %}
   <link rel="stylesheet" href="{% static 'pharmacist/css/pharmacist.css' %}">
 </head>
-<body class="vp-body" data-review-url="{% url 'pharmacist:prescription_review' %}" data-order-url="{% url 'pharmacist:order_detail' %}">
+<body class="vp-body">
   <a class="vp-skip" href="#main-content">Skip to content</a>
   <div class="vp-shell">
     {% include "pharmacist/includes/sidebar.html" %}

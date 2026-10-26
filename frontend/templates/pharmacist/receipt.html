@@ -4,11 +4,15 @@
 {% block content %}<main id="main-content" class="wf">
 {% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
 
-<article class="panel receipt"><p class="muted">University demonstration application</p><h1>Valora Pharma</h1><h2>Receipt {{ order }}</h2>
+<article class="panel receipt"><h1>{{ pharmacy.name|default:"Pharmacy" }}</h1>
+{% if pharmacy.address %}<p>{{ pharmacy.address|linebreaksbr }}</p>{% endif %}
+{% if pharmacy.phone %}<p>{{ pharmacy.phone }}</p>{% endif %}
+{% if pharmacy.email %}<p>{{ pharmacy.email }}</p>{% endif %}<h2>Receipt {{ order }}</h2>
 <p>{{ order.get_kind_display }} · {{ order.completed_at|date:'d M Y H:i' }} (UTC+04:00)<br>Served by: {{ order.processed_by.email }}</p>
-<div class="table-wrap"><table><thead><tr><th>Medicine</th><th>Quantity</th><th>Unit price</th><th>Total</th></tr></thead><tbody>{% for item in order.items.all %}<tr><td>{{ item.medicine_name }}</td><td>{{ item.quantity }}</td><td>Rs {{ item.unit_price }}</td><td>Rs {{ item.line_total }}</td></tr>{% endfor %}</tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Medicine</th><th>Quantity</th><th>Unit price</th><th>Total</th></tr></thead><tbody>{% for item in order.items.all %}<tr><td>{{ item.medicine_name }}<br><small>Per {{ item.selling_unit }}</small></td><td>{{ item.quantity }}</td><td>Rs {{ item.unit_price }}</td><td>Rs {{ item.line_total }}</td></tr>{% endfor %}</tbody></table></div>
 <p class="receipt-total">Total: Rs {{ order.total_amount }}</p><p>Payment: {{ order.payment.get_method_display }}</p>
 {% if order.payment.method == 'cash' %}<p>Cash tendered: Rs {{ order.payment.cash_tendered }}<br>Change: Rs {{ order.payment.change }}</p>{% endif %}
 <div class="actions no-print"><button class="button" type="button" data-print-receipt>Print receipt</button><a class="button secondary" href="{% url 'pharmacist:sale_form' %}">New sale</a><a class="button secondary" href="{% url 'pharmacist:dashboard' %}">Dashboard</a></div>
+{% if pharmacy.receipt_footer %}<p>{{ pharmacy.receipt_footer }}</p>{% endif %}
 </article>
 </main>{% endblock %}

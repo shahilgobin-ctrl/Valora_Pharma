@@ -1,0 +1,295 @@
+
+/* ==========================================
+   VALORA — ORDER QUEUE GLASS FILTERS
+   Scoped: only the Orders queue
+   ========================================== */
+
+.vp-order-queue .vp-order-subtitle {
+    margin: 0 0 18px;
+    color: #64748b;
+}
+
+.vp-order-queue .vp-order-filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.vp-order-queue .vp-order-search {
+    width: 100%;
+}
+
+.vp-order-queue .vp-order-search label,
+.vp-order-queue .vp-order-filter-title {
+    display: block;
+    margin-bottom: 9px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.vp-order-queue .vp-order-search input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.vp-order-queue .vp-order-filter-section {
+    min-width: 0;
+}
+
+/* Keep long Status selector on one line */
+
+.vp-order-queue .vp-order-glass-scroll {
+    width: 100%;
+    overflow-x: auto;
+    padding: 5px 2px 9px;
+}
+
+/* Original UIverse-style glass container */
+
+.vp-order-queue .vp-order-glass-group {
+    --glass-bg: rgba(0, 0, 0, 0.94);
+    --glass-text: #e5e5e5;
+    --segments: 3;
+    --segment-width: 125px;
+
+    display: grid;
+    grid-template-columns:
+        repeat(var(--segments), var(--segment-width));
+
+    position: relative;
+    width: max-content;
+    min-height: 48px;
+
+    background: var(--glass-bg);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 1rem;
+
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+
+    box-shadow:
+        inset 1px 1px 4px rgba(255,255,255,.2),
+        inset -1px -1px 6px rgba(0,0,0,.3),
+        0 4px 12px rgba(0,0,0,.15);
+
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.vp-order-queue .vp-order-status-group {
+    --segments: 7;
+    --segment-width: 115px;
+}
+
+.vp-order-queue .vp-order-kind-group {
+    --segments: 3;
+    --segment-width: 130px;
+}
+
+/* Override shared .wf input styling
+   without changing other forms */
+
+.vp-order-queue
+.vp-order-glass-group input[type="radio"] {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Segment labels */
+
+.vp-order-queue .vp-order-glass-group label {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+    width: var(--segment-width);
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 8px;
+
+    color: var(--glass-text);
+    background: transparent;
+
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    text-align: center;
+    white-space: nowrap;
+
+    cursor: pointer;
+    user-select: none;
+
+    transition: color .3s ease-in-out;
+}
+
+.vp-order-queue .vp-order-glass-group label:hover {
+    color: #ffffff;
+}
+
+.vp-order-queue
+.vp-order-glass-group input:checked + label {
+    color: #ffffff;
+}
+
+.vp-order-queue
+.vp-order-glass-group input:focus-visible + label {
+    outline: 3px solid #86b2ff;
+    outline-offset: -3px;
+    border-radius: 1rem;
+}
+
+/* The animated sliding highlight */
+
+.vp-order-queue .vp-order-glider {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+
+    width: var(--segment-width);
+    border-radius: 1rem;
+    z-index: 1;
+
+    pointer-events: none;
+
+    background: linear-gradient(
+        135deg,
+        #c0c0c055,
+        #e0e0e0
+    );
+
+    box-shadow:
+        0 0 18px rgba(192,192,192,.5),
+        0 0 10px rgba(255,255,255,.4) inset;
+
+    transition:
+        transform .5s
+            cubic-bezier(.37, 1.95, .66, .56),
+        background .4s ease-in-out,
+        box-shadow .4s ease-in-out;
+}
+
+/* Status glider positions */
+
+.vp-order-queue
+#order-status-open:checked ~ .vp-order-glider {
+    transform: translateX(0%);
+}
+
+.vp-order-queue
+#order-status-all:checked ~ .vp-order-glider {
+    transform: translateX(100%);
+}
+
+.vp-order-queue
+#order-status-pending:checked ~ .vp-order-glider {
+    transform: translateX(200%);
+}
+
+.vp-order-queue
+#order-status-confirmed:checked ~ .vp-order-glider {
+    transform: translateX(300%);
+}
+
+.vp-order-queue
+#order-status-preparing:checked ~ .vp-order-glider {
+    transform: translateX(400%);
+}
+
+.vp-order-queue
+#order-status-ready:checked ~ .vp-order-glider {
+    transform: translateX(500%);
+}
+
+.vp-order-queue
+#order-status-completed:checked ~ .vp-order-glider {
+    transform: translateX(600%);
+}
+
+/* Kind glider positions */
+
+.vp-order-queue
+#order-kind-online:checked ~ .vp-order-glider {
+    transform: translateX(0%);
+}
+
+.vp-order-queue
+#order-kind-walkin:checked ~ .vp-order-glider {
+    transform: translateX(100%);
+}
+
+.vp-order-queue
+#order-kind-all:checked ~ .vp-order-glider {
+    transform: translateX(200%);
+}
+
+/* Preserve the silver/glass appearance */
+
+.vp-order-queue
+.vp-order-glass-group input:checked + label {
+    color: #ffffff;
+}
+
+/* Dark text over silver selected background */
+
+.vp-order-queue
+.vp-order-glass-group input:checked + label {
+    color: #172033;
+}
+
+/* Search and Reset */
+
+.vp-order-queue .vp-order-filter-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.vp-order-queue .vp-order-reset {
+    color: #334155;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.vp-order-queue .vp-order-filter-error {
+    color: #991b1b;
+    font-size: 13px;
+    margin: 6px 0 0;
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+    .vp-order-queue .vp-order-filter-panel {
+        padding: 16px;
+    }
+
+    .vp-order-queue .vp-order-kind-group {
+        --segment-width: 105px;
+    }
+}
+
+/* Accessibility */
+
+@media (prefers-reduced-motion: reduce) {
+    .vp-order-queue .vp-order-glider,
+    .vp-order-queue .vp-order-glass-group label {
+        transition: none;
+    }
+}

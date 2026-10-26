@@ -30,10 +30,18 @@ class Medicine(models.Model):
         ]
 
     def clean(self):
-        for field in ("name", "strength", "dosage_form"):
-            setattr(self, field, getattr(self, field).strip())
-            if not getattr(self, field):
-                raise ValidationError({field: "This field cannot be blank."})
+        super().clean()
+        errors = {}
+
+        for field in ("name", "strength", "dosage_form", "selling_unit"):
+            value = (getattr(self, field) or "").strip()
+            setattr(self, field, value)
+
+            if not value:
+                errors[field] = "This field cannot be blank."
+
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
         return f"{self.name} {self.strength} ({self.dosage_form})"

@@ -68,6 +68,7 @@ TEMPLATES = [{
         "django.template.context_processors.request",
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
+        "pharmacist.context_processors.pharmacy_profile",
     ]},
 }]
 WSGI_APPLICATION = "config.wsgi.application"
@@ -117,5 +118,10 @@ LOGIN_MAX_FAILURES = 8
 LOGIN_LOCKOUT_SECONDS = 15 * 60
 
 # Uploaded documents are served through permission-checked views.
-MEDIA_ROOT = BASE_DIR / "private_uploads"
+MEDIA_ROOT = Path(
+    os.environ.get(
+        "DJANGO_MEDIA_ROOT",
+        str(BASE_DIR / "private_uploads"),
+    )
+)
 MEDIA_URL = "/private-uploads/"

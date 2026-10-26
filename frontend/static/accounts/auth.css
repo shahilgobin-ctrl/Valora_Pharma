@@ -2,7 +2,7 @@
 @font-face{font-family:Poppins;src:url('fonts/Poppins-SemiBold.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap}
 @font-face{font-family:Sacramento;src:url('fonts/Sacramento-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:Kavivanar;src:url('fonts/Kavivanar-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
-:root{--teal:#08766e;--brand:#06635c;--orange:#d57809;--card:#d9d9d9;--mint:#dcefed;--link:#1f5049;--error:#9b2525}
+:root{--teal:#08766e;--brand:#06635c;--orange:#211e1a;--card:#d9d9d9;--mint:#dcefed;--link:#1f5049;--error:#9b2525}
 *{box-sizing:border-box}
 body{margin:0;color:#000;font-family:Poppins,Arial,sans-serif;font-weight:400}
 h1,h2,p{margin:0;font-weight:400}
@@ -58,10 +58,6 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .password-control--quiet .password-toggle{opacity:0}
 .password-control--quiet:focus-within .password-toggle,.password-control--quiet .password-toggle:focus-visible{opacity:1}
 .login-submit{width:100%;height:62px;margin-top:30px;border-radius:18px;font-size:20px}
-.demo-card{position:relative;width:325px;height:152px;margin-top:34px;margin-left:41px;background:var(--card);border-radius:20px;font-family:Kavivanar,cursive;font-size:16px;line-height:normal;padding:0 13px}
-.demo-details{position:absolute;left:13px;top:-18px;width:360px;height:150px;display:flex;flex-direction:column;justify-content:center;white-space:nowrap}
-.demo-title{color:#5f8f88}
-.demo-note{position:absolute;left:17px;top:114px;height:33px;display:flex;align-items:center;white-space:pre-wrap}
 .account-link{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 16px;border-radius:20px;background:var(--teal);color:#fff;font-family:Poppins,Arial,sans-serif;font-size:12px;line-height:1.25;text-align:center;white-space:normal}
 .account-link:hover{background:#06645e;color:#fff;text-decoration:none}
 .account-link:focus-visible{outline:3px solid #fff;outline-offset:0;box-shadow:0 0 0 5px var(--teal)}
@@ -124,12 +120,10 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
  .login-form{padding:21px 24px 20px;min-height:auto}
  .login-page--staff .login-form:before{inset:0;width:auto;height:auto}
  .login-field--password .password-control{margin-left:0}
- .demo-card{width:min(325px,100%);margin:34px auto 0}
  .customer-links{width:100%;margin:30px auto 0;text-align:center}
  .customer-links p{grid-template-columns:1fr;justify-items:center;gap:6px;min-height:0}
  .customer-links p+p{margin-top:14px}
  .staff-links{margin-top:30px}
- .demo-details{width:calc(100% - 26px);white-space:normal}
  .login-field input{font-size:16px}
 }
 @media(max-width:480px){

@@ -1,3 +1,4 @@
+
 {% extends "pharmacist/base.html" %}
 {% load static %}
 
@@ -9,171 +10,316 @@
 {% block content %}
 <main id="main-content">
   <div class="container vp-prescription-queue">
+
+    <!-- Page Header -->
     <header>
       <h1>Prescription Queue</h1>
+
       <p class="subtitle">
         Review pending prescriptions or find previously reviewed records.
       </p>
     </header>
 
+    <!-- Search and Animated Status Filters -->
     <form
-      class="vp-queue-filters"
+      id="prescription-filter-form"
+      class="vp-queue-filters vp-glass-filters"
       method="get"
       action="{% url 'pharmacist:prescription_queue' %}"
       role="search"
       aria-label="Search and filter prescriptions">
 
-      <div class="vp-filter-field">
-        <label for="{{ filter_form.q.id_for_label }}">
-          {{ filter_form.q.label }}
-        </label>
-        {{ filter_form.q }}
+      <div class="vp-glass-filter-row">
 
-        {% if filter_form.q.errors %}
-          <div class="vp-filter-error" role="alert">
-            {{ filter_form.q.errors }}
+        <!-- Search Field -->
+        <div class="vp-filter-field vp-search-field">
+
+          <label for="{{ filter_form.q.id_for_label }}">
+            {{ filter_form.q.label }}
+          </label>
+
+          {{ filter_form.q }}
+
+          {% if filter_form.q.errors %}
+            <div class="vp-filter-error" role="alert">
+              {{ filter_form.q.errors }}
+            </div>
+          {% endif %}
+
+        </div>
+
+        <!-- Animated Glass Status Selector -->
+        <div class="vp-status-filter">
+
+          <span class="vp-status-label" id="vp-status-label">
+            Status
+          </span>
+
+          <div
+            class="glass-radio-group"
+            role="radiogroup"
+            aria-labelledby="vp-status-label">
+
+            {% for value, label in filter_form.status.field.choices %}
+              <input type="radio" name="status" id="glass-{{ value }}" value="{{ value }}"
+                     {% if selected_status == value %}checked{% endif %}>
+              <label for="glass-{{ value }}">{{ label }}</label>
+            {% endfor %}
+
+            <!-- Animated Sliding Background -->
+            <div
+              class="glass-glider"
+              aria-hidden="true">
+            </div>
+
           </div>
-        {% endif %}
+
+          {% if filter_form.status.errors %}
+            <div class="vp-filter-error" role="alert">
+              {{ filter_form.status.errors }}
+            </div>
+          {% endif %}
+
+        </div>
+
       </div>
 
-      <div class="vp-filter-field">
-        <label for="{{ filter_form.status.id_for_label }}">
-          {{ filter_form.status.label }}
-        </label>
-        {{ filter_form.status }}
-
-        {% if filter_form.status.errors %}
-          <div class="vp-filter-error" role="alert">
-            {{ filter_form.status.errors }}
-          </div>
-        {% endif %}
-      </div>
-
+      <!-- Filter Actions -->
       <div class="vp-filter-actions">
-        <button class="vp-filter-button" type="submit">
-          Apply filters
+
+        <button
+          class="vp-filter-button"
+          type="submit">
+          Search
         </button>
+
         <a
           class="vp-filter-reset"
           href="{% url 'pharmacist:prescription_queue' %}">
           Reset
         </a>
+
       </div>
+
     </form>
 
+    <!-- Results Summary -->
     {% if filter_form.errors %}
+
       <p class="vp-filter-error" role="alert">
         Correct the filter values and try again.
       </p>
+
     {% else %}
+
       <p class="vp-result-summary" role="status">
-        <strong>{{ page_obj.paginator.count }}</strong>
+
+        <strong>
+          {{ page_obj.paginator.count }}
+        </strong>
+
         prescription{{ page_obj.paginator.count|pluralize }} found.
+
         {% if page_obj.paginator.count %}
-          Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}.
+          Showing
+          {{ page_obj.start_index }}–{{ page_obj.end_index }}.
         {% endif %}
+
       </p>
+
     {% endif %}
 
-    <section class="table-card" aria-label="Prescription results">
+    <!-- Prescription Results Table -->
+    <section
+      class="table-card"
+      aria-label="Prescription results">
+
       <div class="scroll">
+
         <table>
+
           <caption class="vp-visually-hidden">
             Prescriptions matching the selected filters
           </caption>
+
           <thead>
             <tr>
-              <th scope="col">Reference</th>
-              <th scope="col">Customer</th>
-              <th scope="col">Submitted</th>
-              <th scope="col">Status</th>
-              <th scope="col" class="vp-review-column">Action</th>
+              <th scope="col">
+                Reference
+              </th>
+
+              <th scope="col">
+                Customer
+              </th>
+
+              <th scope="col">
+                Submitted
+              </th>
+
+              <th scope="col">
+                Status
+              </th>
+
+              <th
+                scope="col"
+                class="vp-review-column">
+                Action
+              </th>
             </tr>
           </thead>
 
           <tbody>
+
             {% for prescription in prescriptions %}
+
               <tr>
+
+                <!-- Prescription Reference -->
                 <td>
                   <a
                     class="ref"
                     href="{% url 'pharmacist:prescription_detail' prescription.pk %}">
+
                     RX-{{ prescription.pk }}
+
                   </a>
                 </td>
 
+                <!-- Customer -->
                 <td>
+
                   {% firstof prescription.customer.get_full_name prescription.customer.email %}
+
                   <span class="vp-customer-email">
                     {{ prescription.customer.email }}
                   </span>
+
                 </td>
 
+                <!-- Submission Date -->
                 <td>
-                  <time datetime="{{ prescription.uploaded_at|date:'c' }}">
+
+                  <time
+                    datetime="{{ prescription.uploaded_at|date:'c' }}">
+
                     {{ prescription.uploaded_at|date:"d M Y, H:i" }}
+
                   </time>
-                  <span class="vp-timezone">(UTC+04:00)</span>
-                </td>
 
-                <td>
-                  <span class="badge vp-status-{{ prescription.status }}">
-                    {{ prescription.get_status_display }}
+                  <span class="vp-timezone">
+                    (UTC+04:00)
                   </span>
+
                 </td>
 
+                <!-- Prescription Status -->
+                <td>
+
+                  <span class="badge vp-status-{{ prescription.status }}">
+
+                    {{ prescription.get_status_display }}
+
+                  </span>
+
+                </td>
+
+                <!-- Review Action -->
                 <td class="vp-review-column">
+
                   <a
-                    href="{% url 'pharmacist:prescription_detail' prescription.pk %}"
                     class="vp-review-btn"
+                    href="{% url 'pharmacist:prescription_detail' prescription.pk %}"
                     aria-label="View prescription RX-{{ prescription.pk }}">
+
                     Review
+
                   </a>
+
                 </td>
 
-
               </tr>
+
             {% empty %}
+
               <tr>
-                <td colspan="5" class="vp-queue-empty">
+                <td
+                  colspan="5"
+                  class="vp-queue-empty">
+
                   {% if filter_form.errors %}
+
                     No results displayed because the filters are invalid.
+
                   {% elif selected_status == "pending" and not search_query %}
+
                     No pending prescriptions.
+
                   {% else %}
+
                     No prescriptions match your filters.
+
                   {% endif %}
+
                 </td>
               </tr>
+
             {% endfor %}
+
           </tbody>
+
         </table>
+
       </div>
+
     </section>
 
+    <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-      <nav class="vp-queue-pagination" aria-label="Prescription pages">
+
+      <nav
+        class="vp-queue-pagination"
+        aria-label="Prescription pages">
+
         {% if page_obj.has_previous %}
+
           <a
             class="vp-page-link"
             href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">
+
             Previous
+
           </a>
+
         {% endif %}
 
         <span>
-          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          Page {{ page_obj.number }}
+          of {{ page_obj.paginator.num_pages }}
         </span>
 
         {% if page_obj.has_next %}
+
           <a
             class="vp-page-link"
             href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">
+
             Next
+
           </a>
+
         {% endif %}
+
       </nav>
+
     {% endif %}
+
   </div>
 </main>
+
+<!-- Animated Glass Filter JavaScript -->
+<script
+  src="{% static 'pharmacist/js/prescription_status_glass.js' %}"
+  defer>
+</script>
+
 {% endblock %}

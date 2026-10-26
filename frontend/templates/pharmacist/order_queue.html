@@ -3,11 +3,14 @@
 {% load static %}
 
 {% block page_styles %}
-<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">
+<link rel="stylesheet"
+      href="{% static 'pharmacist/css/workflows.css' %}">
+<link rel="stylesheet"
+      href="{% static 'pharmacist/css/order_glass_filters.css' %}">
 {% endblock %}
 
 {% block content %}
-<main id="main-content" class="wf">
+<main id="main-content" class="wf vp-order-queue">
 
   {% for message in messages %}
     <p class="notice" role="status">{{ message }}</p>
@@ -15,32 +18,110 @@
 
   <h1>Orders</h1>
 
-  <form method="get" class="panel filters">
-    {{ filter_form.as_p }}
+  <p class="vp-order-subtitle">
+    View and manage pharmacy orders.
+  </p>
 
-    <div class="wf-filter-actions">
-      <button class="button" type="submit">
-        Apply filters
+  <!-- GET filters: existing backend parameters preserved -->
+  <form method="get"
+        action="{% url 'pharmacist:order_queue' %}"
+        class="panel vp-order-filter-panel"
+        id="vp-order-filter-form"
+        role="search">
+
+    <!-- Search -->
+    <div class="vp-order-search">
+      <label for="{{ filter_form.q.id_for_label }}">
+        {{ filter_form.q.label }}
+      </label>
+
+      {{ filter_form.q }}
+
+      {% for error in filter_form.q.errors %}
+        <p class="vp-order-filter-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- Status filter -->
+    <div class="vp-order-filter-section">
+      <span class="vp-order-filter-title" id="vp-order-status-title">
+        Status
+      </span>
+
+      <div class="vp-order-glass-scroll">
+        <div class="vp-order-glass-group vp-order-status-group"
+             role="radiogroup"
+             aria-labelledby="vp-order-status-title">
+
+          {% for value, label in filter_form.status.field.choices %}
+          <input type="radio" name="status" id="order-status-{{ value }}" value="{{ value }}"
+                 {% if filter_form.status.value == value %}checked{% endif %}>
+          <label for="order-status-{{ value }}">{{ label }}</label>
+          {% endfor %}
+
+          <div class="vp-order-glider" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      {% for error in filter_form.status.errors %}
+        <p class="vp-order-filter-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <!-- Kind filter -->
+    <div class="vp-order-filter-section">
+      <span class="vp-order-filter-title" id="vp-order-kind-title">
+        Kind
+      </span>
+
+      <div class="vp-order-glass-scroll">
+        <div class="vp-order-glass-group vp-order-kind-group"
+             role="radiogroup"
+             aria-labelledby="vp-order-kind-title">
+
+          {% for value, label in filter_form.kind.field.choices %}
+          <input type="radio" name="kind" id="order-kind-{{ value }}" value="{{ value }}"
+                 {% if filter_form.kind.value == value %}checked{% endif %}>
+          <label for="order-kind-{{ value }}">{{ label }}</label>
+          {% endfor %}
+
+          <div class="vp-order-glider" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      {% for error in filter_form.kind.errors %}
+        <p class="vp-order-filter-error">{{ error }}</p>
+      {% endfor %}
+    </div>
+
+    <div class="vp-order-filter-actions">
+      <button type="submit" class="button">
+        Search
       </button>
 
-      <a class="wf-filter-reset"
-         href="{% url 'pharmacist:order_queue' %}">
+      <a href="{% url 'pharmacist:order_queue' %}"
+         class="vp-order-reset">
         Reset
       </a>
     </div>
+
   </form>
 
+  <!-- Existing order results -->
   <div class="panel table-wrap">
+
     <table>
-      <caption>{{ page_obj.paginator.count }} matching orders</caption>
+      <caption>
+        {{ page_obj.paginator.count }} matching orders
+      </caption>
 
       <thead>
         <tr>
-          <th>Reference</th>
-          <th>Type</th>
-          <th>Customer</th>
-          <th>Status</th>
-          <th>Total</th>
+          <th scope="col">Reference</th>
+          <th scope="col">Type</th>
+          <th scope="col">Customer</th>
+          <th scope="col">Status</th>
+          <th scope="col">Total</th>
         </tr>
       </thead>
 
@@ -52,11 +133,15 @@
                 {{ order }}
               </a>
             </td>
+
             <td>{{ order.get_kind_display }}</td>
+
             <td>
-              {% firstof order.contact_name order.customer.email 'Walk-in customer' %}
+              {% firstof order.contact_name order.customer.get_full_name order.customer.email 'Walk-in customer' %}
             </td>
+
             <td>{{ order.get_status_display }}</td>
+
             <td>Rs {{ order.total_amount }}</td>
           </tr>
         {% empty %}
@@ -66,9 +151,12 @@
         {% endfor %}
       </tbody>
     </table>
+
   </div>
 
+  <!-- Existing pagination -->
   <nav class="actions" aria-label="Order pages">
+
     {% if page_obj.has_previous %}
       <a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">
         Previous
@@ -84,7 +172,11 @@
         Next
       </a>
     {% endif %}
+
   </nav>
 
 </main>
+
+<script src="{% static 'pharmacist/js/order_glass_filters.js' %}"
+        defer></script>
 {% endblock %}

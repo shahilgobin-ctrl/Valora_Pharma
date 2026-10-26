@@ -1,87 +1,287 @@
 {% extends "pharmacist/base.html" %}
 {% load static %}
-{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/order_detail.css' %}">{% endblock %}
-{% block content %}<main id="main-content">
-<p class="crumbs"><a href="{% url 'pharmacist:order_queue' %}">Online orders</a> / VLR-20481</p>
-<header class="page-head">
-<div>
-<h1>Order VLR-20481</h1>
-<p class="placed">Placed <time datetime="2026-10-22T14:42+04:00">22 Oct 2026, 14:42 (UTC+4)</time></p>
-</div>
-<span class="badge" id="badge">Pending</span>
-</header>
-<div class="layout">
-<div class="stack">
-<section aria-label="Customer and pickup" class="card">
-<div class="two-col">
-<div>
-<h2>Customer</h2>
-<p class="strong">Anjali Ramgoolam</p>
-<p class="sub"><a href="tel:+23057124480">+230 5712 4480</a> · <a href="mailto:anjali.r@mail.mu">anjali.r@mail.mu</a></p>
-</div>
-<div>
-<h2>Pickup</h2>
-<p class="strong">Valora Pharmacy — Port Louis</p>
-<p class="sub">Preferred: today, after 16:00</p>
-</div>
-</div>
-</section>
-<section aria-labelledby="meds-title" class="card">
-<h2 id="meds-title">Medicines</h2>
-<ul class="items">
-<li class="item">
-<div><p class="strong">Amoxicillin 500mg capsules</p><p class="sub">Qty 2 × Rs 185</p></div>
-<div class="price-wrap"><span class="rx">Rx</span><span class="price">Rs 370</span></div>
-</li>
-<li class="item">
-<div><p class="strong">Paracetamol 1g tablets (x20)</p><p class="sub">Qty 1 × Rs 95</p></div>
-<span class="price">Rs 95</span>
-</li>
-<li class="item">
-<div><p class="strong">Vitamin D3 1000 IU</p><p class="sub">Qty 1 × Rs 420</p></div>
-<span class="price">Rs 420</span>
-</li>
-</ul>
-</section>
-<div class="pair">
-<section aria-labelledby="rx-title" class="card">
-<h2 id="rx-title">Prescription</h2>
-<p class="sub">Dr. K. Bhujun · uploaded 22 Oct · 1 Rx item</p>
-<label class="check"><input id="rxVerified" type="checkbox"/> Prescription verified</label>
-</section>
-<section aria-labelledby="pay-title" class="card">
-<h2 id="pay-title">Payment</h2>
-<dl class="rows">
-<div><dt>Subtotal</dt><dd>Rs 885</dd></div>
-<div><dt>Method</dt><dd>Juice by MCB</dd></div>
-<div><dt>Status</dt><dd class="ok">Captured</dd></div>
-</dl>
-</section>
-</div>
-</div>
-<aside>
-<section aria-labelledby="status-title" class="card">
-<h2 id="status-title">Update status</h2>
-<label class="field" for="nextStatus">Next status</label>
-<div class="select-wrap">
-<select id="nextStatus">
-<option value="">Select...</option>
-<option value="Confirmed">Confirmed</option>
-</select>
-</div>
-<button class="btn" disabled="" id="applyBtn" type="button">Apply update</button>
-</section>
-<section aria-labelledby="tl-title" class="card export-style-0">
-<h2 id="tl-title">Timeline</h2>
-<ol class="timeline" id="timeline">
-<li class="current" data-step="Pending"><span class="dot"></span><span class="label">Pending<span class="time">22 Oct 2026, 14:42 (UTC+4)</span></span></li>
-<li data-step="Confirmed"><span class="dot"></span><span class="label">Confirmed</span></li>
-<li data-step="Preparing"><span class="dot"></span><span class="label">Preparing</span></li>
-<li data-step="Ready for Pickup"><span class="dot"></span><span class="label">Ready for Pickup</span></li>
-<li data-step="Completed"><span class="dot"></span><span class="label">Completed</span></li>
-</ol>
-</section>
-</aside>
-</div>
-</main>{% endblock %}
-{% block page_scripts %}<script src="{% static 'pharmacist/js/order_detail.js' %}" defer></script>{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="wf">
+
+  {% for message in messages %}
+    <p class="notice" role="status">{{ message }}</p>
+  {% endfor %}
+
+  <p>
+    <a href="{% url 'pharmacist:order_queue' %}?kind=all&amp;status=all">
+      All orders
+    </a>
+  </p>
+
+  <h1>
+    {{ order }}
+    <span class="badge">{{ order.get_status_display }}</span>
+  </h1>
+
+  {% for error in errors %}
+    <p class="error" role="alert">{{ error }}</p>
+  {% endfor %}
+
+  {% if order.prescription_id %}
+    <section
+      class="rx-status-box rx-status-box--{{ order.prescription.status }}"
+      aria-labelledby="rx-status-heading">
+
+      <h2 id="rx-status-heading">
+        Prescription RX-{{ order.prescription_id }}
+        — {{ order.prescription.get_status_display }}
+      </h2>
+
+      {% if order.prescription.status == "pending" %}
+        <p>
+          This prescription is awaiting review.
+          Review and approve it before processing this order.
+        </p>
+
+      {% elif order.prescription.status == "approved" %}
+        <p>
+          This prescription has been approved.
+          Continue with the order's remaining processing steps.
+        </p>
+
+      {% elif order.prescription.status == "rejected" %}
+        <p>
+          <strong>Order processing is blocked.</strong>
+          The linked prescription has been rejected.
+        </p>
+
+        <p class="rx-rejection-reason">
+          <strong>Reason:</strong>
+          {{ order.prescription.rejection_reason }}
+        </p>
+      {% endif %}
+
+      <a
+        class="rx-status-link"
+        href="{% url 'pharmacist:prescription_detail' order.prescription_id %}">
+        {% if order.prescription.status == "pending" %}
+          Review prescription
+        {% else %}
+          View prescription review
+        {% endif %}
+      </a>
+    </section>
+  {% endif %}
+
+  <div class="columns">
+    <section class="panel">
+      <h2>Order details</h2>
+
+      <p>
+        {{ order.get_kind_display }}
+        · {{ order.created_at|date:"d M Y H:i" }}
+      </p>
+
+      <p>
+        Customer:
+        {% firstof order.contact_name order.customer.get_full_name order.customer.email "Walk-in customer" %}
+        <br>
+        Phone: {% firstof order.contact_phone order.customer.phone "Not provided" %}
+        <br>
+        Pickup: {{ order.pickup_time|default:"Not specified" }}
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Items</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Medicine</th>
+              <th scope="col">Qty</th>
+              <th scope="col">Unit price</th>
+              <th scope="col">Total</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for item in order.items.all %}
+              <tr>
+                <td>
+                  {{ item.medicine_name }}<br><small>Sold per {{ item.selling_unit }}</small>
+                  {% if item.prescription_required %}
+                    <br>
+                    <small>Prescription required</small>
+                  {% endif %}
+                </td>
+                <td>{{ item.quantity }}</td>
+                <td>Rs {{ item.unit_price }}</td>
+                <td>Rs {{ item.line_total }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Total: Rs {{ order.total_amount }}</strong>
+      </p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Payment record</h2>
+    {% if order.payment %}
+      <p>{{ order.payment.get_method_display }} · Rs {{ order.payment.amount }}
+        · {{ order.payment.recorded_at|date:"d M Y H:i" }}</p>
+      {% if order.payment.method == "cash" %}
+        <p>Cash tendered: Rs {{ order.payment.cash_tendered }} · Change: Rs {{ order.payment.change }}</p>
+      {% endif %}
+    {% else %}<p>No payment has been recorded.</p>{% endif %}
+  </section>
+  <section class="panel">
+    <h2>Order history</h2>
+    <ol>
+      {% for event in order.status_events.all %}
+        <li>{{ event.get_status_display }} · {{ event.recorded_at|date:"d M Y H:i" }}
+          {% if event.recorded_by %} · {% firstof event.recorded_by.get_full_name event.recorded_by.email %}{% endif %}
+          {% if event.note %}<p>{{ event.note }}</p>{% endif %}
+        </li>
+      {% empty %}<li>No status history was recorded for this order.</li>{% endfor %}
+    </ol>
+  </section>
+  <section class="panel">
+    <h2>Saved batch allocations</h2>
+    {% for item in order.items.all %}
+      <h3>{{ item.medicine_name }}</h3>
+      <ul>{% for allocation in item.allocations.all %}
+        <li>{{ allocation.batch.batch_number }} · {{ allocation.quantity }} units
+          · Expires {{ allocation.batch.expiry_date|date:"d M Y" }}</li>
+        {% empty %}<li>No batch allocated.</li>{% endfor %}</ul>
+    {% endfor %}
+  </section>
+
+  {% if order.status == "completed" %}
+
+    <p>
+      <a
+        class="button"
+        href="{% url 'pharmacist:receipt' order.pk %}">
+        View receipt
+      </a>
+    </p>
+
+  {% elif order.status == "cancelled" %}
+    <p class="notice">Cancelled: {{ order.cancellation_reason }}</p>
+  {% else %}
+    <form method="post" class="panel">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="cancel">
+      <label for="cancel-reason">Cancellation reason</label>
+      <input id="cancel-reason" name="reason" maxlength="500" required>
+      <button class="button secondary" type="submit">Cancel order</button>
+    </form>
+
+    {% if next_status %}
+      <form method="post" class="panel actions">
+        {% csrf_token %}
+
+        <input type="hidden" name="action" value="advance">
+        <input type="hidden" name="target" value="{{ next_status }}">
+
+        <button class="button" type="submit">
+          Mark {{ next_label }}
+        </button>
+
+        {% if order.prescription_id %}
+          <span>
+            Prescription approval is checked before processing.
+          </span>
+        {% endif %}
+      </form>
+    {% endif %}
+
+    <section class="panel">
+      <h2>Batch allocation</h2>
+
+      <p>
+        Choose a matching batch for each medicine.
+        Split a quantity across batches using additional rows.
+        Quantities must match the order exactly.
+      </p>
+
+      <p class="muted">
+        Selections do not reserve stock.
+        Availability and expiry are checked again when completing the order.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <input type="hidden" name="action" value="allocate">
+
+        {{ formset.management_form }}
+        {{ formset.non_form_errors }}
+
+        <div data-formset="allocations">
+          {% for line in formset %}
+            <div class="form-row">
+              {{ line.as_p }}
+            </div>
+          {% endfor %}
+        </div>
+
+        <template id="allocations-empty">
+          <div class="form-row">
+            {{ formset.empty_form.as_p }}
+          </div>
+        </template>
+
+        <div class="actions">
+          <button
+            type="button"
+            class="button secondary"
+            data-add-row="allocations">
+            Add batch row
+          </button>
+
+          <button class="button" type="submit">
+            Save allocations
+          </button>
+        </div>
+      </form>
+    </section>
+
+    {% if can_complete %}
+      <section class="panel">
+        <h2>Payment and completion</h2>
+
+        <p>
+          Card payments are simulated for this university project.
+          No card details are collected.
+        </p>
+
+        <form method="post">
+          {% csrf_token %}
+
+          <input type="hidden" name="action" value="complete">
+
+          {{ payment_form.as_p }}
+
+          <button class="button" type="submit">
+            Record payment and complete
+          </button>
+        </form>
+      </section>
+    {% endif %}
+
+  {% endif %}
+
+</main>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="{% static 'pharmacist/js/workflows.js' %}" defer></script>
+{% endblock %}

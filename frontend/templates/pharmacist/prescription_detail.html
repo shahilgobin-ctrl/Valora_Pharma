@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block page_styles %}
-<link rel="stylesheet" href="{% static 'pharmacist/css/prescription_review.css' %}">
+<link rel="stylesheet" href="{% static 'pharmacist/css/prescription_detail.css' %}">
 <link rel="stylesheet" href="{% static 'pharmacist/css/document_preview.css' %}">
 {% endblock %}
 
@@ -269,5 +269,12 @@
       </div>
     </div>
   </div>
+  <section class="panel">
+    <h2>Associated order</h2>
+    {% if prescription.order %}
+      <p><a href="{% url 'pharmacist:order_record' prescription.order.pk %}">{{ prescription.order }}</a>
+         · {{ prescription.order.get_status_display }} · Rs {{ prescription.order.total_amount }}</p>
+    {% else %}<p>This prescription is not linked to an order.</p>{% endif %}
+  </section>
 </main>
 {% endblock %}
