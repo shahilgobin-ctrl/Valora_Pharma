@@ -1,186 +1,102 @@
-.vp-queue-filters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px auto;
-  gap: 16px;
-  align-items: start;
-  margin: 24px 0 16px;
-  padding: 20px;
-  border: 1px solid #dce3ed;
-  border-radius: 12px;
-  background: #ffffff;
+/* Prescription Queue only. Shared sidebar and workspace colors come from pharmacist.css. */
+.vp-prescriptions {
+  --pq-teal: #12403A;
+  --pq-mid: #1F514E;
+  --pq-soft: #3B6E67;
+  --pq-lime: #DCECA3;
+  --pq-line: #E1EAE5;
+  --pq-muted: #617670;
+  width:100%;
+  max-width:none;
+  min-width:0;
+  padding:34px clamp(18px,2.5vw,44px) 56px;
+  color:#162A27;
+}
+.vp-prescriptions .pq-header {display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:26px;}
+.vp-prescriptions .pq-eyebrow {margin:0 0 7px;color:var(--pq-soft);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.vp-prescriptions h1 {display:flex;align-items:center;gap:12px;margin:0;color:var(--pq-teal);font-size:32px;letter-spacing:-.03em;}
+.vp-prescriptions .pq-count {padding:4px 11px;border-radius:9px;background:#E8F2EC;font-size:16px;letter-spacing:0;}
+.vp-prescriptions .pq-subtitle {margin:9px 0 0;color:var(--pq-muted);font-size:14px;line-height:1.6;}
+.vp-prescriptions .pq-card {min-width:0;border:1px solid var(--pq-line);border-radius:18px;background:#fff;box-shadow:0 5px 24px rgb(18 64 58 / 4%);}
+.vp-prescriptions .pq-toolbar {position:relative;z-index:2;display:grid;grid-template-columns:minmax(220px,1fr) minmax(160px,230px) auto;gap:16px;align-items:start;padding:24px;}
+.vp-prescriptions .pq-field {min-width:0;}
+.vp-prescriptions .pq-field > label,
+.vp-prescriptions .pq-field > span {display:block;margin-bottom:9px;color:var(--pq-teal);font-size:12px;font-weight:650;}
+.vp-prescriptions .pq-search input {display:block;box-sizing:border-box;width:100%;height:46px;padding:0 14px;border:1px solid #CDDDD4;border-radius:11px;background:#FBFDFC;color:#162A27;font:inherit;font-size:14px;}
+.vp-prescriptions .pq-search input:focus {border-color:var(--pq-teal);outline:3px solid rgb(18 64 58 / 12%);outline-offset:2px;}
+.vp-prescriptions .pq-menu {position:relative;}
+.vp-prescriptions .pq-menu summary {display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:10px 15px;border:1px solid #CDDDD4;border-radius:11px;color:var(--pq-teal);background:#F4F8F5;list-style:none;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s,color .2s;}
+.vp-prescriptions .pq-menu summary::-webkit-details-marker {display:none;}
+.vp-prescriptions .pq-menu summary svg {flex:none;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .2s;}
+.vp-prescriptions .pq-menu[open] {z-index:5;}
+.vp-prescriptions .pq-menu[open] summary,
+.vp-prescriptions .pq-menu summary:hover {background:var(--pq-teal);border-color:var(--pq-teal);color:#fff;}
+.vp-prescriptions .pq-menu[open] summary {border-radius:11px 11px 0 0;}
+.vp-prescriptions .pq-menu[open] summary svg {transform:rotate(180deg);}
+.vp-prescriptions .pq-options {position:absolute;top:100%;left:0;right:0;max-height:340px;overflow-y:auto;padding:6px;border:1px solid var(--pq-teal);border-radius:0 0 11px 11px;background:#fff;box-shadow:0 15px 30px rgb(18 64 58 / 15%);animation:pq-reveal .18s ease;}
+.vp-prescriptions .pq-options button {display:block;width:100%;min-height:42px;padding:10px 12px;border:0;border-radius:7px;background:transparent;color:var(--pq-teal);font:inherit;font-size:13px;text-align:left;cursor:pointer;}
+.vp-prescriptions .pq-options button.is-current {background:#EDF4DF;font-weight:700;}
+.vp-prescriptions .pq-options button:hover {background:linear-gradient(120deg,var(--pq-teal),var(--pq-soft));color:#fff;}
+.vp-prescriptions .pq-filter-actions {display:flex;gap:10px;padding-top:24px;}
+.vp-prescriptions .pq-button {display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 19px;border:1px solid transparent;border-radius:11px;font:inherit;font-size:14px;font-weight:650;line-height:1.4;text-decoration:none;white-space:nowrap;cursor:pointer;transition:filter .2s;}
+.vp-prescriptions .pq-primary {background:linear-gradient(120deg,var(--pq-teal),var(--pq-mid));color:#fff;}
+.vp-prescriptions .pq-reset {border-color:#BFD4CB;background:linear-gradient(120deg,#E8F2EC,#DCECA3);color:var(--pq-teal);}
+.vp-prescriptions .pq-button:hover {filter:brightness(.94);}
+.vp-prescriptions .pq-filter-error,
+.vp-prescriptions .errorlist {margin:8px 0 0;color:#A23240;font-size:13px;}
+.vp-prescriptions .pq-filter-error {grid-column:1/-1;}
+.vp-prescriptions .pq-results {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 24px 18px;color:var(--pq-muted);font-size:13px;}
+.vp-prescriptions .pq-results strong {color:var(--pq-teal);font-weight:600;}
+.vp-prescriptions .pq-table-scroll {overflow-x:auto;border-top:1px solid var(--pq-line);border-bottom:1px solid var(--pq-line);}
+.vp-prescriptions table {width:100%;min-width:760px;border-collapse:collapse;text-align:left;}
+.vp-prescriptions th {padding:16px 20px;background:#F4F7F5;color:var(--pq-muted);font-size:12px;font-weight:600;white-space:nowrap;}
+.vp-prescriptions td {padding:20px;border-top:1px solid #ECF1ED;font-size:14px;vertical-align:middle;}
+.vp-prescriptions tbody tr {transition:background .18s;}
+.vp-prescriptions tbody tr:hover {background:#F8FBF5;}
+.vp-prescriptions .pq-reference {color:var(--pq-teal);font-weight:750;text-decoration:none;white-space:nowrap;}
+.vp-prescriptions .pq-reference:hover {text-decoration:underline;text-underline-offset:4px;}
+.vp-prescriptions .pq-secondary {display:block;margin-top:5px;color:var(--pq-muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere;}
+.vp-prescriptions .pq-customer {display:block;font-weight:600;overflow-wrap:anywhere;}
+.vp-prescriptions .pq-badge {display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:#EDF2EF;color:var(--pq-teal);font-size:12px;font-weight:600;white-space:nowrap;}
+.vp-prescriptions .pq-badge::before {content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+.vp-prescriptions .pq-status-pending {background:#FFF3DC;color:#8A5A14;}
+.vp-prescriptions .pq-status-approved {background:#DCECA3;color:#12403A;}
+.vp-prescriptions .pq-status-rejected {background:#FBE9EC;color:#9C303E;}
+.vp-prescriptions td.pq-amount {font-weight:650;}
+.vp-prescriptions .pq-action {text-align:right;}
+.vp-prescriptions .pq-view {display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 12px;border:1px solid #D2E2D8;border-radius:9px;background:#F0F6F1;color:var(--pq-teal);font-size:12px;font-weight:650;text-decoration:none;white-space:nowrap;}
+.vp-prescriptions .pq-view:hover {border-color:var(--pq-teal);background:var(--pq-teal);color:#fff;}
+.vp-prescriptions .pq-empty {padding:65px 24px;text-align:center;color:var(--pq-muted);}
+.vp-prescriptions .pq-empty strong {color:var(--pq-teal);font-size:17px;}
+.vp-prescriptions .pq-empty p {margin:10px 0 0;}
+.vp-prescriptions .pq-footer {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 24px;color:var(--pq-muted);font-size:13px;}
+.vp-prescriptions .pq-pagination {display:flex;align-items:center;gap:8px;}
+.vp-prescriptions .pq-pagination a,
+.vp-prescriptions .pq-current-page {display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;padding:8px 13px;border:1px solid var(--pq-line);border-radius:9px;color:var(--pq-teal);text-decoration:none;}
+.vp-prescriptions .pq-current-page {background:var(--pq-teal);color:#fff;}
+.vp-prescriptions .pq-pagination a:hover {background:#E8F2EC;}
+.vp-prescriptions .pq-notice {padding:13px 18px;border:1px solid #C6DCA0;border-radius:10px;background:#EFF6DF;color:var(--pq-teal);}
+.vp-prescriptions .pq-sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.vp-prescriptions :focus-visible {outline:3px solid #91CDB9;outline-offset:3px;}
+@keyframes pq-reveal {from {opacity:0;transform:translateY(-6px);}to {opacity:1;transform:translateY(0);}}
+@media (max-width:1150px) {
+  .vp-prescriptions .pq-toolbar {grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+  .vp-prescriptions .pq-filter-actions {align-self:end;padding-top:24px;}
+}
+@media (max-width:600px) {
+  .vp-prescriptions .pq-header {align-items:flex-start;flex-direction:column;}
+  .vp-prescriptions .pq-toolbar {grid-template-columns:minmax(0,1fr);padding:18px;}
+  .vp-prescriptions .pq-filter-actions {padding-top:0;}
+  .vp-prescriptions .pq-filter-actions .pq-button {flex:1;}
+  .vp-prescriptions .pq-results {align-items:flex-start;flex-direction:column;padding:0 18px 16px;}
+  .vp-prescriptions .pq-footer {padding:18px;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .vp-prescriptions *, .vp-prescriptions *::before, .vp-prescriptions *::after {animation:none;transition:none;}
 }
 
-.vp-filter-field {
-  min-width: 0;
+
+@media (min-width:601px) and (max-width:1150px) {
+  .vp-prescriptions .pq-search {grid-column:1/-1;}
 }
 
-.vp-filter-field label {
-  display: block;
-  margin-bottom: 8px;
-  color: #334155;
-  font-weight: 600;
-}
-
-.vp-filter-field input,
-.vp-filter-field select {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #0f172a;
-  font: inherit;
-}
-
-.vp-filter-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-top: 28px;
-}
-
-.vp-filter-button,
-.vp-page-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  box-sizing: border-box;
-  padding: 10px 16px;
-  border: 1px solid #2563eb;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #ffffff;
-  font: inherit;
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.vp-filter-button:hover,
-.vp-page-link:hover {
-  background: #1d4ed8;
-  color: #ffffff;
-}
-
-.vp-filter-reset {
-  padding: 10px 4px;
-  color: #334155;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.vp-queue-filters :focus-visible,
-.vp-queue-pagination a:focus-visible {
-  outline: 3px solid #93c5fd;
-  outline-offset: 3px;
-}
-
-.vp-filter-error {
-  margin-top: 8px;
-  color: #991b1b;
-  font-size: 0.9rem;
-}
-
-.vp-filter-error ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.vp-result-summary {
-  margin: 16px 0;
-  color: #475569;
-}
-
-.vp-customer-email,
-.vp-timezone {
-  display: block;
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 0.85rem;
-  overflow-wrap: anywhere;
-}
-
-.vp-prescription-queue .badge.vp-status-pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.vp-prescription-queue .badge.vp-status-approved {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.vp-prescription-queue .badge.vp-status-rejected {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.vp-prescription-queue .vp-queue-empty {
-  padding: 32px 20px;
-  text-align: center;
-  color: #64748b;
-}
-
-.vp-queue-pagination {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin: 24px 0;
-}
-
-.vp-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (max-width: 900px) {
-  .vp-queue-filters {
-    grid-template-columns: minmax(0, 1fr) 180px;
-  }
-
-  .vp-filter-actions {
-    grid-column: 1 / -1;
-    padding-top: 0;
-  }
-}
-
-@media (max-width: 600px) {
-  .vp-queue-filters {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* Prescription queue: original dark glass radio slider. */
-.vp-prescription-queue form.vp-queue-filters.vp-glass-filters {display:block;box-sizing:border-box;width:100%;}
-.vp-prescription-queue .vp-glass-filter-row {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;}
-.vp-prescription-queue .vp-search-field {min-width:0;}
-.vp-prescription-queue .vp-status-label {display:block;margin-bottom:8px;color:#334155;font-weight:600;}
-.vp-prescription-queue .glass-radio-group {--glass-text:#e5e5e5;display:grid;grid-template-columns:repeat(4,minmax(100px,1fr));position:relative;width:max-content;max-width:100%;background:rgba(0,0,0,.94);border:1px solid rgba(255,255,255,.14);border-radius:1rem;backdrop-filter:blur(12px);box-shadow:inset 1px 1px 4px rgba(255,255,255,.2),inset -1px -1px 6px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.15);overflow:hidden;isolation:isolate;}
-.vp-prescription-queue .glass-radio-group input[type="radio"] {position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;opacity:0!important;appearance:none!important;pointer-events:none!important;}
-.vp-prescription-queue .glass-radio-group label {display:flex;align-items:center;justify-content:center;position:relative;z-index:2;min-width:100px;min-height:48px;box-sizing:border-box;margin:0!important;padding:12px 14px;color:var(--glass-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .3s ease-in-out;}
-.vp-prescription-queue .glass-radio-group label:hover {color:#fff;}
-.vp-prescription-queue .glass-radio-group input:checked + label {color:#fff;}
-.vp-prescription-queue #glass-all:checked + label,.vp-prescription-queue #glass-pending:checked + label {color:#252016;}
-.vp-prescription-queue .glass-radio-group input:focus-visible + label {outline:3px solid #86b2ff;outline-offset:-3px;}
-.vp-prescription-queue .glass-glider {position:absolute;inset:0 auto 0 0;width:25%;border-radius:1rem;z-index:1;pointer-events:none;transition:transform .5s cubic-bezier(.37,1.95,.66,.56),background .4s ease-in-out,box-shadow .4s ease-in-out;}
-.vp-prescription-queue #glass-all:checked ~ .glass-glider {transform:translateX(0%);background:linear-gradient(135deg,#c0c0c055,#e0e0e0);box-shadow:0 0 18px rgba(192,192,192,.5),0 0 10px rgba(255,255,255,.4) inset;}
-.vp-prescription-queue #glass-pending:checked ~ .glass-glider {transform:translateX(100%);background:linear-gradient(135deg,#ffd70055,#ffcc00);box-shadow:0 0 18px rgba(255,215,0,.5),0 0 10px rgba(255,235,150,.4) inset;}
-.vp-prescription-queue #glass-approved:checked ~ .glass-glider {transform:translateX(200%);background:linear-gradient(135deg,#2dd4bf55,#16a085);box-shadow:0 0 18px rgba(22,160,133,.5),0 0 10px rgba(150,255,220,.4) inset;}
-.vp-prescription-queue #glass-rejected:checked ~ .glass-glider {transform:translateX(300%);background:linear-gradient(135deg,#ff6b6b55,#dc3545);box-shadow:0 0 18px rgba(220,53,69,.5),0 0 10px rgba(255,180,180,.4) inset;}
-.vp-prescription-queue .vp-glass-filters .vp-filter-actions {display:flex;justify-content:flex-end;align-items:center;gap:16px;padding-top:0;margin-top:18px;}
-@media(max-width:1200px){.vp-prescription-queue .vp-glass-filter-row{grid-template-columns:minmax(0,1fr);}.vp-prescription-queue .vp-glass-filters .vp-filter-actions{justify-content:flex-start;}}
-@media(max-width:550px){.vp-prescription-queue .glass-radio-group{width:100%;grid-template-columns:repeat(4,minmax(0,1fr));}.vp-prescription-queue .glass-radio-group label{min-width:0;font-size:11px;padding:10px 3px;}}
-@media(prefers-reduced-motion:reduce){.vp-prescription-queue .glass-glider,.vp-prescription-queue .glass-radio-group label{transition:none;}}

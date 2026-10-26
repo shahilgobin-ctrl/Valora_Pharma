@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page_title }} | Valora Pharma</title>
-  <link rel="stylesheet" href="{% static 'pharmacist/css/pharmacist.css' %}">
+  <link rel="stylesheet" href="{% static 'pharmacist/css/pharmacist.css' %}?v=teal-shell-20261026-2">
   {% block page_styles %}{% endblock %}
 </head>
 <body class="vp-body">
@@ -13,7 +13,10 @@
   <div class="vp-shell">
     {% include "pharmacist/includes/sidebar.html" %}
     <div class="vp-workspace">
-      {% include "pharmacist/includes/header.html" %}
+      {# Keep the explicit sample-page warning, but remove the top bar from live pages. #}
+      {% if not uses_database %}
+        {% include "pharmacist/includes/header.html" %}
+      {% endif %}
       {% block content %}{% endblock %}
     </div>
   </div>

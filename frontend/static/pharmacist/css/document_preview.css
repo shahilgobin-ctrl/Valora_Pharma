@@ -51,9 +51,9 @@
   justify-content: center;
   min-height: 44px;
   padding: 10px 16px;
-  border: 1px solid #2563eb;
+  border: 1px solid var(--vp-primary);
   border-radius: 8px;
-  background: #2563eb;
+  background: var(--vp-primary);
   color: #ffffff;
   font: inherit;
   font-weight: 600;
@@ -61,8 +61,8 @@
 }
 
 .vp-document-link:hover {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
+  border-color: var(--vp-teal-mid);
+  background: var(--vp-teal-mid);
   color: #ffffff;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .vp-document-link:focus-visible {
-  outline: 3px solid #93c5fd;
+  outline: 3px solid #91CDB9;
   outline-offset: 3px;
 }
 

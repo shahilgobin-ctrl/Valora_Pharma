@@ -520,3 +520,41 @@ def cancel_order(pk, reason, user):
     )
 
     return order
+
+@transaction.atomic
+def checkout_walk_in(*, user, lines, method, cash_tendered, **details):
+    """Create, allocate by earliest expiry, and complete one walk-in sale."""
+    require_pharmacist(user)
+    # create_order acquires SQLite's writer lock before stock is read.
+    # An existing submission is returned without changing its original outcome.
+    key = details.get("submission_key")
+    existing = Order.objects.filter(submission_key=key).first() if key else None
+    if existing:
+        if existing.processed_by_id != user.pk:
+            raise PermissionDenied("This submission belongs to another pharmacist.")
+        return existing
+
+    order = create_order(user=user, kind=Order.Kind.WALK_IN, lines=lines, **details)
+    allocation_plan = []
+    for item in order.items.select_related("medicine"):
+        remaining = item.quantity
+        batches = Batch.objects.select_for_update().filter(
+            medicine=item.medicine,
+            medicine__is_active=True,
+            expiry_date__gt=timezone.localdate(),
+            quantity_available__gt=0,
+        ).order_by("expiry_date", "received_date", "pk")
+        for batch in batches:
+            quantity = min(remaining, batch.quantity_available)
+            allocation_plan.append({"item": item, "batch": batch, "quantity": quantity})
+            remaining -= quantity
+            if remaining == 0:
+                break
+        if remaining:
+            raise ValidationError(
+                f"Insufficient usable stock for {item.medicine_name}. "
+                "Review the cart and try again."
+            )
+    save_allocations(order.pk, allocation_plan, user)
+    return complete_order(order.pk, method, cash_tendered, user)
+

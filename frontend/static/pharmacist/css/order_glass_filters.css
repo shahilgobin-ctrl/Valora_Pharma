@@ -148,7 +148,7 @@
 
 .vp-order-queue
 .vp-order-glass-group input:focus-visible + label {
-    outline: 3px solid #86b2ff;
+    outline: 3px solid #91CDB9;
     outline-offset: -3px;
     border-radius: 1rem;
 }

@@ -1,38 +1,111 @@
 {% extends "pharmacist/base.html" %}
 {% load static %}
-{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/workflows.css' %}">{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/inventory.css' %}?v=wide-teal-20261026">
+{% endblock %}
 {% block content %}
-<main id="main-content" class="wf">
-  <h1>Inventory</h1>
-  <p>Available quantities exclude batches expiring today or earlier. Allocations do not reserve stock.</p>
-  <form method="get" class="panel" role="search">
-    {{ filter_form.as_p }}<button type="submit" class="button">Search</button>
-    <a href="{% url 'pharmacist:inventory' %}">Reset</a>
-  </form>
-  <p>{{ page_obj.paginator.count }} matching medicines</p>
-  {% for medicine in page_obj %}
-    <section class="panel">
-      <h2>{{ medicine }}</h2>
-      <p>{{ medicine.category_name }} · Rs {{ medicine.selling_price }} per {{ medicine.selling_unit }}
-         {% if medicine.prescription_required %} · Prescription required{% endif %}
-         {% if not medicine.is_active %} · Archived{% endif %}</p>
-      <p><strong>{{ medicine.available }} available</strong> · Reorder level: {{ medicine.reorder_level }}</p>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Batch</th><th>Supplier</th><th>Received</th><th>Expiry</th><th>Quantity</th><th>Availability</th></tr></thead>
-        <tbody>{% for batch in medicine.batches.all %}
-          <tr><td>{{ batch.batch_number }}</td><td>{{ batch.supplier_name }}</td>
-            <td>{{ batch.received_date|date:"d M Y" }}</td><td>{{ batch.expiry_date|date:"d M Y" }}</td>
-            <td>{{ batch.quantity_available }}</td>
-            <td>{% if not medicine.is_active %}Archived{% elif batch.expiry_date <= today %}Not dispensable — expired or expires today{% elif not batch.quantity_available %}Empty{% else %}Available{% endif %}</td>
-          </tr>
-        {% empty %}<tr><td colspan="6">No batches recorded.</td></tr>{% endfor %}</tbody>
-      </table></div>
-    </section>
-  {% empty %}<p>No matching medicines.</p>{% endfor %}
-  <nav class="actions" aria-label="Inventory pages">
-    {% if page_obj.has_previous %}<a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+<main id="main-content" class="vp-inventory">
+  {% for message in messages %}<p class="iv-notice" role="status">{{ message }}</p>{% endfor %}
+  <header class="iv-header">
+    <div>
+      <p class="iv-eyebrow">Pharmacy workspace</p>
+      <h1>Inventory <span class="iv-count">{{ page_obj.paginator.count }}</span></h1>
+      <p class="iv-subtitle">Available quantities exclude batches expiring today or earlier. Allocations do not reserve stock.</p>
+    </div>
+  </header>
+  <section class="iv-card iv-filter-card" aria-label="Inventory filters">
+    <form method="get" action="{% url 'pharmacist:inventory' %}" class="iv-toolbar" role="search" aria-label="Search and filter inventory">
+      <div class="iv-field iv-search">
+        <label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>
+        {{ filter_form.q }}{{ filter_form.q.errors }}
+      </div>
+      <div class="iv-field">
+        <span id="iv-availability-label">Availability</span>
+        <input type="hidden" name="availability" value="{{ filter_form.availability.value|default:'all' }}">
+        <details class="iv-menu">
+          <summary aria-labelledby="iv-availability-label iv-availability-value">
+            <span id="iv-availability-value">{% for value, label in filter_form.availability.field.choices %}{% if filter_form.availability.value == value %}{{ label }}{% endif %}{% endfor %}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="iv-options">
+            {% for value, label in filter_form.availability.field.choices %}
+              <button type="submit" name="availability" value="{{ value }}"{% if filter_form.availability.value == value %} class="is-current" aria-current="true"{% endif %}>{{ label }}</button>
+            {% endfor %}
+          </div>
+        </details>
+        {{ filter_form.availability.errors }}
+      </div>
+      <div class="iv-filter-actions">
+        <button type="submit" class="iv-button iv-primary">Search</button>
+        <a href="{% url 'pharmacist:inventory' %}" class="iv-button iv-reset">Reset</a>
+      </div>
+      {% if filter_form.errors %}<p class="iv-filter-error" role="alert">Correct the filter values and try again.</p>{% endif %}
+    </form>
+    <div class="iv-results" role="status">
+      <strong>{{ page_obj.paginator.count }} matching medicine{{ page_obj.paginator.count|pluralize }}</strong>
+      {% if page_obj.paginator.count %}<span>Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}</span>{% endif %}
+    </div>
+  </section>
+
+  <div class="iv-medicines">
+    {% for medicine in page_obj %}
+      <section class="iv-card iv-medicine" aria-labelledby="medicine-{{ medicine.pk }}-heading">
+        <header class="iv-medicine-header">
+          <div>
+            <h2 id="medicine-{{ medicine.pk }}-heading">{{ medicine }}</h2>
+            <p class="iv-medicine-meta">{{ medicine.category_name|default:"Uncategorised" }} · Rs {{ medicine.selling_price|floatformat:2 }} per {{ medicine.selling_unit }}{% if medicine.prescription_required %} · Prescription required{% endif %}</p>
+          </div>
+          <div class="iv-stock-summary">
+            {% if not medicine.is_active %}
+              <span class="iv-badge iv-archived">Archived</span>
+            {% elif medicine.available == 0 %}
+              <span class="iv-badge iv-out">Out of stock</span>
+            {% elif medicine.available <= medicine.reorder_level %}
+              <span class="iv-badge iv-low">Low stock</span>
+            {% else %}
+              <span class="iv-badge iv-available">In stock</span>
+            {% endif %}
+            <strong>{{ medicine.available }} <span>{% if medicine.is_active %}available{% else %}unexpired units on hand{% endif %}</span></strong>
+            <small>Reorder level: {{ medicine.reorder_level }}</small>
+          </div>
+        </header>
+        <div class="iv-table-scroll" tabindex="0" role="region" aria-label="Batches for {{ medicine }}">
+          <table>
+            <caption class="iv-sr-only">Recorded batches for {{ medicine }}</caption>
+            <thead><tr>
+              <th scope="col">Batch</th><th scope="col">Supplier</th><th scope="col">Received</th>
+              <th scope="col">Expiry</th><th scope="col" class="iv-quantity">Quantity</th><th scope="col">Availability</th>
+            </tr></thead>
+            <tbody>
+              {% for batch in medicine.batches.all %}
+                <tr>
+                  <td class="iv-batch-reference">{{ batch.batch_number }}</td><td>{{ batch.supplier_name }}</td>
+                  <td>{{ batch.received_date|date:"d M Y" }}</td><td>{{ batch.expiry_date|date:"d M Y" }}</td>
+                  <td class="iv-quantity">{{ batch.quantity_available }}</td>
+                  <td>
+                    {% if not medicine.is_active %}<span class="iv-badge iv-archived">Archived</span>
+                    {% elif batch.expiry_date <= today %}<span class="iv-badge iv-out">Not dispensable</span><span class="iv-secondary">Expired or expires today</span>
+                    {% elif not batch.quantity_available %}<span class="iv-badge iv-archived">Empty</span>
+                    {% else %}<span class="iv-badge iv-available">Available</span>{% endif %}
+                  </td>
+                </tr>
+              {% empty %}<tr><td colspan="6" class="iv-empty">No batches recorded.</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    {% empty %}
+      <section class="iv-card iv-empty"><strong>No matching medicines</strong><p>{% if filter_form.errors %}Correct the filters to view inventory.{% else %}Try another medicine name, strength, category or availability filter.{% endif %}</p></section>
+    {% endfor %}
+  </div>
+  <footer class="iv-footer">
     <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">Next</a>{% endif %}
-  </nav>
+    <nav class="iv-pagination" aria-label="Inventory pages">
+      {% if page_obj.has_previous %}<a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">← Previous</a>{% endif %}
+      <span class="iv-current-page" aria-current="page">{{ page_obj.number }}</span>
+      {% if page_obj.has_next %}<a href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+    </nav>
+  </footer>
 </main>
 {% endblock %}
+

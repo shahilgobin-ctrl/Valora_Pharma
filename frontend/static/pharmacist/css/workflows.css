@@ -2,7 +2,7 @@
   max-width: 1250px;
   margin: 0 auto;
   padding: 30px;
-  color: #182b49;
+  color: var(--vp-ink);
 }
 
 .wf h1 {
@@ -21,7 +21,7 @@
 }
 
 .wf a {
-  color: #245ac5;
+  color: var(--vp-primary);
 }
 
 .wf .panel {
@@ -30,7 +30,7 @@
   border: 1px solid #dce4ef;
   border-radius: 14px;
   background: white;
-  box-shadow: 0 3px 15px #203a6310;
+  box-shadow: 0 3px 15px #12403A10;
 }
 
 .wf .stats {
@@ -69,10 +69,10 @@
   justify-content: center;
   padding: 11px 18px;
   min-height: 44px;
-  border: 1px solid #245ac5;
+  border: 1px solid var(--vp-primary);
   border-radius: 8px;
   color: white;
-  background: #245ac5;
+  background: var(--vp-primary);
   font: inherit;
   font-weight: 600;
   text-decoration: none;
@@ -80,8 +80,8 @@
 }
 
 .wf .button.secondary {
-  background: #f3f7ff;
-  color: #245ac5;
+  background: var(--vp-mint);
+  color: var(--vp-primary);
 }
 
 .wf .actions {
@@ -175,8 +175,8 @@
 .wf .badge {
   display: inline-block;
   font-size: 0.9rem;
-  background: #e9effc;
-  color: #245ac5;
+  background: #ECF4EF;
+  color: var(--vp-primary);
   padding: 7px 12px;
   border-radius: 20px;
 }
@@ -196,14 +196,14 @@
   padding: 10px 16px;
   margin-top: 24px;
   background: white;
-  color: #245ac5;
+  color: var(--vp-primary);
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   cursor: pointer;
 }
 
 .wf :focus-visible {
-  outline: 3px solid #86b2ff;
+  outline: 3px solid #91CDB9;
   outline-offset: 3px;
 }
 

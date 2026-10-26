@@ -1,5 +1,6 @@
 """Pharmacist prescription, order, sale and inventory views."""
 
+from datetime import timedelta
 from functools import wraps
 from pathlib import Path
 from urllib.parse import urlencode
@@ -11,7 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, OperationalError
-from django.db.models import F, Q, Sum
+from django.db.models.functions import TruncDate
+from django.db.models import Count, F, Q, Sum
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -20,12 +22,13 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods, require_safe
 
 from accounts.models import User
-from inventory.models import Medicine
+from inventory.models import Batch, Medicine
 from orders.models import Allocation, Order, Payment
 from orders.services import (
     NEXT_STATUS,
     advance_order,
     cancel_order,
+    checkout_walk_in,
     complete_order,
     create_order,
     save_allocations,
@@ -187,20 +190,55 @@ def preview(request, page):
 @pharmacist_required
 @require_safe
 def dashboard(request):
+    """Live operational overview; all metrics come from the database."""
     today = timezone.localdate()
-    stock_filter = Q(batches__expiry_date__gt=today)
+    expiry_limit = today + timedelta(days=30)
+    start_day = today - timedelta(days=6)
 
-    low_stock = (
+    # Only unexpired batches are available for dispensing.
+    stock_filter = Q(batches__expiry_date__gt=today)
+    inventory = (
         Medicine.objects.filter(is_active=True)
         .annotate(
             available=Sum(
-                "batches__quantity_available",
-                filter=stock_filter,
-                default=0,
+                "batches__quantity_available", filter=stock_filter, default=0
             )
         )
-        .filter(available__lte=F("reorder_level"))
     )
+    low_stock = inventory.filter(available__lte=F("reorder_level"))
+
+    # Aggregate seven calendar days, including days with zero activity.
+    new_order_rows = (
+        Order.objects.filter(created_at__date__gte=start_day,
+                             created_at__date__lte=today)
+        .annotate(day=TruncDate("created_at"))
+        .values("day")
+        .annotate(total=Count("pk"))
+    )
+    completed_rows = (
+        Order.objects.filter(
+            status=Order.Status.COMPLETED,
+            completed_at__date__gte=start_day,
+            completed_at__date__lte=today,
+        )
+        .annotate(day=TruncDate("completed_at"))
+        .values("day")
+        .annotate(total=Count("pk"))
+    )
+    new_by_day = {row["day"]: row["total"] for row in new_order_rows}
+    completed_by_day = {row["day"]: row["total"] for row in completed_rows}
+    dates = [start_day + timedelta(days=offset) for offset in range(7)]
+    scale = max([1, *new_by_day.values(), *completed_by_day.values()])
+    activity = [
+        {
+            "date": day,
+            "new": new_by_day.get(day, 0),
+            "completed": completed_by_day.get(day, 0),
+            "new_pct": round(new_by_day.get(day, 0) / scale * 100),
+            "completed_pct": round(completed_by_day.get(day, 0) / scale * 100),
+        }
+        for day in dates
+    ]
 
     return render(
         request,
@@ -213,28 +251,40 @@ def dashboard(request):
             ).count(),
             open_orders=(
                 Order.objects.filter(kind=Order.Kind.ONLINE)
-                .exclude(
-                    status__in=[
-                        Order.Status.COMPLETED,
-                        Order.Status.CANCELLED,
-                    ]
-                )
+                .exclude(status__in=[Order.Status.COMPLETED,
+                                     Order.Status.CANCELLED])
                 .count()
             ),
+            ready_orders=Order.objects.filter(
+                kind=Order.Kind.ONLINE, status=Order.Status.READY
+            ).count(),
             sales_today=Order.objects.filter(
                 status=Order.Status.COMPLETED,
                 completed_at__date=today,
             ).count(),
             revenue_today=(
                 Payment.objects.filter(recorded_at__date=today)
-                .aggregate(total=Sum("amount"))["total"]
-                or 0
+                .aggregate(total=Sum("amount"))["total"] or 0
             ),
-            low_stock=low_stock[:10],
-            recent_orders=Order.objects.select_related("customer")[:8],
+            low_stock_count=low_stock.count(),
+            out_of_stock_count=inventory.filter(available=0).count(),
+            active_medicines_count=inventory.count(),
+            expiring_batches_count=Batch.objects.filter(
+                medicine__is_active=True,
+                quantity_available__gt=0,
+                expiry_date__gt=today,
+                expiry_date__lte=expiry_limit,
+            ).count(),
+            low_stock=low_stock.order_by("available", "name", "pk")[:4],
+            recent_orders=Order.objects.select_related("customer")[:6],
+            activity=activity,
+            activity_new_total=sum(day["new"] for day in activity),
+            activity_completed_total=sum(day["completed"] for day in activity),
+            activity_has_data=any(
+                day["new"] or day["completed"] for day in activity
+            ),
         ),
     )
-
 
 # ---------------------------------------------------------------------------
 # Prescription queue and review
@@ -621,68 +671,69 @@ def order_queue(request):
 @pharmacist_required
 @require_http_methods(["GET", "POST"])
 def sale_form(request):
+    """Serve the POS catalogue and validate every submitted cart on the server."""
+    action = request.POST.get("action", "draft") if request.method == "POST" else "draft"
+    payment_form = PaymentForm(
+        request.POST if request.method == "POST" and action == "checkout" else None,
+        initial={"method": Payment.Method.CASH},
+    )
     if request.method == "GET":
         token = str(uuid4())
-
-        # Retain a limited number of tokens for open sale-form tabs.
         tokens = request.session.get("sale_tokens", [])[-19:]
         request.session["sale_tokens"] = tokens + [token]
-
         form = SaleForm(initial={"submission_key": token})
         formset = SaleLineFormSet(prefix="lines")
-
     else:
         form = SaleForm(request.POST)
-        formset = SaleLineFormSet(
-            request.POST,
-            prefix="lines",
-        )
-
+        formset = SaleLineFormSet(request.POST, prefix="lines")
         valid = form.is_valid()
         valid_lines = formset.is_valid()
-
-        if valid and str(
-            form.cleaned_data["submission_key"]
-        ) not in request.session.get("sale_tokens", []):
-            form.add_error(
-                None,
-                "This sale form expired. Open a new sale form.",
-            )
+        valid_payment = payment_form.is_valid() if action == "checkout" else True
+        if action not in {"draft", "checkout"}:
+            form.add_error(None, "Choose a valid sale action.")
             valid = False
-
-        if valid and valid_lines:
+        if valid and str(form.cleaned_data["submission_key"]) not in request.session.get("sale_tokens", []):
+            form.add_error(None, "This sale form expired. Open a new sale form.")
+            valid = False
+        if valid and valid_lines and valid_payment:
             try:
-                order = create_order(
-                    user=request.user,
-                    kind=Order.Kind.WALK_IN,
-                    lines=rows(formset),
-                    **form.cleaned_data,
-                )
-
-            except (
-                ValidationError,
-                IntegrityError,
-                OperationalError,
-            ) as error:
+                if action == "checkout":
+                    order = checkout_walk_in(
+                        user=request.user, lines=rows(formset),
+                        **payment_form.cleaned_data, **form.cleaned_data,
+                    )
+                else:
+                    order = create_order(
+                        user=request.user, kind=Order.Kind.WALK_IN,
+                        lines=rows(formset), **form.cleaned_data,
+                    )
+            except (ValidationError, IntegrityError, OperationalError) as error:
                 form.add_error(None, error_text(error))
-
             else:
-                return redirect(
-                    "pharmacist:order_record",
-                    pk=order.pk,
-                )
+                destination = "pharmacist:receipt" if order.status == Order.Status.COMPLETED else "pharmacist:order_record"
+                return redirect(destination, pk=order.pk)
 
-    return render(
-        request,
-        "pharmacist/sale_form.html",
-        context(
-            "New walk-in sale",
-            "sales",
-            form=form,
-            formset=formset,
-        ),
-        status=400 if request.method == "POST" else 200,
-    )
+    medicines = Medicine.objects.filter(is_active=True).annotate(
+        available=Sum("batches__quantity_available",
+            filter=Q(batches__expiry_date__gt=timezone.localdate()), default=0)
+    ).order_by("name", "strength", "pk")
+    catalogue = [
+        {"id": medicine.pk, "name": str(medicine),
+         "category": medicine.category_name or "Uncategorised",
+         "unit": medicine.selling_unit, "price": str(medicine.selling_price),
+         "stock": medicine.available, "reorder": medicine.reorder_level,
+         "rx": medicine.prescription_required}
+        for medicine in medicines
+    ]
+    prescription_owners = {
+        str(pk): customer_id
+        for pk, customer_id in form.fields["prescription"].queryset.values_list("pk", "customer_id")
+    }
+    return render(request, "pharmacist/sale_form.html", context(
+        "New walk-in sale", "sales", form=form, formset=formset,
+        payment_form=payment_form, catalogue=catalogue,
+        prescription_owners=prescription_owners,
+    ), status=400 if request.method == "POST" else 200)
 
 
 # ---------------------------------------------------------------------------

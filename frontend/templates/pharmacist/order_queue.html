@@ -1,182 +1,120 @@
-
 {% extends "pharmacist/base.html" %}
 {% load static %}
 
 {% block page_styles %}
-<link rel="stylesheet"
-      href="{% static 'pharmacist/css/workflows.css' %}">
-<link rel="stylesheet"
-      href="{% static 'pharmacist/css/order_glass_filters.css' %}">
+<link rel="stylesheet" href="{% static 'pharmacist/css/order_queue.css' %}?v=teal-orders-20261026">
 {% endblock %}
 
 {% block content %}
-<main id="main-content" class="wf vp-order-queue">
-
-  {% for message in messages %}
-    <p class="notice" role="status">{{ message }}</p>
-  {% endfor %}
-
-  <h1>Orders</h1>
-
-  <p class="vp-order-subtitle">
-    View and manage pharmacy orders.
-  </p>
-
-  <!-- GET filters: existing backend parameters preserved -->
-  <form method="get"
-        action="{% url 'pharmacist:order_queue' %}"
-        class="panel vp-order-filter-panel"
-        id="vp-order-filter-form"
-        role="search">
-
-    <!-- Search -->
-    <div class="vp-order-search">
-      <label for="{{ filter_form.q.id_for_label }}">
-        {{ filter_form.q.label }}
-      </label>
-
-      {{ filter_form.q }}
-
-      {% for error in filter_form.q.errors %}
-        <p class="vp-order-filter-error">{{ error }}</p>
-      {% endfor %}
+<main id="main-content" class="vp-orders">
+  {% for message in messages %}<p class="oq-notice" role="status">{{ message }}</p>{% endfor %}
+  <header class="oq-header">
+    <div>
+      <p class="oq-eyebrow">Pharmacy workspace</p>
+      <h1>Orders <span class="oq-count">{{ page_obj.paginator.count }}</span></h1>
+      <p class="oq-subtitle">Review online orders and walk-in sales, and track their progress.</p>
     </div>
+    <a class="oq-button oq-primary" href="{% url 'pharmacist:sale_form' %}">+ New walk-in sale</a>
+  </header>
 
-    <!-- Status filter -->
-    <div class="vp-order-filter-section">
-      <span class="vp-order-filter-title" id="vp-order-status-title">
-        Status
-      </span>
-
-      <div class="vp-order-glass-scroll">
-        <div class="vp-order-glass-group vp-order-status-group"
-             role="radiogroup"
-             aria-labelledby="vp-order-status-title">
-
-          {% for value, label in filter_form.status.field.choices %}
-          <input type="radio" name="status" id="order-status-{{ value }}" value="{{ value }}"
-                 {% if filter_form.status.value == value %}checked{% endif %}>
-          <label for="order-status-{{ value }}">{{ label }}</label>
-          {% endfor %}
-
-          <div class="vp-order-glider" aria-hidden="true"></div>
-        </div>
+  <section class="oq-card" aria-label="Order management">
+    <form method="get" action="{% url 'pharmacist:order_queue' %}" class="oq-toolbar" role="search" aria-label="Search and filter orders">
+      <div class="oq-field oq-search">
+        <label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>
+        {{ filter_form.q }}
+        {{ filter_form.q.errors }}
       </div>
-
-      {% for error in filter_form.status.errors %}
-        <p class="vp-order-filter-error">{{ error }}</p>
-      {% endfor %}
-    </div>
-
-    <!-- Kind filter -->
-    <div class="vp-order-filter-section">
-      <span class="vp-order-filter-title" id="vp-order-kind-title">
-        Kind
-      </span>
-
-      <div class="vp-order-glass-scroll">
-        <div class="vp-order-glass-group vp-order-kind-group"
-             role="radiogroup"
-             aria-labelledby="vp-order-kind-title">
-
-          {% for value, label in filter_form.kind.field.choices %}
-          <input type="radio" name="kind" id="order-kind-{{ value }}" value="{{ value }}"
-                 {% if filter_form.kind.value == value %}checked{% endif %}>
-          <label for="order-kind-{{ value }}">{{ label }}</label>
-          {% endfor %}
-
-          <div class="vp-order-glider" aria-hidden="true"></div>
-        </div>
+      <div class="oq-field">
+        <span id="oq-status-label">Status</span>
+        <input type="hidden" name="status" value="{{ filter_form.status.value|default:'' }}">
+        <details class="oq-menu">
+          <summary aria-labelledby="oq-status-label oq-status-value">
+            <span id="oq-status-value">{% for value, label in filter_form.status.field.choices %}{% if filter_form.status.value == value %}{{ label }}{% endif %}{% endfor %}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="oq-options">
+            {% for value, label in filter_form.status.field.choices %}
+              <button type="submit" name="status" value="{{ value }}"{% if filter_form.status.value == value %} class="is-current" aria-current="true"{% endif %}>{{ label }}</button>
+            {% endfor %}
+          </div>
+        </details>
+        {{ filter_form.status.errors }}
       </div>
+      <div class="oq-field">
+        <span id="oq-kind-label">Order type</span>
+        <input type="hidden" name="kind" value="{{ filter_form.kind.value|default:'' }}">
+        <details class="oq-menu">
+          <summary aria-labelledby="oq-kind-label oq-kind-value">
+            <span id="oq-kind-value">{% for value, label in filter_form.kind.field.choices %}{% if filter_form.kind.value == value %}{{ label }}{% endif %}{% endfor %}</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="oq-options">
+            {% for value, label in filter_form.kind.field.choices %}
+              <button type="submit" name="kind" value="{{ value }}"{% if filter_form.kind.value == value %} class="is-current" aria-current="true"{% endif %}>{{ label }}</button>
+            {% endfor %}
+          </div>
+        </details>
+        {{ filter_form.kind.errors }}
+      </div>
+      <div class="oq-filter-actions">
+        <button type="submit" class="oq-button oq-primary">Search</button>
+        <a href="{% url 'pharmacist:order_queue' %}" class="oq-button oq-reset">Reset</a>
+      </div>
+      {% if filter_form.errors %}
+        <p class="oq-filter-error" role="alert">Correct the filter values and try again.</p>
+      {% endif %}
+    </form>
 
-      {% for error in filter_form.kind.errors %}
-        <p class="vp-order-filter-error">{{ error }}</p>
-      {% endfor %}
+    <div class="oq-results" role="status">
+      <strong>{{ page_obj.paginator.count }} matching order{{ page_obj.paginator.count|pluralize }}</strong>
+      {% if page_obj.paginator.count %}<span>Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}</span>{% endif %}
     </div>
-
-    <div class="vp-order-filter-actions">
-      <button type="submit" class="button">
-        Search
-      </button>
-
-      <a href="{% url 'pharmacist:order_queue' %}"
-         class="vp-order-reset">
-        Reset
-      </a>
+    <div class="oq-table-scroll" tabindex="0" role="region" aria-label="Order results table">
+      <table>
+        <caption class="oq-sr-only">Orders matching the selected search, status and order type</caption>
+        <thead>
+          <tr>
+            <th scope="col">Order reference</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Order type</th>
+            <th scope="col">Created</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="oq-amount">Total</th>
+            <th scope="col" class="oq-action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in page_obj %}
+            <tr>
+              <td>
+                <a class="oq-reference" href="{% url 'pharmacist:order_record' order.pk %}">{{ order }}</a>
+                {% if order.prescription_id %}<span class="oq-secondary">Prescription RX-{{ order.prescription_id }}</span>{% endif %}
+              </td>
+              <td>
+                <span class="oq-customer">{% firstof order.contact_name order.customer.get_full_name order.customer.email "Walk-in customer" %}</span>
+                {% if order.customer.email %}<span class="oq-secondary">{{ order.customer.email }}</span>{% elif order.contact_phone %}<span class="oq-secondary">{{ order.contact_phone }}</span>{% endif %}
+              </td>
+              <td><span class="oq-type">{{ order.get_kind_display }}</span></td>
+              <td><time datetime="{{ order.created_at|date:'c' }}">{{ order.created_at|date:"d M Y" }}<span class="oq-secondary">{{ order.created_at|date:"H:i T" }}</span></time></td>
+              <td><span class="oq-badge oq-status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+              <td class="oq-amount">Rs {{ order.total_amount|floatformat:2 }}</td>
+              <td class="oq-action"><a class="oq-view" href="{% url 'pharmacist:order_record' order.pk %}" aria-label="View order {{ order }}">View order <span aria-hidden="true">↗</span></a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="oq-empty"><strong>No matching orders</strong><p>{% if filter_form.errors %}Correct the filters to view orders.{% else %}Try another reference, customer email or filter selection.{% endif %}</p></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-
-  </form>
-
-  <!-- Existing order results -->
-  <div class="panel table-wrap">
-
-    <table>
-      <caption>
-        {{ page_obj.paginator.count }} matching orders
-      </caption>
-
-      <thead>
-        <tr>
-          <th scope="col">Reference</th>
-          <th scope="col">Type</th>
-          <th scope="col">Customer</th>
-          <th scope="col">Status</th>
-          <th scope="col">Total</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for order in page_obj %}
-          <tr>
-            <td>
-              <a href="{% url 'pharmacist:order_record' order.pk %}">
-                {{ order }}
-              </a>
-            </td>
-
-            <td>{{ order.get_kind_display }}</td>
-
-            <td>
-              {% firstof order.contact_name order.customer.get_full_name order.customer.email 'Walk-in customer' %}
-            </td>
-
-            <td>{{ order.get_status_display }}</td>
-
-            <td>Rs {{ order.total_amount }}</td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="5">No matching orders.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-  </div>
-
-  <!-- Existing pagination -->
-  <nav class="actions" aria-label="Order pages">
-
-    {% if page_obj.has_previous %}
-      <a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">
-        Previous
-      </a>
-    {% endif %}
-
-    <span>
-      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-    </span>
-
-    {% if page_obj.has_next %}
-      <a href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">
-        Next
-      </a>
-    {% endif %}
-
-  </nav>
-
+    <footer class="oq-footer">
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      <nav class="oq-pagination" aria-label="Order pages">
+        {% if page_obj.has_previous %}<a href="?{{ filter_query }}&amp;page={{ page_obj.previous_page_number }}">← Previous</a>{% endif %}
+        <span class="oq-current-page" aria-current="page">{{ page_obj.number }}</span>
+        {% if page_obj.has_next %}<a href="?{{ filter_query }}&amp;page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+      </nav>
+    </footer>
+  </section>
 </main>
-
-<script src="{% static 'pharmacist/js/order_glass_filters.js' %}"
-        defer></script>
 {% endblock %}
+

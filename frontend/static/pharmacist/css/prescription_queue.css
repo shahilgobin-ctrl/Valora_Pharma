@@ -6,8 +6,8 @@
     --muted: #5b6b80;
     --line: #e3e9f1;
     --head: #e6eff9;
-    --primary: #1b5a9b;
-    --primary-dark: #144a82;
+    --primary: var(--vp-primary);
+    --primary-dark: var(--vp-teal-mid);
     --primary-soft: #e6f0fb;
     --amber-bg: #fcefdc;
     --amber: #b36a12;
@@ -198,10 +198,10 @@
     min-height: 37px;
     padding: 8px 17px;
 
-    background: #1b5a9b;
+    background: var(--vp-primary);
     color: #ffffff;
 
-    border: 1px solid #1b5a9b;
+    border: 1px solid var(--vp-primary);
     border-radius: 8px;
 
     font-family: inherit;
@@ -220,8 +220,8 @@
 }
 
 .vp-prescription-queue .vp-review-btn:hover {
-    background: #144a82;
-    border-color: #144a82;
+    background: var(--vp-teal-mid);
+    border-color: var(--vp-teal-mid);
     color: #ffffff;
     text-decoration: none;
 

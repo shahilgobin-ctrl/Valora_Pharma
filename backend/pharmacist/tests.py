@@ -86,13 +86,24 @@ class PharmacistAccessTests(TestCase):
                     "pharmacist/base.html",
                 )
                 self.assertContains(response, 'id="main-content"')
-                self.assertContains(
-                    response,
-                    'aria-current="page"',
-                    count=1,
+                # Sidebar and pagination can both legitimately mark the
+                # current page. Assert exactly one active SIDEBAR item,
+                # rather than counting the attribute in the whole response.
+                html = response.content.decode("utf-8")
+                self.assertIn('<nav class="vp-nav"', html)
+                sidebar_nav = html.split('<nav class="vp-nav"', 1)[1].split(
+                    "</nav>", 1
+                )[0]
+                self.assertEqual(
+                    sidebar_nav.count('aria-current="page"'),
+                    1,
                 )
 
                 if page == "prescription_queue":
+                    self.assertContains(
+                        response,
+                        'class="pq-current-page" aria-current="page"',
+                    )
                     self.assertContains(
                         response,
                         "No pending prescriptions.",
@@ -102,6 +113,11 @@ class PharmacistAccessTests(TestCase):
                         "Sample data only",
                     )
                 elif page in {"dashboard", "order_queue", "sale_form"}:
+                    if page == "order_queue":
+                        self.assertContains(
+                            response,
+                            'class="oq-current-page" aria-current="page"',
+                        )
                     self.assertNotContains(response, "Sample data only")
                 else:
                     self.assertContains(response, "Sample data only")

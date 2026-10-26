@@ -1,0 +1,77 @@
+/* Walk-in POS: scoped to the pharmacist workspace. */
+.pos {--pos-teal:#12403A;--pos-mid:#1F514E;--pos-line:#E1EAE5;--pos-muted:#617670;--pos-lime:#DCECA3;width:100%;max-width:none;padding:28px clamp(16px,2vw,34px) 48px;color:#162A27;}
+.pos [hidden] {display:none!important;}
+.pos-heading {display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:22px;}
+.pos-eyebrow {margin:0 0 7px;font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#3B6E67;font-weight:700;}
+.pos h1 {margin:0;font-size:30px;color:var(--pos-teal);letter-spacing:-.03em;}
+.pos-heading p:not(.pos-eyebrow) {margin:8px 0 0;color:var(--pos-muted);font-size:14px;}
+.pos-heading a {color:var(--pos-teal);font-size:13px;font-weight:650;text-underline-offset:4px;white-space:nowrap;}
+.pos-layout {display:grid;grid-template-columns:minmax(390px,.9fr) minmax(0,1.35fr);gap:22px;align-items:start;}
+.pos-panel {min-width:0;border:1px solid var(--pos-line);border-radius:17px;background:#fff;box-shadow:0 5px 22px rgb(18 64 58 / 4%);}
+.pos-section-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border-bottom:1px solid var(--pos-line);}
+.pos h2 {margin:0;color:var(--pos-teal);font-size:18px;}
+.pos-section-heading > span {padding:5px 9px;border-radius:7px;background:#EEF4E4;color:var(--pos-teal);font-size:12px;}
+.pos-customer {padding:16px 20px;border-bottom:1px solid var(--pos-line);}
+.pos-customer summary {font-size:13px;font-weight:650;color:var(--pos-teal);cursor:pointer;}
+.pos-customer summary small {display:block;margin:5px 0 0 15px;color:var(--pos-muted);font-size:11px;font-weight:400;}
+.pos-customer-fields {display:grid;gap:14px;padding-top:18px;}
+.pos label {display:block;font-size:12px;font-weight:600;color:var(--pos-teal);}
+.pos input:not([type=hidden]):not([type=checkbox]),
+.pos select {width:100%;box-sizing:border-box;min-height:44px;margin-top:7px;padding:9px 11px;border:1px solid #CDDDD4;border-radius:9px;background:#FBFDFC;color:#162A27;font:inherit;font-size:13px;}
+.pos input:focus,.pos select:focus {border-color:var(--pos-teal);outline:3px solid rgb(18 64 58 / 12%);outline-offset:2px;}
+.pos small,.pos-help {font-size:12px;line-height:1.6;color:var(--pos-muted);}
+.pos-customer-fields small {display:block;margin-top:5px;}
+.pos-cart-head,.pos-line {display:grid;grid-template-columns:minmax(0,1fr) 65px 86px 30px;gap:10px;align-items:center;}
+.pos-cart-head {padding:13px 20px;background:#F3F7F4;font-size:11px;color:var(--pos-muted);}
+.pos-cart-head span:nth-child(3) {text-align:right;}
+.pos-line {padding:16px 20px;border-bottom:1px solid #EDF2EE;}
+.pos-line-medicine {min-width:0;}
+.pos-line-name {font-size:13px;line-height:1.5;overflow-wrap:anywhere;}
+.pos-line-price {display:block;margin-top:5px;font-size:11px;}
+.pos-line-total {font-size:12px;text-align:right;font-variant-numeric:tabular-nums;}
+.pos .pos-quantity input {margin:0;text-align:center;padding:8px 4px;}
+.pos-quantity label {font-size:10px;margin-bottom:4px;}
+.pos-remove {width:30px;height:34px;border:1px solid #EAC6CB;border-radius:8px;background:#FCEEF0;color:#9C303E;font-size:22px;cursor:pointer;}
+.pos-remove:hover {background:#9C303E;color:#fff;}
+.pos-enhanced .pos-line-medicine > label,
+.pos-enhanced .pos-delete-fallback {display:none;}
+.pos-enhanced #pos-lines {max-height:400px;overflow-y:auto;}
+.pos-empty {padding:30px 20px;text-align:center;font-size:13px;color:var(--pos-muted);line-height:1.6;}
+.pos-rx-warning {margin:16px 20px;padding:12px;border:1px solid #ECD18F;border-radius:9px;background:#FFF6DE;color:#805519;font-size:12px;line-height:1.6;}
+.pos-checkout {padding:20px;}
+.pos-total {display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--pos-teal);}
+.pos-total > strong {font-size:29px;font-variant-numeric:tabular-nums;}
+.pos-total > span {font-size:14px;font-weight:650;}
+.pos h3 {font-size:14px;color:var(--pos-teal);margin:20px 0 12px;}
+.pos-payment-fields {display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pos-change {display:flex;justify-content:space-between;font-size:13px;color:var(--pos-muted);}
+.pos-change strong {color:var(--pos-teal);}
+.pos-pay,.pos-draft {display:block;width:100%;min-height:48px;padding:12px 14px;border:1px solid var(--pos-teal);border-radius:10px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;}
+.pos-pay {margin-top:16px;background:linear-gradient(120deg,#12403A,#1F514E);color:#fff;}
+.pos-pay:hover {background:#0C302B;}
+.pos-draft {margin-top:10px;border-color:#C7D9B0;background:#EFF5E1;color:var(--pos-teal);}
+.pos-draft:hover {background:var(--pos-lime);}
+.pos-catalogue {padding-bottom:20px;}
+.pos-catalogue-tools {display:grid;grid-template-columns:minmax(0,1fr) minmax(130px,.55fr);gap:12px;padding:20px 20px 0;}
+.pos-catalogue > .pos-help {margin:12px 20px;}
+.pos-products {display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;padding:8px 20px;}
+.pos-product {display:flex;align-items:flex-start;flex-direction:column;gap:9px;min-height:185px;padding:15px;border:1px solid #DDE7DF;border-radius:13px;background:#F7FAF7;color:#162A27;font:inherit;text-align:left;cursor:pointer;transition:background .18s,border-color .18s,transform .18s;}
+.pos-product:hover {border-color:#3B6E67;background:#EDF4E4;transform:translateY(-2px);}
+.pos-product:disabled {cursor:not-allowed;background:#F4F5F4;opacity:.65;transform:none;}
+.pos-product-category {font-size:10px;color:var(--pos-muted);}
+.pos-product-name {font-size:13px;line-height:1.5;}
+.pos-product-price {margin-top:auto;font-size:12px;font-weight:650;color:var(--pos-teal);}
+.pos-stock {padding:4px 7px;border-radius:6px;background:#E1EFE5;color:#285D50;font-size:11px;}
+.pos-stock.is-low {background:#FFF0CE;color:#855609;}
+.pos-stock.is-out {background:#FBE6E9;color:#9C303E;}
+.pos-product-rx {font-size:10px;color:var(--pos-muted);}
+.pos-errors:empty {display:none;}
+.pos-errors,.pos-notice {padding:12px 16px;margin-bottom:16px;border-radius:10px;background:#FFF3DD;color:#805519;font-size:13px;}
+.pos .errorlist {padding-left:16px;color:#A23240;font-size:12px;line-height:1.5;}
+.pos :focus-visible {outline:3px solid #91CDB9;outline-offset:3px;}
+@media (min-width:1500px) {.pos-products {grid-template-columns:repeat(auto-fill,minmax(175px,1fr));}}
+@media (max-width:1100px) {.pos-layout {grid-template-columns:minmax(330px,.9fr) minmax(0,1fr);gap:16px;}.pos-catalogue-tools {grid-template-columns:1fr;}.pos-products {grid-template-columns:repeat(auto-fill,minmax(135px,1fr));}}
+@media (max-width:900px) {.pos-layout {grid-template-columns:1fr;}.pos-catalogue {grid-row:1;}.pos-enhanced .pos-products {max-height:440px;overflow-y:auto;}.pos-heading {align-items:flex-start;flex-direction:column;}.pos-catalogue-tools {grid-template-columns:minmax(0,1fr) minmax(120px,.6fr);}}
+@media (max-width:480px) {.pos-line,.pos-cart-head {grid-template-columns:minmax(0,1fr) 52px 72px 28px;gap:6px;padding-left:12px;padding-right:12px;}.pos-payment-fields,.pos-catalogue-tools {grid-template-columns:1fr;}.pos-total > strong {font-size:25px;}}
+@media (prefers-reduced-motion:reduce) {.pos * {transition:none;}}
+
