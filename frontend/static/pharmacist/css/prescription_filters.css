@@ -162,3 +162,25 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Prescription queue: original dark glass radio slider. */
+.vp-prescription-queue form.vp-queue-filters.vp-glass-filters {display:block;box-sizing:border-box;width:100%;}
+.vp-prescription-queue .vp-glass-filter-row {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;}
+.vp-prescription-queue .vp-search-field {min-width:0;}
+.vp-prescription-queue .vp-status-label {display:block;margin-bottom:8px;color:#334155;font-weight:600;}
+.vp-prescription-queue .glass-radio-group {--glass-text:#e5e5e5;display:grid;grid-template-columns:repeat(4,minmax(100px,1fr));position:relative;width:max-content;max-width:100%;background:rgba(0,0,0,.94);border:1px solid rgba(255,255,255,.14);border-radius:1rem;backdrop-filter:blur(12px);box-shadow:inset 1px 1px 4px rgba(255,255,255,.2),inset -1px -1px 6px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.15);overflow:hidden;isolation:isolate;}
+.vp-prescription-queue .glass-radio-group input[type="radio"] {position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;opacity:0!important;appearance:none!important;pointer-events:none!important;}
+.vp-prescription-queue .glass-radio-group label {display:flex;align-items:center;justify-content:center;position:relative;z-index:2;min-width:100px;min-height:48px;box-sizing:border-box;margin:0!important;padding:12px 14px;color:var(--glass-text);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:color .3s ease-in-out;}
+.vp-prescription-queue .glass-radio-group label:hover {color:#fff;}
+.vp-prescription-queue .glass-radio-group input:checked + label {color:#fff;}
+.vp-prescription-queue #glass-all:checked + label,.vp-prescription-queue #glass-pending:checked + label {color:#252016;}
+.vp-prescription-queue .glass-radio-group input:focus-visible + label {outline:3px solid #86b2ff;outline-offset:-3px;}
+.vp-prescription-queue .glass-glider {position:absolute;inset:0 auto 0 0;width:25%;border-radius:1rem;z-index:1;pointer-events:none;transition:transform .5s cubic-bezier(.37,1.95,.66,.56),background .4s ease-in-out,box-shadow .4s ease-in-out;}
+.vp-prescription-queue #glass-all:checked ~ .glass-glider {transform:translateX(0%);background:linear-gradient(135deg,#c0c0c055,#e0e0e0);box-shadow:0 0 18px rgba(192,192,192,.5),0 0 10px rgba(255,255,255,.4) inset;}
+.vp-prescription-queue #glass-pending:checked ~ .glass-glider {transform:translateX(100%);background:linear-gradient(135deg,#ffd70055,#ffcc00);box-shadow:0 0 18px rgba(255,215,0,.5),0 0 10px rgba(255,235,150,.4) inset;}
+.vp-prescription-queue #glass-approved:checked ~ .glass-glider {transform:translateX(200%);background:linear-gradient(135deg,#2dd4bf55,#16a085);box-shadow:0 0 18px rgba(22,160,133,.5),0 0 10px rgba(150,255,220,.4) inset;}
+.vp-prescription-queue #glass-rejected:checked ~ .glass-glider {transform:translateX(300%);background:linear-gradient(135deg,#ff6b6b55,#dc3545);box-shadow:0 0 18px rgba(220,53,69,.5),0 0 10px rgba(255,180,180,.4) inset;}
+.vp-prescription-queue .vp-glass-filters .vp-filter-actions {display:flex;justify-content:flex-end;align-items:center;gap:16px;padding-top:0;margin-top:18px;}
+@media(max-width:1200px){.vp-prescription-queue .vp-glass-filter-row{grid-template-columns:minmax(0,1fr);}.vp-prescription-queue .vp-glass-filters .vp-filter-actions{justify-content:flex-start;}}
+@media(max-width:550px){.vp-prescription-queue .glass-radio-group{width:100%;grid-template-columns:repeat(4,minmax(0,1fr));}.vp-prescription-queue .glass-radio-group label{min-width:0;font-size:11px;padding:10px 3px;}}
+@media(prefers-reduced-motion:reduce){.vp-prescription-queue .glass-glider,.vp-prescription-queue .glass-radio-group label{transition:none;}}

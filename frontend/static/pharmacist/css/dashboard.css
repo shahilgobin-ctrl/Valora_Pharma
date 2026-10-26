@@ -704,3 +704,5 @@ a.pd-stat:hover {
         animation: none !important;
     }
 }
+
+.pd-dashboard .pd-heading {display:flex;flex-direction:column;gap:4px;min-width:0;}
