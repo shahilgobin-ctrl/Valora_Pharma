@@ -10,7 +10,7 @@
   <section class="landing-card" aria-labelledby="landing-title">
     <header class="landing-header">
       <div class="brand landing-brand"><img src="{% static 'accounts/assets/pill-login.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></div>
-      <span class="landing-role">{% if landing_role == 'staff' %}Staff account{% else %}Customer account{% endif %}</span>
+      <span class="landing-role">{{ landing_title }}</span>
     </header>
 
     <div class="landing-content">

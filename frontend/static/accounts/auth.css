@@ -28,19 +28,19 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .form-feedback p+p{margin-top:5px}
 .form-feedback--error{background:#fff1ef;border-color:#e7b5ad;color:var(--error)}
 .login-page{background:#e4efe6}
-.login-layout{isolation:isolate;position:relative;display:grid;grid-template-columns:40.077821% 1fr;min-height:900px;overflow:hidden}
+.login-layout{isolation:isolate;position:relative;display:grid;grid-template-columns:40.077821% 1fr;min-height:100svh;overflow:hidden}
 .login-background{position:absolute;z-index:-3;inset:0;overflow:hidden;pointer-events:none}
 .login-background img{position:absolute;left:.03%;top:0;width:105.06%;height:100%;max-width:none}
 .login-brand{position:absolute;z-index:-2;left:24px;top:27px;height:35px;gap:0}
 .login-brand>span{width:163px}
-.pharmacy-photo{position:absolute;z-index:-1;left:0;top:0;width:40.077821%;height:900px;opacity:.25;pointer-events:none}
+.pharmacy-photo{position:absolute;z-index:-1;left:0;top:0;width:40.077821%;height:100%;opacity:.25;pointer-events:none}
 .pharmacy-photo img{width:100%;height:100%;display:block;object-fit:cover}
 .brand-pill-overlay{position:absolute;left:24px;top:28px;pointer-events:none}
 .brand-pill-overlay img{display:block}
 .login-story{position:relative;min-width:0}
 .story-heading{position:absolute;left:-135px;top:73px;width:447px;height:247px;display:flex;flex-direction:column;justify-content:center;white-space:pre-wrap;text-align:right;font-family:Sacramento,cursive;font-size:64px;line-height:normal}
-.story-signoff{position:absolute;right:11px;top:745px;width:326px;height:211px;display:flex;align-items:center;justify-content:flex-end;text-align:right;font-family:Sacramento,cursive;font-size:64px;line-height:normal}
-.login-main{min-width:0;display:flex;justify-content:center;padding-top:47px;padding-bottom:80px}
+.story-signoff{position:absolute;right:24px;bottom:clamp(24px,5vh,56px);display:flex;align-items:center;justify-content:flex-end;text-align:right;font-family:Sacramento,cursive;font-size:clamp(42px,4.7vw,64px);line-height:1.2}
+.login-main{min-width:0;display:flex;justify-content:center;padding:47px 24px 24px}
 .login-stack{width:430px;margin-left:-44px}
 .login-heading{height:121px;position:relative}
 .login-heading h1{width:341px;height:64px;margin-left:-63px;display:flex;align-items:center;font-family:Sacramento,cursive;font-size:44px;line-height:normal;transform:translateY(-26px)}
@@ -101,14 +101,25 @@ input[aria-invalid=true],select[aria-invalid=true]{box-shadow:0 0 0 2px var(--er
 .register-submit{width:min(287px,100%);height:39px;margin:48px auto 0;border-radius:20px;font-size:16px;line-height:normal}
 .registration-page--staff .register-card{width:519px;min-height:651px}
 .register-switch{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin:16px auto 0;font-size:12px;line-height:1.5;text-align:center}
+@media(min-width:481px) and (max-height:800px){
+ .customer-register-page{padding:12px}
+ .customer-register-page .register-card{min-height:0;padding-top:12px;padding-bottom:12px}
+ .customer-register-page .register-form{margin-top:14px}
+ .customer-register-page .register-pair--personal{margin-top:10px}
+ .customer-register-page .register-field--email{margin-top:18px}
+ .customer-register-page .register-field--phone,.customer-register-page .register-field--password{margin-top:10px}
+ .customer-register-page .register-consent{margin-top:14px}
+ .customer-register-page .register-form .register-submit{margin-top:18px}
+ .customer-register-page .register-switch{margin-top:12px}
+}
 @media(max-width:1050px){
  .login-layout{grid-template-columns:36% 1fr}
  .pharmacy-photo{width:36%}
  .login-stack{margin-left:0}
  .login-heading h1{margin-left:0}
  .login-main{padding-left:20px;padding-right:20px}
- .story-heading{left:auto;right:24px;width:360px;font-size:56px}
- .story-signoff{width:280px;font-size:56px}
+ .story-heading{left:auto;right:18px;width:calc(100% - 24px);font-size:clamp(42px,4.8vw,56px)}
+ .story-signoff{right:18px}
 }
 @media(max-width:760px){
  .login-layout{display:block;min-height:100svh}

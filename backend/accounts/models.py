@@ -30,15 +30,19 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
-        extra_fields.setdefault("account_type", "staff")
-        if extra_fields.get("is_staff") is not True or extra_fields.get("is_superuser") is not True:
-            raise ValueError("A superuser must have is_staff=True and is_superuser=True.")
+        extra_fields.setdefault("account_type", "admin")
+        if (extra_fields.get("is_staff") is not True
+                or extra_fields.get("is_superuser") is not True
+                or extra_fields.get("account_type") != "admin"):
+            raise ValueError("A superuser must have staff, superuser, and admin-role privileges.")
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
     class AccountType(models.TextChoices):
         CUSTOMER = "customer", "Customer"
         STAFF = "staff", "Staff"
+        SUPPLIER = "supplier", "Supplier"
+        ADMIN = "admin", "Administrator"
 
     class Gender(models.TextChoices):
         FEMALE = "female", "Female"
@@ -54,6 +58,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
     terms_version = models.CharField(max_length=20, blank=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -84,3 +89,16 @@ class PasswordResetChallenge(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["user", "created_at"], name="accounts_pr_user_created_idx")]
+
+
+class EmailVerificationChallenge(models.Model):
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="email_verification_challenges")
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "created_at"], name="accounts_ev_user_created_idx")]

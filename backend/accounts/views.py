@@ -3,6 +3,7 @@ import logging
 import secrets
 import uuid
 from datetime import timedelta
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -17,11 +18,12 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from .access import pharmacy_role_required, role_home_name
 from .forms import (
-    LoginForm, PasswordResetNewPasswordForm, PasswordResetRequestForm,
+    EmailVerificationForm, LoginForm, PasswordResetNewPasswordForm, PasswordResetRequestForm,
     PasswordResetVerifyForm, RegistrationForm,
 )
-from .models import PasswordResetChallenge, TERMS_VERSION, User
+from .models import EmailVerificationChallenge, PasswordResetChallenge, TERMS_VERSION, User, canonical_email
 from .rate_limit import is_limited, key_for_request, record_failure, reset_failures
 
 logger = logging.getLogger(__name__)
@@ -29,18 +31,12 @@ RESET_SESSION_KEY = "password_reset_flow"
 INVALID_CODE_MESSAGE = "The code is invalid or expired. Request a new code if needed."
 
 
-def _landing_name(user):
-    """Choose a pharmacy area from the verified account role, never a URL parameter."""
-    if not user.is_active:
-        return None
-    return {
-        User.AccountType.CUSTOMER: "accounts:customer_landing",
-        User.AccountType.STAFF: "accounts:staff_landing",
-    }.get(user.account_type)
+class VerificationDeliveryError(Exception):
+    pass
 
 
 def _redirect_to_landing(request):
-    destination = _landing_name(request.user)
+    destination = role_home_name(request.user)
     if destination is None:
         if not request.user.is_active:
             logout(request)
@@ -50,19 +46,12 @@ def _redirect_to_landing(request):
 
 
 def _landing_view(request, required_role):
-    if not request.user.is_authenticated:
-        return redirect("accounts:login")
-    if not request.user.is_active:
-        logout(request)
-        return redirect("accounts:login")
-    if request.user.account_type != required_role:
-        return HttpResponseForbidden("This page is not available for your account.")
-    if required_role == User.AccountType.STAFF:
-        title = "Staff area"
-        message = "Your staff dashboard is coming soon."
-    else:
-        title = "Customer area"
-        message = "Your customer home is coming soon."
+    title, message = {
+        User.AccountType.CUSTOMER: ("Customer area", "Your customer home is coming soon."),
+        User.AccountType.STAFF: ("Staff area", "Your staff dashboard is coming soon."),
+        User.AccountType.SUPPLIER: ("Supplier area", "Your supplier dashboard is coming soon."),
+        User.AccountType.ADMIN: ("Administrator area", "Your custom admin dashboard is coming soon."),
+    }[required_role]
     return render(request, "accounts/landing.html", {
         "landing_role": required_role,
         "landing_title": title,
@@ -73,14 +62,30 @@ def _landing_view(request, required_role):
 
 @never_cache
 @require_GET
+@pharmacy_role_required(User.AccountType.CUSTOMER)
 def customer_landing_view(request):
     return _landing_view(request, User.AccountType.CUSTOMER)
 
 
 @never_cache
 @require_GET
+@pharmacy_role_required(User.AccountType.STAFF)
 def staff_landing_view(request):
     return _landing_view(request, User.AccountType.STAFF)
+
+
+@never_cache
+@require_GET
+@pharmacy_role_required(User.AccountType.SUPPLIER)
+def supplier_landing_view(request):
+    return _landing_view(request, User.AccountType.SUPPLIER)
+
+
+@never_cache
+@require_GET
+@pharmacy_role_required(User.AccountType.ADMIN)
+def admin_landing_view(request):
+    return _landing_view(request, User.AccountType.ADMIN)
 
 def flow_context(request):
     return {
@@ -96,7 +101,7 @@ def flow_context(request):
 def login_view(request):
     if request.user.is_authenticated:
         return _redirect_to_landing(request)
-    key = key_for_request(request, "shared")
+    key = key_for_request(request, canonical_email(request.POST.get("email", "")))
     blocked = request.method == "POST" and is_limited(key)
     form = LoginForm(
         request.POST if request.method == "POST" else None,
@@ -130,18 +135,21 @@ def register_view(request):
             with transaction.atomic():
                 user = form.save(commit=False)
                 user.account_type = User.AccountType.CUSTOMER
-                user.is_active = True
+                user.is_active = False
                 user.is_staff = False
                 user.is_superuser = False
                 user.terms_accepted_at = timezone.now()
                 user.terms_version = TERMS_VERSION
                 user.save()
+                _send_email_verification(user)
         except IntegrityError:
             # The database catches two registrations arriving at once.
             form.add_error("email", "An account with this email already exists.")
+        except VerificationDeliveryError:
+            form.add_error(None, "We could not send a verification code. Please try again later.")
         else:
-            messages.success(request, "Your account is ready. Sign in with your email and password.")
-            return redirect("accounts:login")
+            messages.success(request, "We sent a verification code to your email address.")
+            return redirect(reverse("accounts:email_verify") + "?" + urlencode({"email": user.email}))
     context = flow_context(request)
     context["form"] = form
     return render(request, "accounts/register.html", context)
@@ -151,6 +159,120 @@ def register_view(request):
 @require_http_methods(["GET", "POST"])
 def staff_registration_closed_view(request):
     return HttpResponseForbidden("Staff accounts are created by a pharmacy administrator.")
+
+
+def _email_request_allowed(prefix, email, cooldown_seconds, limit, window_seconds):
+    digest = hashlib.sha256(email.encode()).hexdigest()
+    count_key = f"{prefix}:count:{digest}"
+    cooldown_key = f"{prefix}:cooldown:{digest}"
+    if cache.get(count_key, 0) >= limit:
+        return False
+    if not cache.add(cooldown_key, 1, timeout=cooldown_seconds):
+        return False
+    if not cache.add(count_key, 1, timeout=window_seconds):
+        try:
+            cache.incr(count_key)
+        except ValueError:
+            cache.add(count_key, 1, timeout=window_seconds)
+    return True
+
+
+def _verification_code_hash(token, code):
+    return salted_hmac("accounts.email-verification", f"{token}:{code}").hexdigest()
+
+
+def _send_email_verification(user):
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    challenge = EmailVerificationChallenge.objects.create(
+        user=user,
+        code_hash="",
+        expires_at=timezone.now() + timedelta(seconds=settings.EMAIL_VERIFICATION_CODE_TTL_SECONDS),
+    )
+    challenge.code_hash = _verification_code_hash(challenge.token, code)
+    challenge.save(update_fields=["code_hash"])
+    try:
+        delivered = send_mail(
+            "Verify your ValoraPharma email",
+            f"A customer account was requested for this address. Your verification code is {code}. "
+            f"It expires in {settings.EMAIL_VERIFICATION_CODE_TTL_SECONDS // 60} minutes. "
+            "If this was not you, ignore this email.",
+            settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False,
+        )
+        if delivered != 1:
+            raise RuntimeError("Verification email was not accepted by the email backend.")
+    except Exception as error:
+        logger.exception("Email verification delivery failed")
+        challenge.delete()
+        raise VerificationDeliveryError from error
+    EmailVerificationChallenge.objects.filter(
+        user=user, consumed_at__isnull=True,
+    ).exclude(pk=challenge.pk).update(consumed_at=timezone.now())
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def email_verify_view(request):
+    initial = {"email": request.GET.get("email", "")}
+    form = EmailVerificationForm(request.POST if request.method == "POST" else None, initial=initial)
+    if request.method == "POST" and form.is_valid():
+        email = form.cleaned_data["email"]
+        with transaction.atomic():
+            user = User.objects.select_for_update().filter(
+                email=email, account_type=User.AccountType.CUSTOMER,
+                email_verified_at__isnull=True, is_active=False,
+            ).first()
+            challenge = None
+            if user:
+                challenge = EmailVerificationChallenge.objects.select_for_update().filter(
+                    user=user, consumed_at__isnull=True,
+                ).order_by("-created_at").first()
+            if (challenge and challenge.expires_at > timezone.now()
+                    and challenge.attempts < settings.EMAIL_VERIFICATION_MAX_ATTEMPTS):
+                if constant_time_compare(
+                    challenge.code_hash, _verification_code_hash(challenge.token, form.cleaned_data["code"]),
+                ):
+                    user.email_verified_at = timezone.now()
+                    user.is_active = True
+                    user.save(update_fields=["email_verified_at", "is_active"])
+                    challenge.consumed_at = timezone.now()
+                    challenge.save(update_fields=["consumed_at"])
+                    messages.success(request, "Email verified. You can now sign in.")
+                    return redirect("accounts:login")
+                challenge.attempts += 1
+                challenge.save(update_fields=["attempts"])
+        form.add_error("code", "The code is invalid or expired. Request a new code if needed.")
+    context = flow_context(request)
+    context.update(form=form, back_url=context["register_url"])
+    return render(request, "accounts/email_verify.html", context)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def email_resend_view(request):
+    form = PasswordResetRequestForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        email = form.cleaned_data["email"]
+        if _email_request_allowed(
+            "email-verification", email,
+            settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
+            settings.EMAIL_VERIFICATION_RESEND_LIMIT,
+            settings.EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS,
+        ):
+            user = User.objects.filter(
+                email=email, account_type=User.AccountType.CUSTOMER,
+                email_verified_at__isnull=True, is_active=False,
+            ).first()
+            if user:
+                try:
+                    with transaction.atomic():
+                        _send_email_verification(user)
+                except VerificationDeliveryError:
+                    pass
+        messages.success(request, "If an unverified customer account exists, we have sent a new code.")
+        return redirect(reverse("accounts:email_verify") + "?" + urlencode({"email": email}))
+    context = flow_context(request)
+    context.update(form=form, back_url=reverse("accounts:email_verify"))
+    return render(request, "accounts/email_resend.html", context)
 
 @require_POST
 def logout_view(request):
@@ -167,21 +289,14 @@ def _code_hash(token, code):
     return salted_hmac("accounts.password-reset-code", f"{token}:{code}").hexdigest()
 
 
-def _reset_request_allowed(request, email):
-    # Apply the same limits before looking up an account, including unknown emails.
-    email_key = "password-reset-email:" + hashlib.sha256(email.encode()).hexdigest()
-    ip = request.META.get("REMOTE_ADDR", "unknown")
-    ip_key = "password-reset-ip:" + hashlib.sha256(ip.encode()).hexdigest()
-    if cache.get(ip_key, 0) >= settings.PASSWORD_RESET_IP_LIMIT:
-        return False
-    if not cache.add(email_key, 1, timeout=settings.PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS):
-        return False
-    if not cache.add(ip_key, 1, timeout=settings.PASSWORD_RESET_IP_WINDOW_SECONDS):
-        try:
-            cache.incr(ip_key)
-        except ValueError:
-            cache.add(ip_key, 1, timeout=settings.PASSWORD_RESET_IP_WINDOW_SECONDS)
-    return True
+def _reset_request_allowed(email):
+    # Limit each address without locking out everyone behind a shared IP.
+    return _email_request_allowed(
+        "password-reset", email,
+        settings.PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS,
+        settings.PASSWORD_RESET_EMAIL_LIMIT,
+        settings.PASSWORD_RESET_EMAIL_WINDOW_SECONDS,
+    )
 
 
 def _reset_flow(request):
@@ -211,7 +326,7 @@ def _usable_challenge(challenge, *, verified=False):
         return False
     if (not challenge.user.is_active
             or challenge.user.account_type != challenge.account_type
-            or challenge.account_type not in (User.AccountType.CUSTOMER, User.AccountType.STAFF)):
+            or challenge.account_type not in tuple(value for value, _label in User.AccountType.choices)):
         return False
     return bool(challenge.verified_at) if verified else not challenge.verified_at
 
@@ -225,10 +340,10 @@ def password_forgot_view(request):
         old_flow = _reset_flow(request)
         token = (old_flow.get("token") if old_flow and old_flow.get("email") == email
                  else str(uuid.uuid4()))
-        if _reset_request_allowed(request, email):
+        if _reset_request_allowed(email):
             user = User.objects.filter(
                 email__iexact=email, is_active=True,
-                account_type__in=(User.AccountType.CUSTOMER, User.AccountType.STAFF),
+                account_type__in=tuple(value for value, _label in User.AccountType.choices),
             ).first()
             if user:
                 code = f"{secrets.randbelow(1_000_000):06d}"
@@ -239,13 +354,15 @@ def password_forgot_view(request):
                 challenge.code_hash = _code_hash(challenge.token, code)
                 challenge.save(update_fields=["code_hash"])
                 try:
-                    send_mail(
+                    delivered = send_mail(
                         "ValoraPharma password reset code",
                         f"Your ValoraPharma password reset code is {code}. "
                         f"It expires in {settings.PASSWORD_RESET_CODE_TTL_SECONDS // 60} minutes. "
                         "If you did not request this, you can ignore this email.",
                         settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False,
                     )
+                    if delivered != 1:
+                        raise RuntimeError("Password reset email was not accepted by the email backend.")
                 except Exception:
                     logger.exception("Password reset email delivery failed")
                     challenge.delete()

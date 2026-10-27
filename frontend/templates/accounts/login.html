@@ -47,12 +47,9 @@
       </form>
       {% endif %}
       {% if not authenticated %}
-      <aside class="demo-card" aria-label="Customer demo account">
-        <div class="demo-details"><p class="demo-title">Customer Demo:</p><p aria-hidden="true">&#8203;</p><p>Email: Shahil@valora.mu</p><p>Password: Shahili1234</p></div>
-        <p class="demo-note">If new,  please register below.</p>
-      </aside>
       <nav class="customer-links" aria-label="Account options">
         <p><span>New to Valora?</span><a class="account-link" href="{% url 'accounts:register' %}">Register As Customer</a></p>
+        <p><span>Waiting for a verification code?</span><a class="account-link" href="{% url 'accounts:email_resend' %}">Resend code</a></p>
       </nav>
       {% endif %}
     </div>

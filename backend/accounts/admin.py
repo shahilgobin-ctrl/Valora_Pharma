@@ -1,9 +1,16 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django.core.exceptions import ValidationError
 from .models import User
 
 class AdminUserCreationForm(UserCreationForm):
+    def clean_account_type(self):
+        account_type = self.cleaned_data["account_type"]
+        if account_type == User.AccountType.ADMIN:
+            raise ValidationError("Create administrators with the createsuperuser command.")
+        return account_type
+
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("email",)
@@ -29,8 +36,30 @@ class PharmacyUserAdmin(UserAdmin):
         ("Important dates", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
-        (None, {"classes": ("wide",), "fields": ("email", "password1", "password2", "account_type", "is_active")}),
+        (None, {"classes": ("wide",), "fields": ("email", "password1", "password2", "account_type")}),
     )
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def save_model(self, request, obj, form, change):
+        if not change and obj.account_type in (User.AccountType.STAFF, User.AccountType.SUPPLIER):
+            obj.is_active = False
+            obj.is_staff = False
+            obj.is_superuser = False
+        super().save_model(request, obj, form, change)
 
 admin.site.site_header = "Valora Pharmacy Administration"
 admin.site.site_title = "Valora Admin"

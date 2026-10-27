@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import RegistrationForm
-from .models import PasswordResetChallenge, TERMS_VERSION, User
+from .models import EmailVerificationChallenge, PasswordResetChallenge, TERMS_VERSION, User
 
 
 PASSWORD = "Maple!River42Sun"
@@ -52,10 +52,11 @@ class AuthTestCase(TestCase):
         return User.objects.create_user(password=PASSWORD, **fields)
 
 
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class RegistrationTests(AuthTestCase):
     def test_customer_registration_saves_profile_and_hashes_password(self):
         response = self.client.post(reverse("accounts:register"), self.registration_data(), follow=True)
-        self.assertRedirects(response, reverse("accounts:login"))
+        self.assertEqual(response.resolver_match.view_name, "accounts:email_verify")
         user = User.objects.get()
         self.assertEqual(user.email, "jamie@example.com")
         self.assertEqual(user.first_name, "Jamie")
@@ -65,12 +66,14 @@ class RegistrationTests(AuthTestCase):
         self.assertEqual(user.gender, "prefer_not_to_say")
         self.assertTrue(user.check_password(PASSWORD))
         self.assertNotEqual(user.password, PASSWORD)
-        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_active)
+        self.assertIsNone(user.email_verified_at)
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertIsNotNone(user.terms_accepted_at)
         self.assertEqual(user.terms_version, TERMS_VERSION)
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_registration_rejects_missing_terms_acceptance(self):
         data = self.registration_data()
@@ -127,7 +130,86 @@ class RegistrationTests(AuthTestCase):
         self.assertFalse(user.is_superuser)
 
 
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class EmailVerificationTests(AuthTestCase):
+    def register(self):
+        response = self.client.post(reverse("accounts:register"), self.registration_data())
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        return re.search(r"\b\d{6}\b", mail.outbox[0].body).group()
+
+    def test_code_proves_email_ownership_before_customer_can_sign_in(self):
+        code = self.register()
+        user = User.objects.get(email="jamie@example.com")
+        self.assertFalse(user.is_active)
+        denied = self.client.post(reverse("accounts:login"), {"email": user.email, "password": PASSWORD})
+        self.assertTrue(denied.context["form"].non_field_errors())
+        other_browser = Client()
+        verified = other_browser.post(reverse("accounts:email_verify"), {
+            "email": "JAMIE@EXAMPLE.COM", "code": code,
+        })
+        self.assertRedirects(verified, reverse("accounts:login"))
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertIsNotNone(user.email_verified_at)
+        self.assertRedirects(self.client.post(reverse("accounts:login"), {
+            "email": user.email, "password": PASSWORD,
+        }), reverse("accounts:customer_landing"))
+
+    def test_wrong_codes_are_limited_and_resend_invalidates_old_code(self):
+        first_code = self.register()
+        wrong_code = f"{(int(first_code) + 1) % 1_000_000:06d}"
+        for _ in range(settings.EMAIL_VERIFICATION_MAX_ATTEMPTS):
+            response = self.client.post(reverse("accounts:email_verify"), {
+                "email": "jamie@example.com", "code": wrong_code,
+            })
+            self.assertIn("code", response.context["form"].errors)
+        self.assertIn("code", self.client.post(reverse("accounts:email_verify"), {
+            "email": "jamie@example.com", "code": first_code,
+        }).context["form"].errors)
+        cache.clear()
+        self.client.post(reverse("accounts:email_resend"), {"email": "jamie@example.com"})
+        self.assertEqual(len(mail.outbox), 2)
+        second_code = re.search(r"\b\d{6}\b", mail.outbox[-1].body).group()
+        self.assertRedirects(self.client.post(reverse("accounts:email_verify"), {
+            "email": "jamie@example.com", "code": second_code,
+        }), reverse("accounts:login"))
+
+    def test_expired_code_and_unknown_resend_do_not_activate_account(self):
+        code = self.register()
+        EmailVerificationChallenge.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
+        response = self.client.post(reverse("accounts:email_verify"), {
+            "email": "jamie@example.com", "code": code,
+        })
+        self.assertIn("code", response.context["form"].errors)
+        self.assertFalse(User.objects.get(email="jamie@example.com").is_active)
+        self.client.post(reverse("accounts:email_resend"), {"email": "unknown@example.com"})
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_delivery_failure_rolls_back_registration(self):
+        with patch("accounts.views.send_mail", side_effect=RuntimeError("SMTP unavailable")), \
+                patch("accounts.views.logger.exception"):
+            response = self.client.post(reverse("accounts:register"), self.registration_data())
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].non_field_errors())
+        self.assertFalse(User.objects.exists())
+        self.assertFalse(EmailVerificationChallenge.objects.exists())
+
+    def test_verification_forms_require_csrf(self):
+        client = Client(enforce_csrf_checks=True)
+        for name in ("accounts:email_verify", "accounts:email_resend"):
+            with self.subTest(name=name):
+                self.assertEqual(client.post(reverse(name), {
+                    "email": "jamie@example.com", "code": "123456",
+                }).status_code, 403)
+
+
 class LoginTests(AuthTestCase):
+    def test_login_page_does_not_publish_demo_credentials(self):
+        page = self.client.get(reverse("accounts:login"))
+        self.assertNotContains(page, "Shahili1234")
+        self.assertNotContains(page, "Customer Demo:")
+
     def test_email_login_is_case_insensitive_and_opens_customer_area(self):
         user = self.customer()
         response = self.client.post(
@@ -190,6 +272,20 @@ class LoginTests(AuthTestCase):
         )
         self.assertEqual(response.status_code, 302)
 
+    def test_failures_for_one_email_do_not_block_a_neighbor_on_same_ip(self):
+        self.customer()
+        other = self.customer(email="neighbor@example.com")
+        for _ in range(settings.LOGIN_MAX_FAILURES):
+            self.client.post(reverse("accounts:login"), {
+                "email": "customer@example.com", "password": "incorrect",
+            })
+        self.assertEqual(self.client.post(reverse("accounts:login"), {
+            "email": "customer@example.com", "password": PASSWORD,
+        }).status_code, 429)
+        self.assertRedirects(self.client.post(reverse("accounts:login"), {
+            "email": other.email, "password": PASSWORD,
+        }), reverse("accounts:customer_landing"))
+
     def test_logout_requires_post_and_clears_session(self):
         self.client.force_login(self.customer())
         self.assertEqual(self.client.get(reverse("accounts:logout")).status_code, 405)
@@ -232,6 +328,29 @@ class StaffTests(AuthTestCase):
         self.assertFalse(staff.is_staff)
         self.assertFalse(staff.is_superuser)
 
+
+class SharedRoleTests(AuthTestCase):
+    def test_supplier_and_admin_use_the_shared_login_with_separate_access(self):
+        supplier = self.customer(email="supplier@example.com", account_type=User.AccountType.SUPPLIER)
+        administrator = User.objects.create_superuser("admin@example.com", PASSWORD)
+        for user, home, forbidden in (
+            (supplier, "supplier_landing", "staff_landing"),
+            (administrator, "admin_landing", "supplier_landing"),
+        ):
+            with self.subTest(role=user.account_type):
+                response = self.client.post(reverse("accounts:login"), {
+                    "email": user.email, "password": PASSWORD,
+                }, follow=True)
+                self.assertRedirects(response, reverse("accounts:" + home))
+                self.assertEqual(self.client.get(reverse("accounts:" + forbidden)).status_code, 403)
+                self.client.post(reverse("accounts:logout"))
+
+    def test_admin_role_without_superuser_permission_cannot_open_admin_area(self):
+        forged = self.customer(email="forged@example.com", account_type=User.AccountType.ADMIN)
+        self.client.force_login(forged)
+        self.assertEqual(self.client.get(reverse("accounts:admin_landing")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("accounts:login")).status_code, 403)
+
     def test_legacy_staff_login_redirects_to_shared_sign_in(self):
         self.client.force_login(self.customer())
         response = self.client.get(reverse("accounts:staff_login"))
@@ -253,7 +372,7 @@ class StaffTests(AuthTestCase):
 
 class LandingAccessTests(AuthTestCase):
     def test_anonymous_visitors_are_sent_to_shared_sign_in(self):
-        for area in ("customer_landing", "staff_landing"):
+        for area in ("customer_landing", "staff_landing", "supplier_landing", "admin_landing"):
             with self.subTest(area=area):
                 self.assertRedirects(
                     self.client.get(reverse("accounts:" + area)), reverse("accounts:login"),
@@ -301,6 +420,15 @@ class LandingAccessTests(AuthTestCase):
         self.assertEqual(self.client.get(reverse("accounts:login")).status_code, 403)
         self.assertEqual(self.client.get(reverse("accounts:customer_landing")).status_code, 403)
         self.assertEqual(self.client.get(reverse("accounts:staff_landing")).status_code, 403)
+
+    def test_login_destination_can_be_wired_to_a_teammate_route(self):
+        self.customer()
+        routes = {**settings.PHARMACY_ROLE_HOME_ROUTES, "customer": "accounts:terms"}
+        with override_settings(PHARMACY_ROLE_HOME_ROUTES=routes):
+            response = self.client.post(reverse("accounts:login"), {
+                "email": "customer@example.com", "password": PASSWORD,
+            })
+        self.assertRedirects(response, reverse("accounts:terms"))
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
@@ -398,6 +526,23 @@ class PasswordRecoveryTests(AuthTestCase):
         staff.refresh_from_db()
         self.assertTrue(staff.check_password("New!MeadowPath456"))
 
+    def test_supplier_and_administrator_can_use_shared_recovery(self):
+        supplier = self.customer(email="supplier@example.com", account_type=User.AccountType.SUPPLIER)
+        administrator = User.objects.create_superuser("admin@example.com", PASSWORD)
+        for user in (supplier, administrator):
+            with self.subTest(role=user.account_type):
+                mail.outbox.clear()
+                cache.clear()
+                code = self.request_code(email=user.email)
+                self.assertRedirects(self.client.post(reverse("accounts:password_verify"), {
+                    "code": code,
+                }), reverse("accounts:password_new"))
+                self.assertRedirects(self.client.post(reverse("accounts:password_new"), {
+                    "new_password1": "New!MeadowPath456", "new_password2": "New!MeadowPath456",
+                }), reverse("accounts:login"))
+                user.refresh_from_db()
+                self.assertTrue(user.check_password("New!MeadowPath456"))
+
     def test_pending_staff_cannot_receive_reset_code(self):
         self.customer(email="pending@example.com", account_type=User.AccountType.STAFF, is_active=False)
         response = self.client.post(reverse("accounts:password_forgot"), {"email": "pending@example.com"}, follow=True)
@@ -434,6 +579,12 @@ class PasswordRecoveryTests(AuthTestCase):
         self.client.post(reverse("accounts:password_forgot"), {"email": "customer@example.com"})
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_recovery_requests_for_other_accounts_on_same_ip_are_not_blocked(self):
+        for number in range(11):
+            user = self.customer(email=f"customer{number}@example.com")
+            self.client.post(reverse("accounts:password_forgot"), {"email": user.email})
+        self.assertEqual(len(mail.outbox), 11)
+
     def test_recovery_post_requires_csrf(self):
         client = Client(enforce_csrf_checks=True)
         for route in ("accounts:password_forgot", "accounts:password_verify", "accounts:password_new"):
@@ -442,23 +593,40 @@ class PasswordRecoveryTests(AuthTestCase):
 
 
 class SecurityAndManagementTests(AuthTestCase):
-    def test_administrator_can_create_pharmacy_staff_without_admin_permissions(self):
+    def test_administrator_provisions_staff_and_supplier_inactive_without_admin_permissions(self):
         administrator = User.objects.create_superuser("admin@example.com", PASSWORD)
         self.client.force_login(administrator)
-        response = self.client.post(reverse("admin:accounts_user_add"), {
-            "email": "new.employee@example.com",
-            "password1": PASSWORD,
-            "password2": PASSWORD,
-            "account_type": User.AccountType.STAFF,
-            "is_active": "on",
-            "_save": "Save",
+        for role in (User.AccountType.STAFF, User.AccountType.SUPPLIER):
+            with self.subTest(role=role):
+                email = f"new.{role}@example.com"
+                response = self.client.post(reverse("admin:accounts_user_add"), {
+                    "email": email,
+                    "password1": PASSWORD,
+                    "password2": PASSWORD,
+                    "account_type": role,
+                    "is_active": "on",
+                    "_save": "Save",
+                })
+                self.assertEqual(response.status_code, 302)
+                account = User.objects.get(email=email)
+                self.assertFalse(account.is_active)
+                self.assertEqual(account.account_type, role)
+                self.assertFalse(account.is_staff)
+                self.assertFalse(account.is_superuser)
+
+    def test_only_superuser_can_manage_accounts_or_create_admin_role(self):
+        administrator = User.objects.create_superuser("admin@example.com", PASSWORD)
+        self.client.force_login(administrator)
+        rejected = self.client.post(reverse("admin:accounts_user_add"), {
+            "email": "fake.admin@example.com", "password1": PASSWORD,
+            "password2": PASSWORD, "account_type": User.AccountType.ADMIN, "_save": "Save",
         })
-        self.assertEqual(response.status_code, 302)
-        employee = User.objects.get(email="new.employee@example.com")
-        self.assertTrue(employee.is_active)
-        self.assertEqual(employee.account_type, User.AccountType.STAFF)
-        self.assertFalse(employee.is_staff)
-        self.assertFalse(employee.is_superuser)
+        self.assertEqual(rejected.status_code, 200)
+        self.assertFalse(User.objects.filter(email="fake.admin@example.com").exists())
+        self.client.post(reverse("accounts:logout"))
+        lesser_admin = self.customer(email="lesser@example.com", account_type=User.AccountType.STAFF, is_staff=True)
+        self.client.force_login(lesser_admin)
+        self.assertEqual(self.client.get(reverse("admin:accounts_user_add")).status_code, 403)
 
     def test_csrf_is_required_for_signup_login_and_logout(self):
         client = Client(enforce_csrf_checks=True)
@@ -478,16 +646,21 @@ class SecurityAndManagementTests(AuthTestCase):
         self.assertEqual(user.email, "admin@example.com")
         self.assertTrue(user.is_staff)
         self.assertTrue(user.is_superuser)
-        self.assertEqual(user.account_type, User.AccountType.STAFF)
+        self.assertEqual(user.account_type, User.AccountType.ADMIN)
 
     @override_settings(DEBUG=True)
     def test_demo_seed_is_explicit_repeatable_and_hashed(self):
         self.assertFalse(User.objects.exists())
-        call_command("seed_demo", stdout=StringIO())
+        first_output = StringIO()
+        call_command("seed_demo", stdout=first_output)
+        demo = User.objects.get(email="demo.customer@example.test")
+        first_hash = demo.password
+        self.assertIn("Development demo created", first_output.getvalue())
         call_command("seed_demo", stdout=StringIO())
         self.assertEqual(User.objects.count(), 1)
-        demo = User.objects.get(email="shahil@valora.mu")
-        self.assertTrue(demo.check_password("Shahili1234"))
+        demo.refresh_from_db()
+        self.assertEqual(demo.password, first_hash)
+        self.assertIsNotNone(demo.email_verified_at)
         self.assertFalse(demo.is_staff)
         self.assertFalse(demo.is_superuser)
 
@@ -498,8 +671,7 @@ class SecurityAndManagementTests(AuthTestCase):
         self.assertFalse(User.objects.exists())
 
     @override_settings(DEBUG=True)
-    def test_demo_seed_refuses_existing_administrator(self):
-        User.objects.create_superuser("Shahil@valora.mu", PASSWORD)
-        with self.assertRaises(CommandError):
-            call_command("seed_demo", stdout=StringIO())
+    def test_demo_seed_does_not_change_existing_administrator(self):
+        User.objects.create_superuser("demo.customer@example.test", PASSWORD)
+        call_command("seed_demo", stdout=StringIO())
         self.assertTrue(User.objects.get().check_password(PASSWORD))
