@@ -53,7 +53,7 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
 | Django administration | http://127.0.0.1:8000/admin/ |
 
-Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, date of birth, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate email addresses are rejected.
+Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, username, date of birth through a calendar picker, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate emails and usernames are rejected case-insensitively. Existing accounts may have no username.
 
 The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 

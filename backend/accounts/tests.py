@@ -31,7 +31,8 @@ class AuthTestCase(TestCase):
         data = {
             "first_name": "Jamie",
             "last_name": "Lee",
-            "date_of_birth": "15-04-1995",
+            "username": "jamie_lee",
+            "date_of_birth": "1995-04-15",
             "gender": "prefer_not_to_say",
             "email": "Jamie@example.com",
             "phone": "+230 5912-3456",
@@ -61,6 +62,7 @@ class RegistrationTests(AuthTestCase):
         self.assertEqual(user.email, "jamie@example.com")
         self.assertEqual(user.first_name, "Jamie")
         self.assertEqual(user.last_name, "Lee")
+        self.assertEqual(user.username, "jamie_lee")
         self.assertEqual(user.date_of_birth, date(1995, 4, 15))
         self.assertEqual(user.phone, "+23059123456")
         self.assertEqual(user.gender, "prefer_not_to_say")
@@ -89,10 +91,23 @@ class RegistrationTests(AuthTestCase):
         self.assertIn("email", response.context["form"].errors)
         self.assertEqual(User.objects.count(), 1)
 
+    def test_duplicate_username_is_case_insensitive(self):
+        self.customer(username="Jamie_Lee")
+        response = self.client.post(reverse("accounts:register"), self.registration_data())
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("username", response.context["form"].errors)
+        self.assertEqual(User.objects.count(), 1)
+
     def test_database_unique_constraint_covers_writes_bypassing_normalization(self):
         self.customer(email="case@example.com")
         with self.assertRaises(IntegrityError), transaction.atomic():
             User.objects.bulk_create([User(email="CASE@EXAMPLE.COM")])
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_database_username_constraint_is_case_insensitive(self):
+        self.customer(username="Jamie_Lee")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            User.objects.bulk_create([User(email="other@example.com", username="jamie_lee")])
         self.assertEqual(User.objects.count(), 1)
 
     def test_invalid_registration_fields_never_create_user(self):
@@ -102,6 +117,7 @@ class RegistrationTests(AuthTestCase):
             "gender": "unexpected-value",
             "phone": "call-me",
             "password": "123",
+            "username": "bad username",
             "first_name": "",
             "last_name": "",
         }
@@ -307,10 +323,12 @@ class StaffTests(AuthTestCase):
         self.assertEqual(self.client.post(url, self.registration_data()).status_code, 403)
         self.assertFalse(User.objects.exists())
 
-    def test_customer_registration_does_not_link_to_staff_signup(self):
+    def test_customer_registration_uses_calendar_and_omits_staff_note(self):
         response = self.client.get(reverse("accounts:register"))
         self.assertNotContains(response, reverse("accounts:staff_register"))
-        self.assertContains(response, "Staff accounts are created by the pharmacy administrator.")
+        self.assertNotContains(response, "Staff accounts are created by the pharmacy administrator.")
+        self.assertContains(response, 'name="username"')
+        self.assertContains(response, 'type="date"')
 
     def test_customer_and_approved_staff_share_one_sign_in(self):
         customer = self.customer()

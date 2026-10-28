@@ -9,9 +9,13 @@ from .models import User, canonical_email
 class RegistrationForm(forms.ModelForm):
     first_name = forms.CharField(max_length=150, label="First Name")
     last_name = forms.CharField(max_length=150, label="Last Name")
+    username = forms.RegexField(
+        regex=r"^[A-Za-z0-9._-]{3,30}$", max_length=30, label="Username",
+        error_messages={"invalid": "Use 3–30 letters, numbers, dots, underscores, or hyphens."},
+    )
     date_of_birth = forms.DateField(
         label="Date Of Birth", input_formats=["%d-%m-%Y", "%Y-%m-%d"],
-        widget=forms.DateInput(format="%d-%m-%Y"),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
     gender = forms.ChoiceField(
         choices=[("", "Select Gender"), *User.Gender.choices], label="Gender",
@@ -29,7 +33,13 @@ class RegistrationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "date_of_birth", "gender", "email", "phone", "password"]
+        fields = ["first_name", "last_name", "date_of_birth", "gender", "email", "username", "phone", "password"]
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise ValidationError("This username is already taken.")
+        return username
 
     def clean_email(self):
         email = canonical_email(self.cleaned_data["email"])
@@ -58,6 +68,7 @@ class RegistrationForm(forms.ModelForm):
         if password:
             candidate = User(
                 email=cleaned.get("email", ""),
+                username=cleaned.get("username"),
                 first_name=cleaned.get("first_name", ""),
                 last_name=cleaned.get("last_name", ""),
             )

@@ -143,8 +143,11 @@ def register_view(request):
                 user.save()
                 _send_email_verification(user)
         except IntegrityError:
-            # The database catches two registrations arriving at once.
-            form.add_error("email", "An account with this email already exists.")
+            # The database catches duplicate emails or usernames arriving at once.
+            if User.objects.filter(username__iexact=form.cleaned_data["username"]).exists():
+                form.add_error("username", "This username is already taken.")
+            else:
+                form.add_error("email", "An account with this email already exists.")
         except VerificationDeliveryError:
             form.add_error(None, "We could not send a verification code. Please try again later.")
         else:
@@ -152,6 +155,7 @@ def register_view(request):
             return redirect(reverse("accounts:email_verify") + "?" + urlencode({"email": user.email}))
     context = flow_context(request)
     context["form"] = form
+    context["today_iso"] = timezone.localdate().isoformat()
     return render(request, "accounts/register.html", context)
 
 

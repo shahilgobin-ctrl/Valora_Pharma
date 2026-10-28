@@ -50,7 +50,8 @@ class User(AbstractUser):
         OTHER = "other", "Other"
         PREFER_NOT_TO_SAY = "prefer_not_to_say", "Prefer not to say"
 
-    username = None
+    # Existing accounts can remain without a username; new public customers choose one.
+    username = models.CharField(max_length=30, null=True, blank=True)
     email = models.EmailField(unique=True)
     account_type = models.CharField(max_length=10, choices=AccountType.choices, default=AccountType.CUSTOMER)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -66,6 +67,7 @@ class User(AbstractUser):
     class Meta:
         constraints = [
             models.UniqueConstraint(Lower("email"), name="accounts_user_email_case_insensitive_unique"),
+            models.UniqueConstraint(Lower("username"), name="accounts_user_username_case_insensitive_unique"),
         ]
 
     def save(self, *args, **kwargs):

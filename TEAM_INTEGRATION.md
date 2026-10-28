@@ -2,6 +2,8 @@
 
 This project has one Django backend and one account table: `accounts.User`. Customer, employee, supplier, and custom administrator pages should be Django apps in this project. Do not add another user model, login form, session system, or password table.
 
+New public customer registrations require a unique username. Older accounts and privileged accounts may have no username, so use `user.username` with an email or name fallback when displaying it. Sign-in continues to use email and password.
+
 ## Roles and destinations
 
 | `User.account_type` | Who creates it | First destination | Access rule |
