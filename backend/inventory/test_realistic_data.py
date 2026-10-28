@@ -38,7 +38,7 @@ class RealisticDatasetTests(TestCase):
             "seed_realistic_data",
             pharmacist=self.staff.email,
             stdout=StringIO(),
-            **kwargs
+            **kwargs,
         )
 
     def test_dataset_has_consistent_totals_allocations_and_stock(self):
@@ -179,3 +179,87 @@ class RealisticDatasetTests(TestCase):
                 self.seed(replace_development_data=True, backup="test.sqlite3")
         self.assertEqual(list(Order.objects.values_list("pk", flat=True)), original_ids)
         self.assertEqual(Payment.objects.count(), 12)
+
+    def test_replacement_removes_legacy_customers_and_keeps_other_accounts_and_profile(
+        self,
+    ):
+        from pharmacist.models import PharmacyProfile
+
+        users = get_user_model()
+        legacy = users.objects.create_user(
+            email="workflow-demo@example.invalid", account_type="customer"
+        )
+        renamed = users.objects.create_user(
+            email="sarah.pillay@example.com", account_type="customer"
+        )
+        unrelated = users.objects.create_user(
+            email="existing@example.com", account_type="customer"
+        )
+        profile = PharmacyProfile.objects.create(
+            pk=1, name="Saved pharmacy", address="Saved address"
+        )
+        staff_password = self.staff.password
+        with patch(
+            "inventory.management.commands.seed_realistic_data.backup_database",
+            return_value="backup",
+        ):
+            self.seed(replace_development_data=True, backup="backup.sqlite3")
+        self.assertFalse(users.objects.filter(pk__in=[legacy.pk, renamed.pk]).exists())
+        self.assertTrue(users.objects.filter(pk=unrelated.pk).exists())
+        self.staff.refresh_from_db()
+        self.assertEqual(self.staff.password, staff_password)
+        self.assertTrue(self.staff.groups.filter(name="Pharmacist").exists())
+        profile.refresh_from_db()
+        self.assertEqual(profile.name, "Saved pharmacy")
+        self.assertEqual(profile.address, "Saved address")
+        self.assertEqual(users.objects.filter(account_type="customer").count(), 19)
+
+    def test_customer_email_collision_rolls_back_replacement(self):
+        users = get_user_model()
+        existing = users.objects.create_user(
+            email="anjali.raman@example.com",
+            account_type="customer",
+            password="test-password",
+        )
+        old = Medicine.objects.create(
+            name="Before replacement",
+            strength="1 mg",
+            dosage_form="Tablet",
+            selling_price=2,
+        )
+        with patch(
+            "inventory.management.commands.seed_realistic_data.backup_database",
+            return_value="backup",
+        ):
+            with self.assertRaises(CommandError):
+                self.seed(replace_development_data=True, backup="backup.sqlite3")
+        self.assertTrue(Medicine.objects.filter(pk=old.pk).exists())
+        self.assertTrue(users.objects.filter(pk=existing.pk).exists())
+        self.assertEqual(list(Path(self.directory.name).rglob("*.pdf")), [])
+
+    def test_replacement_failure_restores_deleted_mock_customers(self):
+        user = get_user_model().objects.create_user(
+            email="workflow-demo@example.invalid", account_type="customer"
+        )
+        module = "inventory.management.commands.seed_realistic_data"
+        with patch(f"{module}.backup_database", return_value="backup"), patch(
+            f"{module}.Command.build_dataset", side_effect=CommandError("failure")
+        ):
+            with self.assertRaises(CommandError):
+                self.seed(replace_development_data=True, backup="backup.sqlite3")
+        self.assertTrue(get_user_model().objects.filter(pk=user.pk).exists())
+
+    def test_showcase_labels_and_today_payments(self):
+        self.seed()
+        users = get_user_model().objects.filter(account_type="customer")
+        self.assertTrue(users.filter(first_name="Sarah").exists())
+        self.assertFalse(users.filter(email__icontains="demo").exists())
+        self.assertFalse(Order.objects.filter(contact_name__icontains="demo").exists())
+        self.assertFalse(Medicine.objects.filter(name__icontains="demo").exists())
+        self.assertFalse(Batch.objects.filter(batch_number__icontains="demo").exists())
+        self.assertTrue(
+            Payment.objects.filter(recorded_at__date=timezone.localdate()).exists()
+        )
+        self.assertFalse(
+            Payment.objects.filter(recorded_at__gt=timezone.now()).exists()
+        )

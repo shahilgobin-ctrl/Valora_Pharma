@@ -33,7 +33,6 @@ from pharmacist.models import PharmacyProfile
 from prescriptions.models import Prescription
 from prescriptions.sample_documents import create_demo_pdf
 
-
 # ---------------------------------------------------------------------------
 # Fictional training data
 #
@@ -41,7 +40,7 @@ from prescriptions.sample_documents import create_demo_pdf
 # Prescription flags represent application scenarios, not dispensing guidance.
 # ---------------------------------------------------------------------------
 
-DATASET = "valora-realistic-v1"
+DATASET = "valora-showcase-v2"
 ORDER_COUNT = 36
 
 CATALOGUE = [
@@ -108,9 +107,9 @@ CUSTOMERS = [
 ]
 
 SUPPLIERS = (
-    "Lagoon Medical Distribution (fictional)",
-    "Central Healthcare Supply (fictional)",
-    "Island Pharmaceutical Logistics (fictional)",
+    "Lagoon Medical Distribution",
+    "Central Healthcare Supply",
+    "Island Pharmaceutical Logistics",
 )
 
 SELLING_UNITS = {
@@ -141,17 +140,13 @@ def order_key(index):
 def backup_database(destination):
     """Back up SQLite before an explicitly requested replacement."""
     if connection.vendor != "sqlite" or connection.in_atomic_block:
-        raise CommandError(
-            "Replacement requires a standalone SQLite database."
-        )
+        raise CommandError("Replacement requires a standalone SQLite database.")
 
     source = Path(connection.settings_dict["NAME"]).resolve()
     target = Path(destination).expanduser().resolve()
 
     if not source.is_file() or target == source:
-        raise CommandError(
-            "Choose a different backup path for an existing database."
-        )
+        raise CommandError("Choose a different backup path for an existing database.")
 
     target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -191,6 +186,52 @@ def clear_operational_records():
         model.objects.all().delete()
 
 
+def remove_legacy_customers():
+    """Remove only recognised showcase identities after clearing business rows.
+
+    Staff, privileged accounts and unrelated customers are never selected.
+    Include the one-off rename script so that applying it does not leave duplicates.
+    All deletions run in the caller's transaction; protected references abort it.
+    """
+    emails = {
+        "prescription-demo@example.invalid",
+        "workflow-demo@example.invalid",
+        *[f"valora-demo-customer-{i:02d}@example.invalid" for i in range(1, 11)],
+    }
+    renamed = [
+        ("Sarah", "Pillay"),
+        ("Adam", "Peerally"),
+        ("Priya", "Ramchurn"),
+        ("Kevin", "Hoareau"),
+        ("Aisha", "Hossen"),
+        ("Lucas", "Morel"),
+        ("Anjali", "Seetohul"),
+        ("Ryan", "Appadoo"),
+        ("Emma", "Laurent"),
+        ("Yusuf", "Issack"),
+        ("Chloe", "Baptiste"),
+        ("Neha", "Ramdass"),
+    ]
+    for first, last in CUSTOMERS:
+        emails.add(
+            f"{first.lower()}.{last.lower()}.valora-realistic-v1@example.invalid"
+        )
+        emails.add(f"{first.lower()}.{last.lower()}@example.com")
+    for first, last in renamed:
+        emails.add(f"{first.lower()}.{last.lower()}@example.com")
+    # Legacy fixture users and the supplied rename script use unusable passwords.
+    # Preserve any account that has since been enabled for an actual login.
+    candidates = get_user_model().objects.filter(
+        email__in=emails,
+        account_type="customer",
+        is_staff=False,
+        is_superuser=False,
+    )
+    for customer in candidates:
+        if not customer.has_usable_password():
+            customer.delete()
+
+
 # ---------------------------------------------------------------------------
 # Management command
 # ---------------------------------------------------------------------------
@@ -210,7 +251,7 @@ class Command(BaseCommand):
             action="store_true",
             help=(
                 "Delete ALL orders, payments, stock and prescriptions; "
-                "keep accounts and files."
+                "remove recognised mock customers; keep staff, other accounts and files."
             ),
         )
 
@@ -222,8 +263,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if not settings.DEBUG:
             raise CommandError(
-                "This command is restricted to DEBUG=True "
-                "development databases."
+                "This command is restricted to DEBUG=True " "development databases."
             )
 
         staff = (
@@ -239,29 +279,22 @@ class Command(BaseCommand):
 
         if not staff:
             raise CommandError(
-                "Supply an existing active staff account "
-                "in the Pharmacist group."
+                "Supply an existing active staff account " "in the Pharmacist group."
             )
 
         replace = options["replace_development_data"]
 
         if replace and not options["backup"]:
             raise CommandError(
-                "Replacement requires --backup "
-                "with a new SQLite backup path."
+                "Replacement requires --backup " "with a new SQLite backup path."
             )
 
         if options["backup"] and not replace:
-            raise CommandError(
-                "--backup is only used with --replace-development-data."
-            )
+            raise CommandError("--backup is only used with --replace-development-data.")
 
         if not replace:
             existing = Order.objects.filter(
-                submission_key__in=[
-                    order_key(index)
-                    for index in range(ORDER_COUNT)
-                ]
+                submission_key__in=[order_key(index) for index in range(ORDER_COUNT)]
             ).count()
 
             if existing == ORDER_COUNT:
@@ -290,6 +323,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 if replace:
                     clear_operational_records()
+                    remove_legacy_customers()
 
                 self.build_dataset(staff, saved_files)
 
@@ -303,12 +337,13 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "Installed 25 medicines, 52 batches, "
                 "18 fictional customers and 36 orders. "
-                "Accounts and existing uploaded file bytes were preserved."
+                "Staff, unrelated customers, pharmacy settings and existing "
+                "uploaded file bytes were preserved."
             )
         )
 
     def build_dataset(self, staff, saved_files):
-        now = timezone.now()
+        now = timezone.localtime()
         today = timezone.localdate()
 
         PharmacyProfile.objects.get_or_create(
@@ -376,32 +411,22 @@ class Command(BaseCommand):
             medicines.append(medicine)
 
             for batch_index in range(2):
-                quantity = (
-                    0
-                    if index == 13
-                    else 3
-                    if index == 14
-                    else 180 + index * 7
-                )
+                quantity = 0 if index == 13 else 3 if index == 14 else 180 + index * 7
 
                 expiry_days = (
-                    14
-                    if index == 5 and batch_index == 0
-                    else 210 + batch_index * 240
+                    14 if index == 5 and batch_index == 0 else 210 + batch_index * 240
                 )
 
                 Batch.objects.create(
                     medicine=medicine,
-                    batch_number=(
-                        f"VP-{today.year}-{index + 1:03d}-{batch_index + 1}"
-                    ),
+                    batch_number=(f"VP-{today.year}-{index + 1:03d}-{batch_index + 1}"),
                     supplier_name=SUPPLIERS[index % len(SUPPLIERS)],
                     received_date=today - timedelta(days=45),
                     expiry_date=today + timedelta(days=expiry_days),
                     quantity_available=quantity,
-                    purchase_price=(
-                        Decimal(price) * Decimal("0.62")
-                    ).quantize(Decimal("0.01")),
+                    purchase_price=(Decimal(price) * Decimal("0.62")).quantize(
+                        Decimal("0.01")
+                    ),
                 )
 
         # Include an expired batch and one expiring today.
@@ -422,10 +447,7 @@ class Command(BaseCommand):
         customers = []
 
         for first, last in CUSTOMERS:
-            email = (
-                f"{first.lower()}.{last.lower()}."
-                f"{DATASET}@example.invalid"
-            )
+            email = f"{first.lower()}.{last.lower()}@example.com"
 
             customer, created = get_user_model().objects.get_or_create(
                 email=email,
@@ -435,6 +457,12 @@ class Command(BaseCommand):
                     "account_type": "customer",
                 },
             )
+
+            if not created:
+                raise CommandError(
+                    f"Showcase email already exists: {email}. "
+                    "No existing account was reused; replacement rolled back."
+                )
 
             if customer.account_type != "customer":
                 raise CommandError(
@@ -476,22 +504,21 @@ class Command(BaseCommand):
                 stage = "completed" if index % 3 else "pending"
 
             created_at = now - timedelta(
-                days=index % 14,
+                days=0 if index in (4, 26) else index % 14,
                 hours=2,
             )
+
+            if index in (4, 26):
+                midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                elapsed = now - midnight
+                created_at = midnight + elapsed / 2
 
             medicine = medicines[index % 12]
             prescription = None
 
-            if index % 3 == 1 or (
-                not walk_in and stage == "cancelled"
-            ):
+            if index % 3 == 1 or (not walk_in and stage == "cancelled"):
                 medicine = medicines[15 + index % 8]
-                status = (
-                    "approved"
-                    if stage != "cancelled"
-                    else "rejected"
-                )
+                status = "approved" if stage != "cancelled" else "rejected"
 
                 prescription = self.make_prescription(
                     customer,
@@ -518,11 +545,7 @@ class Command(BaseCommand):
                 customer=customer,
                 prescription=prescription,
                 contact_name=customer.get_full_name(),
-                pickup_time=(
-                    None
-                    if walk_in
-                    else created_at + timedelta(hours=4)
-                ),
+                pickup_time=(None if walk_in else created_at + timedelta(hours=4)),
                 submission_key=order_key(index),
                 lines=[
                     {
@@ -585,30 +608,28 @@ class Command(BaseCommand):
                     )
 
             # Backdate fixture records consistently.
-            Order.objects.filter(pk=order.pk).update(
-                created_at=created_at
-            )
+            Order.objects.filter(pk=order.pk).update(created_at=created_at)
 
             events = list(order.status_events.all())
 
             for step, event in enumerate(events):
-                event.recorded_at = created_at + timedelta(
-                    minutes=step * 10
+                interval = min(
+                    600,
+                    max(
+                        0, int((now - created_at).total_seconds() / max(1, len(events)))
+                    ),
                 )
+                event.recorded_at = created_at + timedelta(seconds=step * interval)
                 event.save(update_fields=["recorded_at"])
 
             if stage == "completed":
                 finished = events[-1].recorded_at
 
-                Order.objects.filter(pk=order.pk).update(
-                    completed_at=finished
-                )
-                Payment.objects.filter(order=order).update(
+                Order.objects.filter(pk=order.pk).update(completed_at=finished)
+                Payment.objects.filter(order=order).update(recorded_at=finished)
+                StockMovement.objects.filter(allocation__item__order=order).update(
                     recorded_at=finished
                 )
-                StockMovement.objects.filter(
-                    allocation__item__order=order
-                ).update(recorded_at=finished)
 
     def allocate_fixture_order(self, order, today, split=False):
         """Include one completed order split across two batches."""
@@ -662,14 +683,11 @@ class Command(BaseCommand):
 
         if status != "pending":
             prescription.reviewed_by = staff
-            prescription.reviewed_at = (
-                created_at - timedelta(minutes=20)
-            )
+            prescription.reviewed_at = created_at - timedelta(minutes=20)
 
         if status == "rejected":
             prescription.rejection_reason = (
-                "Document details are not legible; "
-                "request a clear replacement."
+                "Document details are not legible; " "request a clear replacement."
             )
 
         prescription.document.save(
