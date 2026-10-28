@@ -44,7 +44,7 @@ if not DEBUG and (not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS):
 INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
-    "accounts.apps.AccountsConfig",
+    "accounts.apps.AccountsConfig", "shop.apps.ShopConfig", "pages.apps.PagesConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -87,8 +87,16 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [PROJECT_DIR / "frontend" / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_ROOT = BASE_DIR / "private_media"
+MEDIA_URL = "/private-media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
+PHARMACY_ROLE_HOME_ROUTES = {
+    "customer": "accounts:customer_landing",
+    "staff": "accounts:staff_landing",
+    "supplier": "accounts:supplier_landing",
+    "admin": "accounts:admin_landing",
+}
 SESSION_COOKIE_AGE = 12 * 60 * 60
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -111,3 +119,37 @@ CACHES = {"default": {
 }}
 LOGIN_MAX_FAILURES = 8
 LOGIN_LOCKOUT_SECONDS = 15 * 60
+
+# Local development prints reset emails to the terminal; deployment uses SMTP.
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "ValoraPharma <no-reply@example.com>")
+if not DEBUG and not os.environ.get("DJANGO_DEFAULT_FROM_EMAIL"):
+    raise ImproperlyConfigured("DJANGO_DEFAULT_FROM_EMAIL is required when DJANGO_DEBUG=false.")
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("DJANGO_EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("DJANGO_EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = 10
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured("Enable only one of DJANGO_EMAIL_USE_TLS or DJANGO_EMAIL_USE_SSL.")
+
+PASSWORD_RESET_CODE_TTL_SECONDS = 10 * 60
+PASSWORD_RESET_MAX_ATTEMPTS = 5
+PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS = 60
+PASSWORD_RESET_EMAIL_LIMIT = 5
+PASSWORD_RESET_EMAIL_WINDOW_SECONDS = 60 * 60
+
+EMAIL_VERIFICATION_CODE_TTL_SECONDS = 15 * 60
+EMAIL_VERIFICATION_MAX_ATTEMPTS = 5
+EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
+EMAIL_VERIFICATION_RESEND_LIMIT = 5
+EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS = 60 * 60
+
+# Presentation limit only; products and prices always come from the catalogue.
+HOMEPAGE_PRODUCT_LIMIT = 4

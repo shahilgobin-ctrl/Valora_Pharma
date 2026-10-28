@@ -1,0 +1,118 @@
+{% extends 'shop/base.html' %}
+{% block title %}Shop All Products | ValoraPharma{% endblock %}
+{% block content %}
+  <section class="page-banner">
+    <a href="{% url 'home' %}" class="back-link">&lt; &nbsp; Back</a>
+    <h1>Shop All Products</h1>
+    <p>{{ result_count }} medicine{{ result_count|pluralize }} available &middot; Browse, filter and add to cart</p>
+  </section>
+
+  <section class="catalog" aria-label="Medicine catalogue">
+    <nav class="category-pills" aria-label="Filter by condition">
+      {% for item in category_links %}
+        <a class="pill {% if item.active %}active{% endif %}" href="{{ item.url }}">{{ item.name }}</a>
+      {% endfor %}
+    </nav>
+
+    <form class="filters" method="get" role="search">
+      {% if chosen_category and chosen_category != 'All Conditions' %}
+        <input type="hidden" name="category" value="{{ chosen_category }}">
+      {% endif %}
+      <label class="sr-only" for="shop-search">Search medicines</label>
+      <input id="shop-search" name="search" value="{{ search }}" placeholder="Search by name, category or strength...">
+
+      <label class="sr-only" for="shop-type">Dosage form</label>
+      <select id="shop-type" name="type">
+        <option value="">All Types</option>
+        {% for type in product_types %}
+          <option value="{{ type }}" {% if selected_type == type %}selected{% endif %}>{{ type }}</option>
+        {% endfor %}
+      </select>
+
+      <label class="sr-only" for="shop-availability">Availability</label>
+      <select id="shop-availability" name="availability">
+        <option value="">All availability</option>
+        <option value="in_stock" {% if availability == 'in_stock' %}selected{% endif %}>In stock</option>
+        <option value="out_of_stock" {% if availability == 'out_of_stock' %}selected{% endif %}>Out of stock</option>
+      </select>
+
+      <label class="sr-only" for="shop-prescription">Prescription</label>
+      <select id="shop-prescription" name="prescription">
+        <option value="">All medicines</option>
+        <option value="required" {% if prescription == 'required' %}selected{% endif %}>Prescription required</option>
+        <option value="not_required" {% if prescription == 'not_required' %}selected{% endif %}>No prescription</option>
+      </select>
+
+      <button class="search-button" type="submit">Search</button>
+      {% if has_filters %}
+        <a class="clear-filters" href="{% url 'shop:shop' %}">Clear all</a>
+      {% endif %}
+    </form>
+
+    {% if active_filters %}
+      <div class="active-filters" aria-label="Active filters">
+        <span>Filters:</span>
+        {% for item in active_filters %}
+          <a href="{{ item.url }}">{{ item.label }} <span aria-hidden="true">&times;</span></a>
+        {% endfor %}
+        <a class="clear-filters" href="{% url 'shop:shop' %}">Clear all</a>
+      </div>
+    {% endif %}
+
+    <p class="result-count" aria-live="polite">{{ result_count }} result{{ result_count|pluralize }}</p>
+
+    <div class="product-grid">
+      {% for product in products %}
+        <article class="product-card {% if product.is_out_of_stock %}sold-out{% endif %}">
+          <a class="product-image" href="{% url 'shop:product' product.slug %}" style="{% if product.image_url %}background-image:url('{{ product.image_url }}'){% endif %}" aria-label="View {{ product.name }}">
+            {% if product.is_prescription %}
+              <span class="rx-tag">Rx Required</span>
+            {% endif %}
+            <span class="category-tag">{{ product.category.name }}</span>
+          </a>
+          <div class="card-content">
+            <a class="product-name" href="{% url 'shop:product' product.slug %}">{{ product.name }}</a>
+            <p class="strength">{{ product.strength }}</p>
+            <p class="description">{{ product.description }}</p>
+            <div class="card-footer">
+              <strong>Rs {{ product.price }}</strong>
+              {% if product.is_out_of_stock %}
+                <button class="add-button disabled" disabled>Out of stock</button>
+              {% else %}
+                <button class="add-button" data-add-product="{{ product.id }}">Add to cart</button>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% empty %}
+        <div class="empty-results">
+          <h2>No medicines found</h2>
+          <p>Try changing your search or filters to see more products.</p>
+          <a class="add-button" href="{% url 'shop:shop' %}">Clear filters</a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="catalog-proceed-wrap">
+      <a id="proceed-to-cart" class="checkout-button catalog-proceed" href="{% url 'shop:cart' %}#checkout" {% if not has_cart_items %}hidden{% endif %}>Proceed to cart &amp; checkout</a>
+    </div>
+
+    {% if pagination and pagination.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="Catalogue pages">
+        {% if previous_url %}
+          <a href="{{ previous_url }}" rel="prev">Previous</a>
+        {% endif %}
+        {% for page in page_links %}
+          {% if page.current %}
+            <span class="current-page" aria-current="page">{{ page.number }}</span>
+          {% else %}
+            <a href="{{ page.url }}">{{ page.number }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if next_url %}
+          <a href="{{ next_url }}" rel="next">Next</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+{% endblock %}

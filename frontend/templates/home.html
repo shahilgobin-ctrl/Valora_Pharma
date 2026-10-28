@@ -1,0 +1,177 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Valora Pharma – Your Trusted Community Pharmacy</title>
+<meta name="description" content="Browse our full medicine catalogue and collect from our branch at your convenience.">
+<link rel="stylesheet" href="{% static 'home.css' %}">
+</head>
+<body data-cart-add-url="{% url 'shop:api_cart_add' %}" data-login-url="{% url 'accounts:login' %}">
+
+<!-- ============ HEADER ============ -->
+<header id="header">
+  <div class="container nav">
+    <a href="{% url 'home' %}" class="logo" aria-label="Valora Pharma home">
+      <img class="brand-symbol" src="{% static 'accounts/assets/pill-login.svg' %}" alt="" width="42" height="42">
+      <span>Valora<em>Pharma</em></span>
+    </a>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="{% url 'home' %}" class="active">Home</a></li>
+      <li><a href="{% url 'shop:shop' %}">Products</a></li>
+      <li><a href="{% url 'pages:about' %}">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a href="{% url 'shop:shop' %}">Shop</a></li>
+      {% if not user.is_authenticated %}<li class="mobile-signin"><a href="{% url 'accounts:login' %}">Sign in</a></li>{% endif %}
+    </ul>
+
+    <div class="nav-actions">
+      <a href="{% url 'shop:cart' %}" class="cart-btn" aria-label="Shopping cart">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L21 8H6"/></svg>
+        <span class="cart-count{% if cart_count %} show{% endif %}" id="cartCount">{{ cart_count }}</span>
+      </a>
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-register">Sign out</button>
+      </form>
+      {% else %}
+      <a href="{% url 'accounts:login' %}" class="link-signin">Sign in</a>
+      <a href="{% url 'accounts:register' %}" class="btn-register">Register</a>
+      {% endif %}
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+<!-- ============ HERO ============ -->
+<section class="hero" style="padding:0">
+  <!-- Admin-selected representative pharmacy photo. -->
+  <img class="hero-bg" src="{{ shop_settings.hero_image_url }}" alt="" onerror="this.remove()">
+  <div class="container">
+    <div class="hero-inner">
+      <h1>Your Trusted Community Pharmacy</h1>
+      <p>Expert care, every visit. Browse our full medicine catalogue and collect from our branch at your convenience.</p>
+      <div class="hero-btns">
+        <a href="{% url 'shop:shop' %}" class="btn btn-orange">Browse Medicines</a>
+        <a href="{% url 'accounts:register' %}" class="btn btn-glass">Create Account</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CATEGORIES ============ -->
+<section>
+  <div class="container">
+    <div class="section-head reveal">
+      <div>
+        <h2>Find Medicine by Condition</h2>
+        <p>Select a health condition to browse relevant medicines</p>
+      </div>
+    </div>
+    <div class="cat-grid" id="catGrid">
+      {% for category in categories %}
+      <a class="cat {% cycle 'c1' 'c2' 'c3' 'c4' 'c5' 'c6' 'c7' 'c8' %} reveal" href="{% url 'shop:shop' %}?category={{ category.slug|urlencode }}">
+        <div class="cat-picture"><img src="{{ category.card_image_url }}" alt="" loading="lazy" width="240" height="120"></div>
+        <h3>{{ category.name }}</h3><p>{{ category.description|default:'Browse medicines' }}</p>
+      </a>
+      {% empty %}<p>No categories are available yet.</p>{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============ MEDICINE RANGE ============ -->
+<section style="padding-top:8px">
+  <div class="container">
+    <div class="section-head reveal">
+      <div><h2>Our Medicine Range</h2><p class="image-note">Images are illustrative; actual packaging may vary.</p></div>
+      <a href="{% url 'shop:shop' %}" class="btn-all">All Medicines <span>→</span></a>
+    </div>
+    <div class="med-grid" id="medGrid" aria-live="polite">
+      {% for product in products %}
+      <article class="med reveal">
+        <a href="{% url 'shop:product' product.slug %}" aria-label="View {{ product.name }}">
+          <div class="med-img">
+            <img src="{{ product.homepage_image_url }}" alt="{{ product.name }} {{ product.strength }}" loading="lazy">
+          </div>
+        </a>
+        <div class="med-body">
+          <h3>{{ product.name }}</h3><span class="meta">{{ product.strength }}</span>
+          <span class="rx{% if not product.is_prescription %} otc{% endif %}">{% if product.is_prescription %}Prescription required{% else %}No prescription needed{% endif %}</span>
+          <div class="med-foot"><span class="price">Rs {{ product.price }}</span>
+            <button class="btn-add" type="button" data-product-id="{{ product.pk }}"{% if product.is_out_of_stock %} disabled{% endif %}>{% if product.is_out_of_stock %}Out of stock{% else %}+ Add{% endif %}</button>
+          </div>
+        </div>
+      </article>
+      {% empty %}<p class="empty">No medicines are available right now. Please check back soon.</p>{% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW TO ORDER ============ -->
+<section class="how" id="how">
+  <div class="container">
+    <h2 class="reveal">How to Order from Valora</h2>
+    <div class="steps">
+      <div class="step reveal"><div class="step-num">1</div><h3>Browse</h3><p>Find the medicines you need by name or health condition. No account required to browse.</p></div>
+      <div class="step reveal"><div class="step-num">2</div><h3>Add to Cart</h3><p>Add OTC items directly. Prescription items will be verified by our pharmacist.</p></div>
+      <div class="step reveal"><div class="step-num">3</div><h3>Sign In</h3><p>Create a free account or sign in at checkout. Takes under a minute.</p></div>
+      <div class="step reveal"><div class="step-num">4</div><h3>Collect</h3><p>Pay and collect from your nearest branch when your order is marked ready.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OFFER + CONTACT ============ -->
+<section class="info" id="contact">
+  <div class="container info-grid">
+    <div class="reveal">
+      <h2>What We Offer</h2>
+      <div class="offer-grid">
+        <div class="offer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h3>Online Ordering</h3><p>Browse our catalogue and place an order from home. Pick up from your chosen branch at your convenience.</p></div>
+        <div class="offer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg><h3>Digital Prescriptions</h3><p>Upload your prescription securely. Our pharmacist reviews it before dispensing.</p></div>
+        <div class="offer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18M5 4h13l-3 4 3 4H5"/></svg><h3>Pharmacist Queries</h3><p>Dosage questions, drug interactions, alternatives — speak to our team or leave a query for us.</p></div>
+        <div class="offer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6zM14 2v6h6"/></svg><h3>Digital Receipts</h3><p>Downloadable receipts for every completed order — useful for insurance claims and personal records.</p></div>
+        <div class="offer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h3>Order Status Updates</h3><p>Track your order from confirmation to pickup. You will be notified at every stage.</p></div>
+        <div class="offer"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><h3>Health Data Privacy</h3><p>Your prescription and personal health information is handled in accordance with data protection law.</p></div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <h2>Contact Us</h2>
+      <div class="contact-box">
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></div><div><small>Main Branch</small>12 Sir William Newton Street, Port Louis 11328</div></div>
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg></div><div><small>Second Branch</small>Ground Floor, Caudan Waterfront, Port Louis</div></div>
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></div><div><small>Mobile</small><a href="tel:+23057401234">+230 5740 1234</a></div></div>
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></div><div><small>Landline</small><a href="tel:+2302021234">+230 202 1234</a></div></div>
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></div><div><small>Emergency</small><a href="tel:+23059901234">+230 5990 1234</a></div></div>
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div><div><small>Email</small><a href="mailto:info@valorapharma.mu">info@valorapharma.mu</a></div></div>
+        <div class="contact-item"><div class="ci-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><small>Hours</small>Mon–Sat 8:00am–9:00pm · Sun 9:00am–7:00pm</div></div>
+        <p class="reg">Pharmacy Reg. No. MR/2019/0040</p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container foot">
+    <a href="{% url 'home' %}" class="logo">
+      <img class="brand-symbol" src="{% static 'accounts/assets/pill-login.svg' %}" alt="" width="42" height="42">
+      <span style="color:#fff">Valora<em>Pharma</em></span>
+    </a>
+    <p>© 2026 Valora Pharma Ltd. Pharmacy Reg. No. MR/2019/0040</p>
+    <a href="mailto:info@valorapharma.mu">info@valorapharma.mu</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="{% static 'home.js' %}" defer></script>
+</body>
+</html>

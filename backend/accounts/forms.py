@@ -9,9 +9,13 @@ from .models import User, canonical_email
 class RegistrationForm(forms.ModelForm):
     first_name = forms.CharField(max_length=150, label="First Name")
     last_name = forms.CharField(max_length=150, label="Last Name")
+    username = forms.RegexField(
+        regex=r"^[A-Za-z0-9._-]{3,30}$", max_length=30, label="Username",
+        error_messages={"invalid": "Use 3–30 letters, numbers, dots, underscores, or hyphens."},
+    )
     date_of_birth = forms.DateField(
         label="Date Of Birth", input_formats=["%d-%m-%Y", "%Y-%m-%d"],
-        widget=forms.DateInput(format="%d-%m-%Y"),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
     gender = forms.ChoiceField(
         choices=[("", "Select Gender"), *User.Gender.choices], label="Gender",
@@ -21,15 +25,26 @@ class RegistrationForm(forms.ModelForm):
         strip=False, widget=forms.PasswordInput, label="Password",
         help_text="Use at least 8 characters. Avoid common or entirely numeric passwords.",
     )
+    agree_terms = forms.BooleanField(
+        required=True,
+        label="I agree to the Terms and Conditions",
+        error_messages={"required": "You must agree to the Terms and Conditions."},
+    )
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "date_of_birth", "gender", "email", "phone", "password"]
+        fields = ["first_name", "last_name", "date_of_birth", "gender", "email", "username", "phone", "password"]
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise ValidationError("This username is already taken.")
+        return username
 
     def clean_email(self):
         email = canonical_email(self.cleaned_data["email"])
         if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("An account with this email already exists.")
+            raise ValidationError("An account with this email already exists. If it is unverified, request another verification code.")
         return email
 
     def clean_date_of_birth(self):
@@ -53,6 +68,7 @@ class RegistrationForm(forms.ModelForm):
         if password:
             candidate = User(
                 email=cleaned.get("email", ""),
+                username=cleaned.get("username"),
                 first_name=cleaned.get("first_name", ""),
                 last_name=cleaned.get("last_name", ""),
             )
@@ -73,9 +89,11 @@ class LoginForm(forms.Form):
     email = forms.EmailField(label="Email")
     password = forms.CharField(strip=False, widget=forms.PasswordInput, label="Password")
 
-    def __init__(self, *args, request=None, account_type=User.AccountType.CUSTOMER, blocked=False, **kwargs):
+    def __init__(self, *args, request=None, allowed_account_types=None, blocked=False, **kwargs):
         self.request = request
-        self.account_type = account_type
+        if allowed_account_types is None:
+            allowed_account_types = tuple(value for value, _label in User.AccountType.choices)
+        self.allowed_account_types = frozenset(allowed_account_types)
         self.blocked = blocked
         self.user = None
         super().__init__(*args, **kwargs)
@@ -91,7 +109,54 @@ class LoginForm(forms.Form):
             user = authenticate(
                 self.request, email=cleaned["email"], password=cleaned["password"],
             )
-            if user is None or user.account_type != self.account_type:
-                raise ValidationError("Invalid email or password. Staff accounts must be approved before signing in.")
+            if user is None or user.account_type not in self.allowed_account_types:
+                raise ValidationError("Invalid email or password. If your account is pending verification or approval, complete that step first.")
             self.user = user
+        return cleaned
+
+
+class PasswordResetRequestForm(forms.Form):
+    email = forms.EmailField(label="Email Address")
+
+    def clean_email(self):
+        return canonical_email(self.cleaned_data["email"])
+
+
+class EmailVerificationForm(forms.Form):
+    email = forms.EmailField(label="Email Address")
+    code = forms.RegexField(
+        regex=r"^\d{6}$", label="Verification Code",
+        error_messages={"invalid": "Enter the six-digit code from your email."},
+    )
+
+    def clean_email(self):
+        return canonical_email(self.cleaned_data["email"])
+
+
+class PasswordResetVerifyForm(forms.Form):
+    code = forms.RegexField(
+        regex=r"^\d{6}$", label="Verification Code",
+        error_messages={"invalid": "Enter the six-digit code from your email."},
+    )
+
+
+class PasswordResetNewPasswordForm(forms.Form):
+    new_password1 = forms.CharField(strip=False, widget=forms.PasswordInput, label="New Password")
+    new_password2 = forms.CharField(strip=False, widget=forms.PasswordInput, label="Confirm New Password")
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        password1 = cleaned.get("new_password1")
+        password2 = cleaned.get("new_password2")
+        if password1 and password2 and password1 != password2:
+            self.add_error("new_password2", "The passwords do not match.")
+        if password1:
+            try:
+                validate_password(password1, self.user)
+            except ValidationError as error:
+                self.add_error("new_password1", error)
         return cleaned
