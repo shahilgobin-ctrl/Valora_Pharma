@@ -836,3 +836,36 @@ body {
 .payment-note {
   margin-top: 12px
 }
+
+.prescription-upload {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #dce5e1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.prescription-upload label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.prescription-upload label span,
+.prescription-upload p {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.prescription-upload input {
+  max-width: 100%;
+  color: var(--ink);
+  font: inherit;
+}
+
+.prescription-upload p {
+  margin: 8px 0 0;
+}

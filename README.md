@@ -1,8 +1,8 @@
-# Pharmacy login and registration
+# Valora Pharma demo
 
 A Django project implementing the pharmacy design's customer and staff login and registration pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
 
-This package covers authentication only. A successful login displays a confirmation on the login page. Registration returns you to the corresponding login page. Pharmacy dashboards, medicine inventory, prescriptions, ordering and payments are outside this package.
+This demo includes customer authentication and a medicine shop with product search and filters, a signed-in cart, order creation, stock updates and payment-status tracking. Online payment processing remains a visual placeholder. Prescription-required products need a PDF, JPG or PNG upload at checkout (up to 5 MB); documents are stored locally under `backend/private_media/` and are downloadable only by staff through Django admin.
 
 ## Start on Windows
 
@@ -11,7 +11,9 @@ This package covers authentication only. A successful login displays a confirmat
 3. Double-click **`run_windows.bat`**.
 4. Wait for the dependencies and database to finish preparing, then open **http://127.0.0.1:8000/login/**.
 
-The first run needs an internet connection to download dependencies. The starter creates a project-local `.venv`, installs `requirements.txt`, applies database migrations and starts the development server. Later runs reuse that environment and your database. Keep the console window open; press **Ctrl+C** to stop.
+The first run needs an internet connection to download dependencies. The starter creates a project-local `.venv`, installs `requirements.txt`, applies database migrations and starts the development server. Later runs reuse that environment and your database.
+
+To load the 12 demo products into a fresh database, run `python backend/manage.py seed_shop` from the project root after the server setup has applied migrations. This command also restores the demo stock values, so do not rerun it after changing inventory. Keep the console window open; press **Ctrl+C** to stop.
 
 You can also open PowerShell in the extracted project folder and run:
 

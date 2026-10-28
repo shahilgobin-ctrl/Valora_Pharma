@@ -19,20 +19,7 @@ PRODUCTS = [
     ("Vitamin D3", "Vitamins & Supplements", "5000IU - Softgel", 140, 40, False, "A high-potency vitamin D3 supplement to support bone strength and calcium absorption."),
 ]
 
-IMAGES = {
-    "Amoxicillin": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
-    "Paracetamol": "https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=800&q=80",
-    "Omeprazole": "https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&w=800&q=80",
-    "Metformin": "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80",
-    "Amlodipine": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=800&q=80",
-    "Vitamin C": "https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&w=800&q=80",
-    "Ibuprofen": "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&w=800&q=80",
-    "Ciprofloxacin": "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
-    "Atorvastatin": "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80",
-    "Cetirizine": "https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&w=800&q=80",
-    "Salbutamol": "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=800&q=80",
-    "Vitamin D3": "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80",
-}
+IMAGES = {name: f"/static/shop/products/{slugify(name)}.svg" for name, *_ in PRODUCTS}
 
 
 class Command(BaseCommand):

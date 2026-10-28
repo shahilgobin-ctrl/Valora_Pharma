@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -14,6 +15,24 @@ from .serializers import cart_data, category_data, order_data, product_data
 
 
 DELIVERY_FEE = 100
+MAX_PRESCRIPTION_SIZE = 5 * 1024 * 1024
+
+
+def _prescription_error(upload):
+    if upload.size > MAX_PRESCRIPTION_SIZE:
+        return "Prescription files must be 5 MB or smaller."
+    suffix = Path(upload.name).suffix.lower()
+    signature = upload.read(8)
+    upload.seek(0)
+    valid = {
+        ".pdf": signature.startswith(b"%PDF-"),
+        ".jpg": signature.startswith(b"\xff\xd8\xff"),
+        ".jpeg": signature.startswith(b"\xff\xd8\xff"),
+        ".png": signature.startswith(b"\x89PNG\r\n\x1a\n"),
+    }
+    if not valid.get(suffix, False):
+        return "Upload a valid PDF, JPG, or PNG prescription (maximum 5 MB)."
+    return ""
 
 
 def _body(request):
@@ -151,8 +170,19 @@ def api_checkout(request):
         for item in items:
             if item.quantity > item.product.stock_quantity:
                 return _error(f"{item.product.name} no longer has enough stock.", 409)
+        requires_prescription = any(item.product.is_prescription for item in items)
+        prescription = request.FILES.get("prescription")
+        if requires_prescription and not prescription:
+            return _error("Upload a prescription for the prescription-required medicine(s).")
+        if requires_prescription:
+            upload_error = _prescription_error(prescription)
+            if upload_error:
+                return _error(upload_error)
         subtotal = sum(item.quantity * item.product.price for item in items)
-        order = Order.objects.create(user=request.user, total=subtotal + DELIVERY_FEE)
+        order = Order.objects.create(
+            user=request.user, total=subtotal + DELIVERY_FEE,
+            prescription_file=prescription if requires_prescription else None,
+        )
         Payment.objects.create(order=order, amount_total=order.total)
         for item in items:
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, unit_price=item.product.price)
@@ -165,7 +195,7 @@ def api_checkout(request):
 def _catalog_context(request, cart_page=False, paginate=False):
     products = _filtered_products(request)
     search = request.GET.get("search", "").strip()
-    chosen_category = request.GET.get("category", "All Conditions")
+    chosen_category = request.GET.get("category", "").strip()
     selected_type = request.GET.get("type", "")
     availability = request.GET.get("availability", "")
     prescription = request.GET.get("prescription", "")
@@ -224,6 +254,7 @@ def _catalog_context(request, cart_page=False, paginate=False):
         "cart_count": cart_count, "has_cart_items": cart_count > 0, "cart_items": items, "subtotal": subtotal,
         "cart_categories": cart_categories, "selected_cart_category": selected_cart_category,
         "delivery": delivery, "total": subtotal + delivery,
+        "requires_prescription": any(item.product.is_prescription for item in all_cart_items),
         "cart_page": cart_page,
     }
 

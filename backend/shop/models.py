@@ -25,7 +25,7 @@ class Product(models.Model):
     price = models.PositiveIntegerField(help_text="Price in Rs")
     stock_quantity = models.PositiveIntegerField(default=0)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
-    image = models.URLField(blank=True)
+    image = models.CharField(max_length=500, blank=True)
     is_prescription = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,6 +67,7 @@ class Order(models.Model):
     total = models.PositiveIntegerField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLACED)
     created_at = models.DateTimeField(auto_now_add=True)
+    prescription_file = models.FileField(upload_to="prescriptions/", blank=True)
 
 
 class OrderItem(models.Model):

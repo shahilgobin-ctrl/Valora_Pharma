@@ -80,6 +80,13 @@
           <p class="payment-note">This is a visual placeholder. No card details are collected or processed. The demo checkout places an order without taking an online payment.</p>
         </section>
 
+        {% if requires_prescription %}
+          <div class="prescription-upload">
+            <label for="prescription-upload">Prescription document <span>(required)</span></label>
+            <input id="prescription-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" data-prescription-file required>
+            <p>PDF, JPG, or PNG; maximum 5 MB. Only pharmacy staff can download this file.</p>
+          </div>
+        {% endif %}
         <button class="checkout-button" data-checkout {% if not cart_count %}disabled{% endif %}>Checkout</button>
       </aside>
     </div>
