@@ -74,3 +74,16 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
     unit_price = models.PositiveIntegerField()
+
+class Payment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="payment")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    amount_total = models.PositiveIntegerField()
+    amount_paid = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)

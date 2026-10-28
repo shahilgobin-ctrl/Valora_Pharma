@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from .models import Cart, CartItem, Category, Order, OrderItem, Product
+from .models import Cart, CartItem, Category, Order, OrderItem, Payment, Product
 from .serializers import cart_data, category_data, order_data, product_data
 
 
@@ -153,6 +153,7 @@ def api_checkout(request):
                 return _error(f"{item.product.name} no longer has enough stock.", 409)
         subtotal = sum(item.quantity * item.product.price for item in items)
         order = Order.objects.create(user=request.user, total=subtotal + DELIVERY_FEE)
+        Payment.objects.create(order=order, amount_total=order.total)
         for item in items:
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, unit_price=item.product.price)
             item.product.stock_quantity -= item.quantity
