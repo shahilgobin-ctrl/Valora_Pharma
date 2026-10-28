@@ -1,2 +1,51 @@
-{% extends 'superadmin/base.html' %}{% block title %}Roles &amp; Permissions{% endblock %}{% block content %}<header class="page-heading"><h1>Roles &amp; Permissions</h1></header>
-<div class="role-grid">{% for role in roles %}<article class="role-card {{ role.key }}"><h2><svg><use href="{% if role.key == 'customer' %}#i-user{% elif role.key == 'pharmacist' %}#i-pill{% elif role.key == 'pharmacy-manager' %}#i-role{% else %}#i-shield{% endif %}"/></svg>{{ role.title }}</h2><ul>{% if role.key == 'super-administrator' %}<li>Create and manage all accounts</li><li>Assign and modify staff roles</li><li>Activate or deactivate users</li><li>Modify role permissions</li><li>Full system governance access</li><li>Audit trail and compliance access</li>{% else %}{% for permission in role.display_permissions %}<li>{{ permission.name }}</li>{% empty %}<li>No permissions assigned</li>{% endfor %}{% endif %}</ul><a class="role-edit" href="{% url 'superadmin:role_edit' role.key %}">{% if role.key == 'super-administrator' %}View access{% else %}Edit permissions{% endif %}<span aria-hidden="true"> &rarr;</span></a></article>{% endfor %}</div>{% endblock %}
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Roles &amp; Permissions{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>Roles &amp; Permissions</h1>
+  </header>
+
+  <div class="role-grid">
+    {% for role in roles %}
+      <article class="role-card {{ role.key }}">
+        <h2>
+          <svg>
+            <use href="{% if role.key == 'customer' %}#i-user{% elif role.key == 'pharmacist' %}#i-pill{% elif role.key == 'pharmacy-manager' %}#i-role{% else %}#i-shield{% endif %}" />
+          </svg>
+          {{ role.title }}
+        </h2>
+
+        <ul>
+          {% if role.key == 'super-administrator' %}
+            <li>Create and manage all accounts</li>
+            <li>Assign and modify staff roles</li>
+            <li>Activate or deactivate users</li>
+            <li>Modify role permissions</li>
+            <li>Full system governance access</li>
+            <li>Audit trail and compliance access</li>
+          {% else %}
+            {% for permission in role.display_permissions %}
+              <li>{{ permission.name }}</li>
+            {% empty %}
+              <li>No permissions assigned</li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+
+        <a
+          class="role-edit"
+          href="{% url 'superadmin:role_edit' role.key %}"
+        >
+          {% if role.key == 'super-administrator' %}
+            View access
+          {% else %}
+            Edit permissions
+          {% endif %}
+          <span aria-hidden="true"> &rarr;</span>
+        </a>
+      </article>
+    {% endfor %}
+  </div>
+{% endblock %}

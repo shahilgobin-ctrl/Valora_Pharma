@@ -1,1 +1,71 @@
-{% extends 'superadmin/base.html' %}{% block title %}Account details{% endblock %}{% block content %}<header class="page-heading"><h1>Account details</h1><a class="button" href="{% url 'superadmin:user_edit' account.pk %}">Edit account</a></header><a class="text-link" href="{% url 'superadmin:users' %}">&larr; User Management</a><section class="form-panel"><h2>{{ account.get_full_name|default:account.email }}</h2><dl class="details-grid"><dt>Email</dt><dd>{{ account.email }}</dd><dt>Role</dt><dd>{{ role }}</dd><dt>Status</dt><dd>{% if account.is_active %}Active{% else %}Inactive{% endif %}</dd><dt>Phone</dt><dd>{{ account.phone|default:"Not provided" }}</dd><dt>Date of birth</dt><dd>{{ account.date_of_birth|date:"d M Y"|default:"Not provided" }}</dd><dt>Gender</dt><dd>{{ account.get_gender_display|default:"Not provided" }}</dd><dt>Joined</dt><dd>{{ account.date_joined|date:"d M Y, H:i" }}</dd><dt>Last login</dt><dd>{{ account.last_login|date:"d M Y, H:i"|default:"Never" }}</dd></dl><details class="permission-details"><summary>Effective permissions ({{ permissions|length }})</summary><ul>{% for permission in permissions %}<li>{{ permission }}</li>{% empty %}<li>No permissions assigned.</li>{% endfor %}</ul></details></section><section class="recent-events"><h2>Recent account activity</h2>{% for event in recent %}<p>{{ event.created_at|date:"d M Y, H:i" }} &middot; {{ event.action }} &middot; {{ event.actor_email }}</p>{% empty %}<p class="help">No recorded changes for this account.</p>{% endfor %}</section>{% endblock %}
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Account details{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>Account details</h1>
+    <a class="button" href="{% url 'superadmin:user_edit' account.pk %}">
+      Edit account
+    </a>
+  </header>
+
+  <a class="text-link" href="{% url 'superadmin:users' %}">
+    &larr; User Management
+  </a>
+
+  <section class="form-panel">
+    <h2>{{ account.get_full_name|default:account.email }}</h2>
+    <dl class="details-grid">
+      <dt>Email</dt>
+      <dd>{{ account.email }}</dd>
+
+      <dt>Role</dt>
+      <dd>{{ role }}</dd>
+
+      <dt>Status</dt>
+      <dd>{% if account.is_active %}Active{% else %}Inactive{% endif %}</dd>
+
+      <dt>Phone</dt>
+      <dd>{{ account.phone|default:"Not provided" }}</dd>
+
+      <dt>Date of birth</dt>
+      <dd>
+        {{ account.date_of_birth|date:"d M Y"|default:"Not provided" }}
+      </dd>
+
+      <dt>Gender</dt>
+      <dd>{{ account.get_gender_display|default:"Not provided" }}</dd>
+
+      <dt>Joined</dt>
+      <dd>{{ account.date_joined|date:"d M Y, H:i" }}</dd>
+
+      <dt>Last login</dt>
+      <dd>{{ account.last_login|date:"d M Y, H:i"|default:"Never" }}</dd>
+    </dl>
+
+    <details class="permission-details">
+      <summary>Effective permissions ({{ permissions|length }})</summary>
+      <ul>
+        {% for permission in permissions %}
+          <li>{{ permission }}</li>
+        {% empty %}
+          <li>No permissions assigned.</li>
+        {% endfor %}
+      </ul>
+    </details>
+  </section>
+
+  <section class="recent-events">
+    <h2>Recent account activity</h2>
+    {% for event in recent %}
+      <p>
+        {{ event.created_at|date:"d M Y, H:i" }}
+        &middot; {{ event.action }}
+        &middot; {{ event.actor_email }}
+      </p>
+    {% empty %}
+      <p class="help">No recorded changes for this account.</p>
+    {% endfor %}
+  </section>
+{% endblock %}

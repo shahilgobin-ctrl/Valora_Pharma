@@ -1,1 +1,22 @@
-{% load static %}<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Administrator access required</title><link rel="stylesheet" href="{% static 'superadmin/admin.css' %}"></head><body class="login-body"><main class="login-card"><h1>Administrator access required</h1><p>This account does not have access to system administration.</p><a class="button" href="{% url 'superadmin:login' %}">Sign in as an administrator</a></main></body></html>
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Administrator access required</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'superadmin/admin.css' %}?v=20261028-6"
+    >
+  </head>
+  <body class="login-body">
+    <main class="login-card">
+      <h1>Administrator access required</h1>
+      <p>This account does not have access to system administration.</p>
+      <a class="button" href="{% url 'superadmin:login' %}">
+        Sign in as an administrator
+      </a>
+    </main>
+  </body>
+</html>
