@@ -1,1 +1,27 @@
-{% extends 'shop/base.html' %}{% block title %}{{ product.name }} | ValoraPharma{% endblock %}{% block content %}<section class="page-banner"><a href="/shop/" class="back-link">‹ &nbsp; Back to shop</a><h1>{{ product.name }}</h1><p>{{ product.category.name }}</p></section><section class="detail-wrap"><div class="detail-image" style="{% if product.image %}background-image:url('{{ product.image }}'){% endif %}"></div><div class="detail-content">{% if product.is_prescription %}<span class="rx-tag">Rx Required</span>{% endif %}<h2>{{ product.name }}</h2><p class="strength">{{ product.strength }}</p><p>{{ product.description }}</p><strong class="detail-price">Rs {{ product.price }}</strong>{% if product.is_out_of_stock %}<button class="add-button disabled" disabled>Out of stock</button>{% else %}<button class="add-button" data-add-product="{{ product.id }}">Add to cart</button>{% endif %}</div></section>{% endblock %}
+{% extends 'shop/base.html' %}
+{% block title %}{{ product.name }} | ValoraPharma{% endblock %}
+{% block content %}
+  <section class="page-banner">
+    <a href="/shop/" class="back-link">‹ &nbsp; Back to shop</a>
+    <h1>{{ product.name }}</h1>
+    <p>{{ product.category.name }}</p>
+  </section>
+
+  <section class="detail-wrap">
+    <div class="detail-image" style="{% if product.image %}background-image:url('{{ product.image }}'){% endif %}"></div>
+    <div class="detail-content">
+      {% if product.is_prescription %}
+        <span class="rx-tag">Rx Required</span>
+      {% endif %}
+      <h2>{{ product.name }}</h2>
+      <p class="strength">{{ product.strength }}</p>
+      <p>{{ product.description }}</p>
+      <strong class="detail-price">Rs {{ product.price }}</strong>
+      {% if product.is_out_of_stock %}
+        <button class="add-button disabled" disabled>Out of stock</button>
+      {% else %}
+        <button class="add-button" data-add-product="{{ product.id }}">Add to cart</button>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}
