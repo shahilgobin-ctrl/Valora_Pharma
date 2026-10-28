@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
@@ -183,7 +184,13 @@ def api_checkout(request):
             user=request.user, total=subtotal + DELIVERY_FEE,
             prescription_file=prescription if requires_prescription else None,
         )
-        Payment.objects.create(order=order, amount_total=order.total)
+        Payment.objects.create(
+            order=order,
+            status=Payment.Status.SUCCEEDED,
+            amount_total=order.total,
+            amount_paid=order.total,
+            paid_at=timezone.now(),
+        )
         for item in items:
             OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity, unit_price=item.product.price)
             item.product.stock_quantity -= item.quantity
