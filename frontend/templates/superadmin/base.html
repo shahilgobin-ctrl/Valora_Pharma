@@ -1,9 +1,9 @@
 {% load static %}<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#103b3b"><title>{% block title %}Administration{% endblock %} | {{ portal.portal_name|default:"ValoraPharma" }}</title><link rel="stylesheet" href="{% static 'superadmin/admin.css' %}"><script src="{% static 'superadmin/admin.js' %}" defer></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#103b3b"><title>{% block title %}Administration{% endblock %} | {{ portal.portal_name|default:"ValoraPharma" }}</title><link rel="stylesheet" href="{% static 'superadmin/admin.css' %}?v=20261028-4"><script src="{% static 'superadmin/admin.js' %}" defer></script></head>
 <body><a class="skip-link" href="#main">Skip to content</a>
 {% include 'superadmin/icons.html' %}
 <aside class="sidebar" aria-label="Administration sidebar">
-<a class="brand" href="{% url 'superadmin:overview' %}"><span class="brand-mark"><svg><use href="#i-pill"/></svg></span><span>{% if portal.portal_name == 'ValoraPharma' %}Valora<span class="brand-accent">Pharma</span>{% else %}{{ portal.portal_name }}{% endif %}</span></a>
+<a class="brand" href="{% url 'superadmin:overview' %}" aria-label="{{ portal.portal_name|default:'ValoraPharma' }} administration"><span class="brand-mark"><img src="{% static 'accounts/assets/pill-login.svg' %}" alt=""></span><span class="brand-wordmark">{% if portal.portal_name == 'ValoraPharma' %}Valora<span class="brand-accent">Pharma</span>{% else %}{{ portal.portal_name }}{% endif %}</span></a>
 <p class="nav-label">NAVIGATION</p>
 <nav aria-label="Main navigation">
 <a href="{% url 'superadmin:overview' %}" {% if active == 'overview' %}class="selected" aria-current="page"{% endif %}><svg><use href="#i-home"/></svg><span>Overview</span></a>

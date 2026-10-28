@@ -22,3 +22,31 @@
 @media(max-width:650px){.form-panel:has(#id_permissions){padding:24px 18px}.form-panel:has(#id_permissions) #id_permissions{grid-template-columns:1fr}.settings-panel{padding:24px 18px}.settings-panel form{grid-template-columns:1fr}.settings-panel form .field:nth-child(1),.settings-panel form .field:nth-child(2),.settings-panel form .form-actions{grid-column:1}}
 
 @media(min-width:651px) and (max-width:1100px){.users-table th,.users-table td{padding:11px 8px}.role-inline select{width:110px}.badge{min-width:76px;padding:5px 9px}}
+
+.sidebar nav a,.button,.stat,.account-row,.role-card,.users-table tbody tr,.settings-panel form .field,.role-edit,.signout,.filters input,.filters select,.badge,summary{transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease,filter .18s ease}
+.button:active,.sidebar nav a:active{transform:translateY(1px)}
+.stat{border-radius:8px;box-shadow:0 6px 18px rgba(16,59,59,.1)}
+.account-row{border-radius:7px;padding-right:10px;padding-left:10px}
+.account-row:hover{box-shadow:inset 3px 0 var(--teal);transform:translateX(3px)}
+.users-table tbody tr:hover{background:#edf6f3}
+.role-card{border-radius:10px;box-shadow:0 8px 20px rgba(16,59,59,.08)}
+.role-edit:hover{text-underline-offset:5px}
+.filters input:focus,.filters select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(8,126,119,.12)}
+.settings-panel form .field:hover{border-color:#b6d5ca;box-shadow:0 8px 20px rgba(16,59,59,.08)}
+@media(hover:hover){
+  .role-card:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(16,59,59,.16)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
+.brand{gap:9px;font-size:15px;line-height:1.2;overflow-wrap:normal}
+.brand-wordmark{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand-mark{width:32px;height:32px;border-radius:9px;background:#087e77}
+.brand-mark img{display:block;width:27px;height:27px}
+.brand-accent{color:#d57809}
+.stat[href]:hover{filter:none}
+.stat{border-radius:8px;box-shadow:0 6px 18px rgba(16,59,59,.1)}
+.stat:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(16,59,59,.16)}
+table{border-collapse:separate;border-spacing:0;border-color:#dbe5e1;border-radius:10px;overflow:hidden;box-shadow:0 6px 20px rgba(16,59,59,.06)}
+th{background:#edf5f2;border-bottom-color:#dbe5e1}
+td{border-bottom-color:#e3ebe7}
