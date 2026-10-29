@@ -3,7 +3,7 @@ import logging
 import secrets
 import uuid
 from datetime import timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from django.conf import settings
 from django.contrib import messages
@@ -13,7 +13,8 @@ from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, Resolver404, resolve, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
 from django.views.decorators.cache import never_cache
@@ -43,6 +44,35 @@ def _redirect_to_landing(request):
             return redirect("accounts:login")
         return HttpResponseForbidden("This account does not have an assigned pharmacy area.")
     return redirect(destination)
+
+
+def _public_home_url():
+    """Expose the Home link once the team's Home route is mounted."""
+    try:
+        return reverse("home")
+    except NoReverseMatch:
+        return ""
+
+
+def _safe_browse_next(request):
+    """Return only an internal customer browsing destination."""
+    target = request.POST.get("next") or request.GET.get("next", "")
+    if (not target or len(target) > 2048 or not target.startswith("/")
+            or target.startswith("//") or "\\" in target
+            or not url_has_allowed_host_and_scheme(
+                target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+            )):
+        return ""
+    try:
+        match = resolve(urlsplit(target).path)
+    except (Resolver404, ValueError):
+        return ""
+    return target if match.view_name in {"home", "shop:shop", "shop:product", "shop:cart"} else ""
+
+
+def _url_with_next(name, destination):
+    url = reverse(name)
+    return url + ("?" + urlencode({"next": destination}) if destination else "")
 
 
 def _landing_view(request, required_role):
@@ -88,10 +118,16 @@ def admin_landing_view(request):
     return _landing_view(request, User.AccountType.ADMIN)
 
 def flow_context(request):
+    customer_next = _safe_browse_next(request)
     return {
         "authenticated": request.user.is_authenticated,
+        "customer_next": customer_next,
+        "public_home_url": _public_home_url(),
         "login_url": reverse("accounts:login"),
+        "login_url_with_next": _url_with_next("accounts:login", customer_next),
         "register_url": reverse("accounts:register"),
+        "register_url_with_next": _url_with_next("accounts:register", customer_next),
+        "resend_url_with_next": _url_with_next("accounts:email_resend", customer_next),
         "password_forgot_url": reverse("accounts:password_forgot"),
         "terms_url": reverse("accounts:terms"),
     }
@@ -100,6 +136,9 @@ def flow_context(request):
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
+        destination = _safe_browse_next(request)
+        if request.user.account_type == User.AccountType.CUSTOMER and destination:
+            return redirect(destination)
         return _redirect_to_landing(request)
     key = key_for_request(request, canonical_email(request.POST.get("email", "")))
     blocked = request.method == "POST" and is_limited(key)
@@ -112,6 +151,9 @@ def login_view(request):
         if form.is_valid():
             reset_failures(key)
             login(request, form.user)
+            destination = _safe_browse_next(request)
+            if form.user.account_type == User.AccountType.CUSTOMER and destination:
+                return redirect(destination)
             return _redirect_to_landing(request)
         if not blocked:
             record_failure(key)
@@ -152,7 +194,11 @@ def register_view(request):
             form.add_error(None, "We could not send a verification code. Please try again later.")
         else:
             messages.success(request, "We sent a verification code to your email address.")
-            return redirect(reverse("accounts:email_verify") + "?" + urlencode({"email": user.email}))
+            parameters = {"email": user.email}
+            destination = _safe_browse_next(request)
+            if destination:
+                parameters["next"] = destination
+            return redirect(reverse("accounts:email_verify") + "?" + urlencode(parameters))
     context = flow_context(request)
     context["form"] = form
     context["today_iso"] = timezone.localdate().isoformat()
@@ -241,12 +287,12 @@ def email_verify_view(request):
                     challenge.consumed_at = timezone.now()
                     challenge.save(update_fields=["consumed_at"])
                     messages.success(request, "Email verified. You can now sign in.")
-                    return redirect("accounts:login")
+                    return redirect(_url_with_next("accounts:login", _safe_browse_next(request)))
                 challenge.attempts += 1
                 challenge.save(update_fields=["attempts"])
         form.add_error("code", "The code is invalid or expired. Request a new code if needed.")
     context = flow_context(request)
-    context.update(form=form, back_url=context["register_url"])
+    context.update(form=form, back_url=context["register_url_with_next"])
     return render(request, "accounts/email_verify.html", context)
 
 
@@ -273,9 +319,13 @@ def email_resend_view(request):
                 except VerificationDeliveryError:
                     pass
         messages.success(request, "If an unverified customer account exists, we have sent a new code.")
-        return redirect(reverse("accounts:email_verify") + "?" + urlencode({"email": email}))
+        parameters = {"email": email}
+        destination = _safe_browse_next(request)
+        if destination:
+            parameters["next"] = destination
+        return redirect(reverse("accounts:email_verify") + "?" + urlencode(parameters))
     context = flow_context(request)
-    context.update(form=form, back_url=reverse("accounts:email_verify"))
+    context.update(form=form, back_url=_url_with_next("accounts:email_verify", context["customer_next"]))
     return render(request, "accounts/email_resend.html", context)
 
 @require_POST

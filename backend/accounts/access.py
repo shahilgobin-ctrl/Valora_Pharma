@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth import logout
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
+from django.urls import NoReverseMatch, reverse
 
 from .models import User
 
@@ -23,6 +24,14 @@ def role_home_name(user):
         return None
     if user.account_type == User.AccountType.ADMIN and not user_has_role(user, User.AccountType.ADMIN):
         return None
+    if (user.account_type == User.AccountType.CUSTOMER
+            and settings.PHARMACY_ROLE_HOME_ROUTES.get(user.account_type) == "accounts:customer_landing"):
+        try:
+            reverse("home")
+        except NoReverseMatch:
+            pass
+        else:
+            return "home"
     return settings.PHARMACY_ROLE_HOME_ROUTES.get(user.account_type)
 
 

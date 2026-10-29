@@ -29,6 +29,7 @@
       {% include 'accounts/feedback.html' %}
       <form class="login-form" method="post" action="{% url 'accounts:login' %}">
         {% csrf_token %}
+        {% if customer_next %}<input type="hidden" name="next" value="{{ customer_next }}">{% endif %}
         <div class="login-field">
           <label for="id_email">Email Address</label>
           <input id="id_email" name="email" type="email" autocomplete="email" placeholder="✉  name@example.com" value="{{ form.email.value|default_if_none:'' }}" required maxlength="254"{% if form.email.errors %} aria-invalid="true" aria-describedby="email-errors"{% endif %}>
@@ -48,8 +49,9 @@
       {% endif %}
       {% if not authenticated %}
       <nav class="customer-links" aria-label="Account options">
-        <p><span>New to Valora?</span><a class="account-link" href="{% url 'accounts:register' %}">Register As Customer</a></p>
-        <p><span>Waiting for a verification code?</span><a class="account-link" href="{% url 'accounts:email_resend' %}">Resend code</a></p>
+        {% if public_home_url %}<p><span>Just browsing?</span><a class="account-link" href="{{ public_home_url }}">Explore Home</a></p>{% endif %}
+        <p><span>New to Valora?</span><a class="account-link" href="{{ register_url_with_next }}">Register As Customer</a></p>
+        <p><span>Waiting for a verification code?</span><a class="account-link" href="{{ resend_url_with_next }}">Resend code</a></p>
       </nav>
       {% endif %}
     </div>

@@ -5,14 +5,15 @@
 {% block content %}
 <main class="register-card" aria-labelledby="register-title">
   <header class="register-header">
-    <a class="register-brand brand" href="{% url 'accounts:login' %}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
-    <a class="back-link" href="{% url 'accounts:login' %}">Back</a>
+    <a class="register-brand brand" href="{{ login_url_with_next }}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
+    <a class="back-link" href="{{ login_url_with_next }}">Back</a>
   </header>
   <h1 id="register-title">Create Customer Account</h1>
   <p class="register-subtitle">Fill in your personal details to get started</p>
   {% include 'accounts/feedback.html' %}
   <form class="register-form" action="{{ register_url }}" method="post">
     {% csrf_token %}
+    {% if customer_next %}<input type="hidden" name="next" value="{{ customer_next }}">{% endif %}
     <div class="register-pair register-pair--names">
       <div class="register-field register-field--first-name">
         <label for="id_first_name">First Name</label>
@@ -65,6 +66,6 @@
     </div>
     <button class="primary-button register-submit" type="submit"><span>Register</span></button>
   </form>
-  <p class="register-switch">Already signed up? <a class="account-link" href="{% url 'accounts:email_resend' %}">Resend verification code</a></p>
+  <p class="register-switch">Already signed up? <a class="account-link" href="{{ login_url_with_next }}">Sign in</a></p>
 </main>
 {% endblock %}

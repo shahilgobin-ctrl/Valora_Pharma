@@ -13,6 +13,7 @@
   {% include 'accounts/feedback.html' %}
   <form class="register-form recovery-form" method="post">
     {% csrf_token %}
+    {% if customer_next %}<input type="hidden" name="next" value="{{ customer_next }}">{% endif %}
     <div class="register-field">
       <label for="id_email">Email Address</label>
       <input id="id_email" name="email" type="email" autocomplete="email" value="{{ form.email.value|default_if_none:'' }}" required maxlength="254"{% if form.email.errors %} aria-invalid="true" aria-describedby="email-errors"{% endif %}>
@@ -25,6 +26,6 @@
     </div>
     <button class="primary-button recovery-submit" type="submit">Verify Email</button>
   </form>
-  <p class="recovery-footer">Code missing or expired? <a href="{% url 'accounts:email_resend' %}">Request another code</a></p>
+  <p class="recovery-footer">Code missing or expired? <a href="{{ resend_url_with_next }}">Request another code</a></p>
 </main>
 {% endblock %}
