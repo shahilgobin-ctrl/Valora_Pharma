@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 :root {
-  --navy: #0a1922;
+  --navy: #06312d;
   --teal: #0f4c4c;
   --mint: #d1fae5;
   --green: #0f9d6a;
@@ -79,7 +79,18 @@ body {
 
 .cart-link {
   position: relative;
-  font-size: 17px!important
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px
+}
+
+.cart-link svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  stroke: currentColor
 }
 
 .cart-count {

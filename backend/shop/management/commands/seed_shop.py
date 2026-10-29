@@ -19,7 +19,7 @@ PRODUCTS = [
     ("Vitamin D3", "Vitamins & Supplements", "5000IU - Softgel", 140, 40, False, "A high-potency vitamin D3 supplement to support bone strength and calcium absorption."),
 ]
 
-IMAGES = {name: f"/static/shop/products/{slugify(name)}.svg" for name, *_ in PRODUCTS}
+IMAGES = {name: f"/static/shop/products/{slugify(name)}.jpg" for name, *_ in PRODUCTS}
 
 
 class Command(BaseCommand):
