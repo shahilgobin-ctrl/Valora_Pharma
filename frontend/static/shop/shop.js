@@ -37,6 +37,28 @@
     select.addEventListener("change", () => select.form.requestSubmit());
   });
 
+  const fulfillmentOptions = [...document.querySelectorAll('input[name="delivery_method"]')];
+  const cartSummary = document.querySelector("[data-cart-summary]");
+  const updateFulfillmentTotal = (method) => {
+    if (!cartSummary) return;
+    const subtotal = Number(cartSummary.dataset.subtotal || 0);
+    const fee = method === "delivery" && subtotal > 0
+      ? Number(cartSummary.dataset.deliveryFee || 0)
+      : 0;
+    const deliveryAmount = document.querySelector("#cart-delivery-fee");
+    const totalAmount = document.querySelector("#cart-total");
+    if (deliveryAmount) deliveryAmount.textContent = `Rs ${fee}`;
+    if (totalAmount) totalAmount.textContent = `Rs ${subtotal + fee}`;
+  };
+
+  if (fulfillmentOptions.length) {
+    const selectedMethod = fulfillmentOptions.find((option) => option.checked)?.value || "delivery";
+    updateFulfillmentTotal(selectedMethod);
+    fulfillmentOptions.forEach((option) => {
+      option.addEventListener("change", () => updateFulfillmentTotal(option.value));
+    });
+  }
+
   document.addEventListener("click", async (event) => {
     const add = event.target.closest("[data-add-product]");
     if (add) {
@@ -83,6 +105,8 @@
         const payload = new FormData();
         const file = document.querySelector("[data-prescription-file]")?.files?.[0];
         if (file) payload.append("prescription", file);
+        const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked')?.value || "delivery";
+        payload.append("delivery_method", deliveryMethod);
         const order = await post("/api/checkout/", payload);
         toast(`Order #${order.id} placed successfully`);
         setTimeout(() => location.reload(), 1200);

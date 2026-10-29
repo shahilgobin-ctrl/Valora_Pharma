@@ -168,6 +168,9 @@ def api_checkout(request):
         items = list(cart.items.select_related("product").select_for_update())
         if not items:
             return _error("Your cart is empty.")
+        delivery_method = request.POST.get("delivery_method", Order.DeliveryMethod.DELIVERY).strip().lower()
+        if delivery_method not in Order.DeliveryMethod.values:
+            return _error("Choose delivery or pick up.")
         for item in items:
             if item.quantity > item.product.stock_quantity:
                 return _error(f"{item.product.name} no longer has enough stock.", 409)
@@ -180,8 +183,9 @@ def api_checkout(request):
             if upload_error:
                 return _error(upload_error)
         subtotal = sum(item.quantity * item.product.price for item in items)
+        delivery_fee = DELIVERY_FEE if delivery_method == Order.DeliveryMethod.DELIVERY else 0
         order = Order.objects.create(
-            user=request.user, total=subtotal + DELIVERY_FEE,
+            user=request.user, delivery_method=delivery_method, total=subtotal + delivery_fee,
             prescription_file=prescription if requires_prescription else None,
         )
         Payment.objects.create(
@@ -248,7 +252,10 @@ def _catalog_context(request, cart_page=False, paginate=False):
     if selected_cart_category:
         items = [item for item in all_cart_items if item.product.category.slug == selected_cart_category]
     subtotal = sum(item.quantity * item.product.price for item in all_cart_items)
-    delivery = DELIVERY_FEE if all_cart_items else 0
+    delivery_method = request.GET.get("delivery_method", Order.DeliveryMethod.DELIVERY).strip().lower()
+    if delivery_method not in Order.DeliveryMethod.values:
+        delivery_method = Order.DeliveryMethod.DELIVERY
+    delivery = DELIVERY_FEE if all_cart_items and delivery_method == Order.DeliveryMethod.DELIVERY else 0
     cart_count = cart.items.count() if cart else 0
     return {
         "products": products, "categories": categories, "category_links": category_links,
@@ -260,7 +267,7 @@ def _catalog_context(request, cart_page=False, paginate=False):
         "next_url": url_with(page=pagination.next_page_number()) if pagination and pagination.has_next() else "",
         "cart_count": cart_count, "has_cart_items": cart_count > 0, "cart_items": items, "subtotal": subtotal,
         "cart_categories": cart_categories, "selected_cart_category": selected_cart_category,
-        "delivery": delivery, "total": subtotal + delivery,
+        "delivery_method": delivery_method, "delivery": delivery, "delivery_fee": DELIVERY_FEE, "total": subtotal + delivery,
         "requires_prescription": any(item.product.is_prescription for item in all_cart_items),
         "cart_page": cart_page,
     }

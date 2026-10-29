@@ -58,12 +58,17 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
+    class DeliveryMethod(models.TextChoices):
+        DELIVERY = "delivery", "Delivery"
+        PICKUP = "pickup", "Pick up"
+
     class Status(models.TextChoices):
         PLACED = "placed", "Placed"
         PROCESSING = "processing", "Processing"
         COMPLETED = "completed", "Completed"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="shop_orders")
+    delivery_method = models.CharField(max_length=10, choices=DeliveryMethod.choices, default=DeliveryMethod.DELIVERY)
     total = models.PositiveIntegerField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLACED)
     created_at = models.DateTimeField(auto_now_add=True)

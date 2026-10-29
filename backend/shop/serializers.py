@@ -24,7 +24,7 @@ def cart_data(cart):
 
 
 def order_data(order):
-    return {"id": order.pk, "user_id": order.user_id, "total": order.total,
+    return {"id": order.pk, "user_id": order.user_id, "delivery_method": order.delivery_method, "total": order.total,
             "status": order.status, "created_at": order.created_at.isoformat() if order.created_at else None,
             "items": [{"product_id": item.product_id, "quantity": item.quantity, "unit_price": item.unit_price}
                       for item in order.items.all()]}
