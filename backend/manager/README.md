@@ -50,3 +50,13 @@ Regression tests in test_shared_inventory.py cover the manager controls, default
 image, sign-out destination and Home category filtering alongside the existing
 physical-inventory integration checks. Shared shop, authentication, pharmacist
 and administrator source files are unchanged by this parity update.
+
+
+On 31 October 2026, the separate manager Home link was removed: Sign out clears
+the session and redirects to the named public Home route. Home has a single Shop
+navigation link; other teams' headers are unchanged. Missing Home artwork is
+restored by pages migration 0003 using separate HomepageProductImage records,
+without replacing shop images or duplicating catalogue products. Existing custom
+Home artwork is preserved. Home shows its configured featured selection; the
+full catalogue contains newly added manager medicines. Manager edits update the
+linked authoritative medicine, so Home reads the current saved name and price.

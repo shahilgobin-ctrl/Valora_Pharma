@@ -93,7 +93,7 @@ class SharedManagerInventoryTests(TestCase):
         response = self.client.get(reverse("manager:medicines"))
         self.assertContains(response, reverse("manager:medicine_delete", args=[self.product.pk]))
         self.assertContains(response, reverse("manager:signout"))
-        self.assertContains(response, reverse("home"))
+        self.assertNotContains(response, 'class="home-link"')
         self.assertNotIn("image", MedicineForm().fields)
         response = self.client.post(reverse("manager:medicine_new"), {
             "name": "New catalogue medicine", "strength": "10 mg", "dosage_form": "Tablet",
@@ -121,3 +121,20 @@ class SharedManagerInventoryTests(TestCase):
         other = Category.objects.create(name="Other category", slug="other-category")
         response = self.client.get(reverse("shop:api_products"), {"category": other.slug})
         self.assertEqual(response.json(), [])
+
+    def test_manager_edit_updates_one_shared_medicine_on_home(self):
+        from shop.models import Product
+        from pages.selectors import homepage_products
+        self.client.force_login(self.manager)
+        response = self.client.post(reverse("manager:medicine_edit", args=[self.product.pk]), {
+            "name": "Updated medicine", "strength": "20 mg", "dosage_form": "Tablet",
+            "price": "18.75", "category": self.product.category_id,
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Product.objects.filter(medicine=self.medicine).count(), 1)
+        self.medicine.refresh_from_db()
+        self.assertEqual(self.medicine.selling_price, Decimal("18.75"))
+        home_product = next(p for p in homepage_products(4) if p.pk == self.product.pk)
+        self.assertEqual(home_product.public_name, "Updated medicine")
+        self.assertEqual(home_product.public_price, Decimal("18.75"))
+        self.assertContains(self.client.get(reverse("home")), "Updated medicine")

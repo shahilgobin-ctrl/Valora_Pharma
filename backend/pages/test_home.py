@@ -135,3 +135,41 @@ class HomeIntegrationTests(TestCase):
         api = self.client.get(reverse("shop:api_product", args=[self.product.slug])).json()
         self.assertEqual(api["image"], "/static/shop/products/paracetamol.svg")
         self.assertTrue(finders.find("home/photos/paracetamol-home.jpg"))
+
+
+    def test_home_header_has_one_catalogue_navigation_link(self):
+        from html.parser import HTMLParser
+        class HeaderLinks(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.in_header = False
+                self.links = []
+            def handle_starttag(self, tag, attrs):
+                if tag == "header":
+                    self.in_header = True
+                if self.in_header and tag == "a":
+                    self.links.append(dict(attrs).get("href"))
+            def handle_endtag(self, tag):
+                if tag == "header":
+                    self.in_header = False
+        parser = HeaderLinks()
+        parser.feed(self.client.get(reverse("home")).content.decode())
+        self.assertEqual(parser.links.count(reverse("shop:shop")), 1)
+
+    def test_restore_home_artwork_is_repeatable_and_preserves_shop_images(self):
+        import importlib
+        from types import SimpleNamespace
+        from django.apps import apps
+        from django.db import connection
+        from pages.models import HomepageProductImage
+        restore = importlib.import_module("pages.migrations.0003_restore_home_artwork").restore_home_artwork
+        before = self.product.image
+        restore(apps, SimpleNamespace(connection=connection))
+        self.assertEqual(HomepageProductImage.objects.get(product=self.product).image,
+                         "home/photos/paracetamol-home.jpg")
+        HomepageProductImage.objects.filter(product=self.product).update(image="home/custom.jpg")
+        restore(apps, SimpleNamespace(connection=connection))
+        self.assertEqual(HomepageProductImage.objects.filter(product=self.product).count(), 1)
+        self.assertEqual(HomepageProductImage.objects.get(product=self.product).image, "home/custom.jpg")
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.image, before)

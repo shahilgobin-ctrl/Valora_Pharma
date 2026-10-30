@@ -34,7 +34,6 @@
   </nav>
   <div class="me">
     <p><svg class="i"><use href="#user"/></svg>{% if local_preview %}Manager{% else %}{{ user.first_name|default:"Manager" }}{% endif %}</p>
-    <a class="home-link" href="{% url 'home' %}">Home</a>
     <form method="post" action="{% url 'manager:signout' %}">{% csrf_token %}<button type="submit"><svg class="i"><use href="#out"/></svg>Sign out</button></form>
   </div>
 </aside>
