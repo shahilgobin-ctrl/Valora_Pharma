@@ -28,3 +28,6 @@ backend/private_uploads/
 
 backend/private_media/
 .qa/
+
+# Optional PC-local pointer to shared database, uploads and development session key.
+backend/.data-directory

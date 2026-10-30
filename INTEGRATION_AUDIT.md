@@ -104,3 +104,18 @@ python backend/manage.py test run there discovers zero tests. For example:
    in the local browser without changing public page layouts.
 
 The database and private media remain local and are not committed or deleted.
+
+
+## Local folder alignment
+
+The original and GitHub Desktop checkouts now use the merger branch. The original
+checkout selects the GitHub Desktop backend directory using its ignored local
+backend/.data-directory pointer. Consequently their normal development settings
+resolve the same database, private uploads and development session key. The
+original standalone database is preserved, and both databases were backed up
+before this configuration. The shared-directory setting contains no PC paths in
+Git and has four configuration regression tests. Defaults remain unchanged for
+other team members who do not configure a shared directory.
+
+Code edits still require committing/pushing from one checkout and pulling in the
+other. Separate checkout folders do not mirror uncommitted file edits.

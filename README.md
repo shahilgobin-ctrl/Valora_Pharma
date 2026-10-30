@@ -251,3 +251,18 @@ Home, Product, product details and cart APIs read the same saved catalogue image
 Local SQLite data is not transferred by a Git pull; preserve your database and
 back it up before applying migrations. Existing standalone shop databases need
 an explicit inventory mapping before the integration migration can be applied.
+
+
+## Keeping two local checkouts on the same data
+
+Use the same Git branch and pull its latest commits in both folders. Git does not
+synchronise uncommitted edits between folders.
+
+By default each checkout still uses its own backend directory for local data.
+To share the existing database, private uploads and development session key,
+put the absolute path of the existing backend directory in the other checkout's
+backend/.data-directory file. That pointer is ignored by Git. DJANGO_DATA_DIR can
+also select the directory and takes precedence over the pointer. The directory
+must already exist; configuration errors do not create a fresh empty database.
+DJANGO_DATABASE_PATH, DJANGO_MEDIA_ROOT and DJANGO_SECRET_KEY still override their
+individual values. No computer-specific paths or private files belong in commits.

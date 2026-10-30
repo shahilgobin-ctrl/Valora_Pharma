@@ -4,8 +4,11 @@ import secrets
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
+from .runtime import data_directory
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BASE_DIR.parent
+DATA_DIR = data_directory(BASE_DIR)
 
 def env_bool(name, default):
     value = os.environ.get(name)
@@ -22,7 +25,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     if not DEBUG:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY is required when DJANGO_DEBUG=false.")
-    secret_file = BASE_DIR / ".dev-secret-key"
+    secret_file = DATA_DIR / ".dev-secret-key"
     try:
         with secret_file.open("x", encoding="utf-8") as handle:
             handle.write(secrets.token_urlsafe(64))
@@ -79,7 +82,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.sqlite3",
-    "NAME": os.environ.get("DJANGO_DATABASE_PATH", str(BASE_DIR / "db.sqlite3")),
+    "NAME": os.environ.get("DJANGO_DATABASE_PATH", str(DATA_DIR / "db.sqlite3")),
     "OPTIONS": {"timeout": 20},
 }}
 AUTH_USER_MODEL = "accounts.User"
@@ -131,7 +134,7 @@ LOGIN_LOCKOUT_SECONDS = 15 * 60
 MEDIA_ROOT = Path(
     os.environ.get(
         "DJANGO_MEDIA_ROOT",
-        str(BASE_DIR / "private_uploads"),
+        str(DATA_DIR / "private_uploads"),
     )
 )
 MEDIA_URL = "/private-uploads/"
