@@ -1,7 +1,7 @@
 {% extends 'accounts/base.html' %}
 {% load static %}
-{% block title %}{% if is_staff_flow %}Staff Sign In{% else %}Sign In{% endif %} · ValoraPharma{% endblock %}
-{% block body_class %}login-page{% if is_staff_flow %} login-page--staff{% endif %}{% endblock %}
+{% block title %}Sign In · ValoraPharma{% endblock %}
+{% block body_class %}login-page{% endblock %}
 {% block content %}
 <main class="login-layout">
   <div class="login-background" aria-hidden="true"><img src="{% static 'accounts/assets/login-background.png' %}" alt=""></div>
@@ -22,39 +22,37 @@
       <div class="signed-in-card" role="status">
         <h2>You are signed in</h2>
         <p>Welcome, {{ user.first_name|default:user.email }}.</p>
+        <p class="signed-in-role">{% if user.account_type == 'staff' %}Staff account{% else %}Customer account{% endif %}</p>
         <form action="{% url 'accounts:logout' %}" method="post">{% csrf_token %}<button class="primary-button" type="submit">Sign Out</button></form>
       </div>
       {% else %}
       {% include 'accounts/feedback.html' %}
-      <form class="login-form" method="post" action="{{ login_url }}">
+      <form class="login-form" method="post" action="{% url 'accounts:login' %}">
         {% csrf_token %}
+        {% if customer_next %}<input type="hidden" name="next" value="{{ customer_next }}">{% endif %}
         <div class="login-field">
-          <label for="id_email">{% if is_staff_flow %}Staff {% endif %}Email Address</label>
+          <label for="id_email">Email Address</label>
           <input id="id_email" name="email" type="email" autocomplete="email" placeholder="✉  name@example.com" value="{{ form.email.value|default_if_none:'' }}" required maxlength="254"{% if form.email.errors %} aria-invalid="true" aria-describedby="email-errors"{% endif %}>
           {% if form.email.errors %}<div class="field-errors" id="email-errors">{% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
         </div>
         <div class="login-field login-field--password">
           <label for="id_password">Password</label>
-          <div class="password-control{% if not is_staff_flow %} password-control--quiet{% endif %}">
-            <input id="id_password" name="password" type="password" autocomplete="current-password"{% if is_staff_flow %} placeholder="🔒  ••••••••"{% endif %} required{% if form.password.errors %} aria-invalid="true" aria-describedby="password-errors"{% endif %}>
+          <div class="password-control password-control--quiet">
+            <input id="id_password" name="password" type="password" autocomplete="current-password" required{% if form.password.errors %} aria-invalid="true" aria-describedby="password-errors"{% endif %}>
             <button class="password-toggle" type="button" aria-label="Show password" aria-controls="id_password" aria-pressed="false" data-password-toggle><span aria-hidden="true">👁</span></button>
           </div>
           {% if form.password.errors %}<div class="field-errors" id="password-errors">{% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
         </div>
+        <div class="login-form-options"><a class="forgot-link" href="{% url 'accounts:password_forgot' %}">Forgot password?</a></div>
         <button class="primary-button login-submit" type="submit">Sign In</button>
       </form>
       {% endif %}
-      {% if not is_staff_flow %}
-      <aside class="demo-card" aria-label="Customer demo account">
-        <div class="demo-details"><p class="demo-title">Customer Demo:</p><p aria-hidden="true">&#8203;</p><p>Email: Shahil@valora.mu</p><p>Password: Shahili1234</p></div>
-        <p class="demo-note">If new,  please register below.</p>
-      </aside>
+      {% if not authenticated %}
       <nav class="customer-links" aria-label="Account options">
-        <p><span>New to Valora?</span><a class="account-link" href="{{ register_url }}">Register As Customer</a></p>
-        <p><span>Valora Employee?</span><a class="account-link" href="{% url 'accounts:staff_login' %}">Access Staff Portal</a></p>
+        {% if public_home_url %}<p><span>Just browsing?</span><a class="account-link" href="{{ public_home_url }}">Explore Home</a></p>{% endif %}
+        <p><span>New to Valora?</span><a class="account-link" href="{{ register_url_with_next }}">Register As Customer</a></p>
+        <p><span>Waiting for a verification code?</span><a class="account-link" href="{{ resend_url_with_next }}">Resend code</a></p>
       </nav>
-      {% else %}
-      <nav class="staff-links" aria-label="Account options"><a class="account-link" href="{{ register_url }}">Create a staff account</a><a class="account-link" href="{% url 'accounts:login' %}">Customer sign in</a></nav>
       {% endif %}
     </div>
   </section>

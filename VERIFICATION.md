@@ -1,26 +1,27 @@
-# Verification — 24 October 2026
+# Combined merge verification - 30 October 2026
 
-- Django 5.2.17, SQLite, Python 3.12.
-- System check: no issues.
-- 101 tests passed (accounts, prescriptions, pharmacist, inventory, orders).
-- Fresh database migrations applied successfully.
-- `makemigrations --check --dry-run`: no changes detected.
-- New JavaScript passed `node --check`.
-- Demo command created fictional OTC and prescription online orders.
-- Automated end-to-end HTTP test creates a walk-in draft, saves batch allocations,
-  records payment, completes the order and renders the receipt.
-- Rollback, repeated submission/completion, insufficient stock/cash, expiry,
-  split batches, prescription ownership, status order and permission checks pass.
-- Existing accounts and prescription migration files are unchanged.
+The merger branch integrates the pharmacist dashboard, prescription review and private document preview, inventory, order fulfilment, walk-in sales and receipts with shared authentication for customers, staff, suppliers and administrators.
 
-## Verification limits
+Active staff in the Pharmacist group reach `pharmacist:dashboard` through the shared login and legacy staff login. Other roles retain protected landing pages. Pharmacist access still requires both the staff role and Pharmacist group. Customer browsing redirects remain restricted to allowed internal Home/Shop routes.
 
-Browser visual/interaction verification was not completed: Chromium download
-failed in this environment. Check desktop/mobile layout and native PDF display
-locally. No real payment gateway, production deployment or concurrency load test
-was performed. Do not interpret passing tests as production certification.
+Public registration creates inactive customers until email verification succeeds. Privileged accounts remain administrator-managed. Shared password recovery, code expiry and attempt limits, request throttling, CSRF and POST-only logout are retained. The admin change form now accepts the incoming administrator role for superusers while preserving mutually exclusive staff group restrictions.
 
-## Package contents
+## Checks performed with the project .venv
 
-Source, static assets, migrations, tests and setup guides only. No local database,
-user uploads, secret keys, virtual environment or Git history are included.
+- `python backend/manage.py check`: no issues.
+- `python backend/manage.py makemigrations --check --dry-run`: no changes detected.
+- `python backend/manage.py test accounts pharmacist prescriptions inventory orders --noinput`: 175 tests passed, including five new merge integration regressions. Django created and destroyed a separate test database; fresh migrations succeeded there.
+- `showmigrations --plan` and `migrate --plan`: inspected without applying migrations to the showcase database.
+- SHA-256 comparison confirmed all 25 existing database/upload files were byte-for-byte unchanged after checks and tests. No seeding commands were run.
+
+## Remaining migration steps
+
+The existing database has accounts.0001 applied. After reviewing the merge, stop the app and back up the existing SQLite database and private uploads, then run `.\.venv\Scripts\python.exe backend/manage.py migrate` to apply accounts.0002, accounts.0003 and accounts.0004. Do not reset or reseed it and do not delete migrations.
+
+0002 adds terms metadata and password reset challenges. 0003 adds email verification and supplier/admin roles and changes existing superusers to the administrator role. Existing non-superuser pharmacists, customer activation states and group memberships are preserved. 0004 adds nullable usernames and a case-insensitive uniqueness constraint; existing accounts do not need usernames. Existing accounts are not forced through new-customer verification. The new account code requires these migrations before normal use of the showcase database.
+
+## Verification limits and deployment
+
+Browser layout, native PDF interaction and real SMTP delivery were not checked in this merge pass. Earlier branch records described browser checks for authentication and a blocked Chromium download for pharmacist screens; these are not new combined visual verification. No production deployment, real payment gateway or concurrency load test was performed.
+
+Development email uses the console; production requires SMTP configuration and a shared cache for multiple workers. Terms text remains a draft. Preserve the configured database and private upload locations. Keep databases, uploads, local secrets, SMTP credentials and virtual environments out of source distributions.

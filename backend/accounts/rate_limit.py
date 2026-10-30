@@ -3,9 +3,10 @@ import hashlib
 from django.conf import settings
 from django.core.cache import cache
 
-def key_for_request(request, account_type):
-    # Use the server's address. Never trust a client-supplied X-Forwarded-For.
-    identifier = f"{account_type}:{request.META.get('REMOTE_ADDR', 'unknown')}"
+def key_for_request(request, email):
+    # A bad actor cannot lock out every account on the same shared network.
+    # Never trust a client-supplied X-Forwarded-For without trusted proxy setup.
+    identifier = f"{email.strip().lower()}:{request.META.get('REMOTE_ADDR', 'unknown')}"
     return "login-failures:" + hashlib.sha256(identifier.encode()).hexdigest()
 
 def is_limited(key):
