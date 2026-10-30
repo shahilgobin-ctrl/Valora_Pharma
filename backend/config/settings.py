@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "orders.apps.OrdersConfig",
     "shop.apps.ShopConfig",
     "pages.apps.PagesConfig",
+    "manager.apps.ManagerConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -166,3 +167,5 @@ EMAIL_VERIFICATION_RESEND_LIMIT = 5
 EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS = 60 * 60
 
 HOMEPAGE_PRODUCT_LIMIT = 4
+
+MANAGER_LOCAL_PREVIEW = False

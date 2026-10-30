@@ -8,4 +8,9 @@ from .catalogue import ensure_storefront
 @receiver(post_save, sender=Medicine)
 def medicine_storefront(sender, instance, raw=False, **kwargs):
     if not raw:
-        ensure_storefront(instance)
+        product = ensure_storefront(instance)
+        from .models import Product
+        Product.objects.filter(pk=product.pk).update(
+            name=instance.name, description=instance.description,
+            strength=instance.strength, is_active=instance.is_active,
+        )

@@ -172,6 +172,12 @@ def backup_database(destination):
 
 def clear_operational_records():
     """Clear business records while preserving accounts and uploaded bytes."""
+    # A manager batch is metadata for a physical inventory batch. Remove its
+    # history first so explicit development replacement can clear the linked
+    # records within the caller's backed-up transaction.
+    from manager.models import Batch as ManagerBatch, BatchHistory, StockMovement as ManagerMovement
+    for model in (BatchHistory, ManagerMovement, ManagerBatch):
+        model.objects.all().delete()
     for model in (
         StockMovement,
         Payment,

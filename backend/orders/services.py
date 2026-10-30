@@ -441,6 +441,13 @@ def complete_order(pk, method, cash_tendered, user):
                 "Stock changed. Check the allocations and try again."
             )
 
+        # The physical inventory batch is authoritative. Keep manager's
+        # linked reporting row current after this atomic pharmacist deduction.
+        from manager.models import Batch as ManagerBatch
+        ManagerBatch.objects.filter(inventory_batch_id=batch.pk).update(
+            quantity=F("quantity") - quantity
+        )
+
         allocation = Allocation.objects.get(
             item=item,
             batch=batch,

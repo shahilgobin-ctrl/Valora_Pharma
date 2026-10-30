@@ -25,6 +25,9 @@ def role_home_name(user):
     if (user.account_type == User.AccountType.STAFF
             and user.groups.filter(name="Pharmacist").exists()):
         return "pharmacist:dashboard"
+    if (user.account_type == User.AccountType.STAFF
+            and user.has_perm("manager.access_manager")):
+        return "manager:dashboard"
     if user.account_type == User.AccountType.ADMIN and not user_has_role(user, User.AccountType.ADMIN):
         return None
     if (user.account_type == User.AccountType.CUSTOMER
