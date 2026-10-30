@@ -122,18 +122,27 @@ class HomeIntegrationTests(TestCase):
         self.assertEqual(list(response.context["products"]), [self.product, other])
         self.assertContains(response, '/static/home/conditions/pain-fever.svg')
 
-    def test_homepage_image_override_does_not_change_shop_or_api(self):
+    def test_home_shop_detail_and_api_share_the_saved_catalogue_image(self):
+        import importlib
+        from types import SimpleNamespace
+        from django.apps import apps
+        from django.db import connection
         from pages.models import HomepageProductImage
         HomepageProductImage.objects.create(product=self.product, image="home/photos/paracetamol-home.jpg")
-        home = self.client.get(reverse("home"))
-        self.assertContains(home, "/static/home/photos/paracetamol-home.jpg")
+        before = (self.product.public_price, self.product.available_stock)
+        promote = importlib.import_module("pages.migrations.0004_share_catalogue_artwork").share_catalogue_artwork
+        promote(apps, SimpleNamespace(connection=connection))
         self.product.refresh_from_db()
-        self.assertEqual(self.product.image, "/static/shop/products/paracetamol.svg")
-        shop = self.client.get(reverse("shop:shop"))
-        self.assertContains(shop, "/static/shop/products/paracetamol.svg")
-        self.assertNotContains(shop, "/static/home/photos/paracetamol-home.jpg")
+        self.assertEqual(self.product.image, "home/photos/paracetamol-home.jpg")
+        self.assertEqual((self.product.public_price, self.product.available_stock), before)
+        for route in [reverse("home"), reverse("shop:shop"), reverse("shop:product", args=[self.product.slug])]:
+            self.assertContains(self.client.get(route), "/static/home/photos/paracetamol-home.jpg")
         api = self.client.get(reverse("shop:api_product", args=[self.product.slug])).json()
-        self.assertEqual(api["image"], "/static/shop/products/paracetamol.svg")
+        self.assertEqual(api["image"], "/static/home/photos/paracetamol-home.jpg")
+        self.product.image = "home/photos/tablets.jpg"
+        self.product.save(update_fields=["image"])
+        self.assertContains(self.client.get(reverse("home")), "/static/home/photos/tablets.jpg")
+        self.assertNotContains(self.client.get(reverse("home")), "/static/home/photos/paracetamol-home.jpg")
         self.assertTrue(finders.find("home/photos/paracetamol-home.jpg"))
 
 

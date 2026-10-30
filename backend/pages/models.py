@@ -2,7 +2,7 @@ from django.db import models
 
 
 class HomepageProductImage(models.Model):
-    """Homepage-only artwork; never replaces the shop catalogue image."""
+    """Legacy Home artwork retained for history; live images use shop.Product.image."""
     product = models.OneToOneField("shop.Product", on_delete=models.CASCADE,
                                   related_name="homepage_image_override")
     image = models.CharField(max_length=500)
