@@ -59,7 +59,7 @@ try {
     Write-Host "Preparing the local database..."
     Invoke-PythonStep -Arguments @($managePy, "migrate", "--noinput")
     Write-Host ""
-    Write-Host "Open http://$Address/superadmin/login/ in your browser."
+    Write-Host "Open http://$Address/login/ in your browser."
     Write-Host "Keep this window open. Press Ctrl+C to stop the server."
     Invoke-PythonStep -Arguments @($managePy, "runserver", $Address)
 } finally {

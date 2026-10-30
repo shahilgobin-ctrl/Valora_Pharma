@@ -31,6 +31,6 @@ printf '%s\n' 'Installing the project dependencies...'
 "$venv_python" -m pip install -r "$project_root/requirements.txt"
 printf '%s\n' 'Preparing the local database...'
 "$venv_python" "$project_root/backend/manage.py" migrate --noinput
-printf '\nOpen http://%s/superadmin/login/ in your browser.\n' "$address"
+printf '\nOpen http://%s/login/ in your browser.\n' "$address"
 printf '%s\n' 'Keep this terminal open. Press Ctrl+C to stop the server.'
 "$venv_python" "$project_root/backend/manage.py" runserver "$address"

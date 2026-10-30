@@ -1,5 +1,6 @@
 import ipaddress
 from django.core.exceptions import ValidationError
+from accounts.models import User
 from .models import AuditLog, Role
 
 def audit(request, action, target, details=None):
@@ -23,7 +24,12 @@ def protect_administrator(actor, target, role, active):
         raise ValidationError("You cannot deactivate your own account or remove your own administrator role.")
 
 def assign_role(user, role):
-    user.account_type = "customer" if role.key == "customer" else "staff"
+    if role.key == "customer":
+        user.account_type = User.AccountType.CUSTOMER
+    elif role.key == "super-administrator":
+        user.account_type = User.AccountType.ADMIN
+    else:
+        user.account_type = User.AccountType.STAFF
     user.is_superuser = role.key == "super-administrator"
     user.is_staff = user.is_superuser
     user.save()

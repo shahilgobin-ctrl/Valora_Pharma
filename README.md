@@ -1,96 +1,188 @@
-# Valora Pharma - Super Administrator
+# Pharmacy login and registration
 
-A functional Django administration module for FR-29 (customer/staff account management) and FR-30 (staff roles and permissions). Work is on the `admin` branch. The Django/accounts foundation was copied using read-only Git access to `origin/pharmacy-login-register`; no branches were merged or switched.
+A Django project implementing one shared login for customers, employees, suppliers, and administrators. It includes direct customer registration, administrator-provisioned privileged accounts, and password recovery. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
 
-## Run locally
+This package covers authentication and protected role-specific integration landing pages. Every role uses the same sign-in page; the customer, employee, supplier, and custom administrator destinations are placeholders until teammates integrate their own pages. Pharmacy operations, medicine inventory, prescriptions, ordering and payments are outside this package. See [TEAM_INTEGRATION.md](TEAM_INTEGRATION.md) before connecting another Django app.
 
-Python and Django are already available in the current workspace environment. From the project root:
+## Start on Windows
+
+1. Install **Python 3.10 through 3.14** from [python.org](https://www.python.org/downloads/). A recent Python 3.12 or 3.13 release is a good choice. Enable the Python launcher during installation.
+2. Extract the ZIP completely into a folder.
+3. Double-click **`run_windows.bat`**.
+4. Wait for the dependencies and database to finish preparing, then open **http://127.0.0.1:8000/login/**.
+
+The first run needs an internet connection to download dependencies. The starter creates a project-local `.venv`, installs `requirements.txt`, applies database migrations and starts the development server. Later runs reuse that environment and your database. Keep the console window open; press **Ctrl+C** to stop.
+
+You can also open PowerShell in the extracted project folder and run:
 
 ```powershell
-python backend/manage.py migrate
+.\run_windows.bat
+```
+
+For a different local port:
+
+```powershell
+.\run_windows.bat -Address 127.0.0.1:8001
+```
+
+The batch file runs `start.ps1` with a temporary, process-only execution-policy setting. It does not change your system's PowerShell policy. The starter checks `py`, then `python3`, then `python` for an installed, supported runtime. If `py` says there is no runtime installed, install Python itself using the link above.
+
+## Start on macOS or Linux
+
+Install Python 3.10 through 3.14, extract the ZIP, open a terminal in the project folder and run:
+
+```bash
+bash run.sh
+```
+
+For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your distribution may require its `python3-venv` package before creating a virtual environment.
+
+## Pages
+
+| Page | Local URL |
+| --- | --- |
+| Shared login for all roles | http://127.0.0.1:8000/login/ |
+| Customer landing page (temporary) | http://127.0.0.1:8000/account/customer/ |
+| Staff landing page (temporary) | http://127.0.0.1:8000/account/staff/ |
+| Supplier landing page (temporary) | http://127.0.0.1:8000/account/supplier/ |
+| Super Admin portal | http://127.0.0.1:8000/superadmin/ |
+| Customer registration | http://127.0.0.1:8000/register/ |
+| Shared password recovery | http://127.0.0.1:8000/password/forgot/ |
+| Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
+| Django administration | http://127.0.0.1:8000/admin/ |
+
+Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, username, date of birth through a calendar picker, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate emails and usernames are rejected case-insensitively. Existing accounts may have no username.
+
+The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
+
+Customer registration creates an active account and sends the customer to sign in without an email code. Public employee and supplier registration is closed: `/staff/register/` returns 403. A superuser provisions employee and supplier accounts in `/admin/`; those accounts start inactive until that superuser verifies the person's identity and activates them. Employees and suppliers then use `/login/`. Administrator accounts can also sign in through the shared staff login flow and are routed to `/superadmin/`. Each destination checks the role again on every request. A pharmacy employee account does not receive Django administration access merely by having the pharmacy `staff` role.
+
+Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited per email-and-IP pair to eight attempts per fifteen minutes, so one user's mistakes do not lock everyone sharing a network. Password recovery requests have per-address cooldown and hourly limits. The development limiter uses a per-process cache.
+
+## Password recovery and email
+
+From the shared sign-in page, select **Forgot password?**, enter the account email, enter the six-digit code, then set a new password. Codes expire after ten minutes, allow five verification attempts, and cannot be reused after the password changes. The request page shows the same response for unknown addresses. Recovery is available only for active accounts.
+
+In local development, Django prints password reset emails in the **server terminal**. For delivery to an inbox, configure your email provider through the `DJANGO_EMAIL_*` settings below before starting Django. Never commit SMTP credentials. A production SMTP setup requires a sender address and email host. The project needs a shared cache when run with multiple workers for request limits; see the configuration section.
+
+## Create an administrator and employee accounts
+
+After the first startup, open a second PowerShell window in the project folder:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 python backend/manage.py createsuperuser
+```
+
+If PowerShell blocks activation, use the environment's interpreter directly:
+
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py createsuperuser
+```
+
+On macOS or Linux:
+
+```bash
+source .venv/bin/activate
+python backend/manage.py createsuperuser
+```
+
+Open `/admin/`, sign in with that superuser, open **Users**, and select **Add user**. Set **Account type** to **Staff** or **Supplier** and enter an initial password. New privileged accounts start **inactive**. After checking the person's identity, edit the account and enable **Active**. Do not grant Django **Staff status** or **Superuser status** to ordinary pharmacy employees or suppliers. Give the initial password securely, then have them change it using **Forgot password?** once email delivery is configured. Custom administrator accounts are created with `createsuperuser`; they receive the `admin` pharmacy role. `/admin/` is Django's account-management site, and `/superadmin/` is the ValoraPharma account, roles, audit and settings portal.
+
+## Optional development account
+
+Accounts are not created automatically. You can register through the pages or explicitly create a development-only sample customer:
+
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py seed_demo
+```
+
+On macOS/Linux, use `.venv/bin/python backend/manage.py seed_demo`.
+
+The command uses `demo.customer@example.test` and prints a new random password **once** in the terminal. It never resets or edits an existing account, and the login page never displays demo credentials. The command runs only with `DJANGO_DEBUG=true`.
+
+## Folder layout
+
+```text
+pharmacy-auth/
+├── backend/             Django project, accounts, migrations and tests
+│   ├── manage.py
+│   └── db.sqlite3       Created after the first migration
+├── frontend/
+│   ├── templates/       Login, registration, recovery, landing and terms HTML
+│   └── static/          Styles, scripts and design assets
+├── requirements.txt     Pinned Python dependency
+├── .env.example         Environment-variable reference
+├── TEAM_INTEGRATION.md  Shared roles, URL mapping, and collaborator guidance
+├── start.ps1            Windows PowerShell starter
+├── run_windows.bat      Windows double-click starter
+└── run.sh               macOS/Linux starter
+```
+
+There is no separate Node.js build step. Django serves the frontend templates and static files locally. SQLite stores accounts in `backend/db.sqlite3`; keep that file to retain your local users.
+
+## Manual setup and checks
+
+If you prefer manual setup, run the following in PowerShell from the project folder:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python backend/manage.py migrate
 python backend/manage.py runserver
 ```
 
-Choose your own administrator email and password when prompted. Then open **http://127.0.0.1:8000/superadmin/**. Sign in with that account. The database starts without sample users; dashboard counts and lists reflect actual records.
+After activation, `python` refers to the virtual environment, even if `python` was unavailable before setup. If activation is blocked, substitute `.\.venv\Scripts\python.exe` for `python` in the remaining commands.
 
-For a fresh environment:
+For macOS/Linux, substitute `python3 -m venv .venv` and `source .venv/bin/activate` for the first two commands.
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe backend/manage.py migrate
-.\.venv\Scripts\python.exe backend/manage.py createsuperuser
-.\.venv\Scripts\python.exe backend/manage.py runserver
-```
-
-`run_windows.bat` (or `bash run.sh` on macOS/Linux) creates an environment, installs dependencies, applies migrations and starts the server. Create your administrator in a second terminal using that environment's Python. `.env.example` is a reference; environment files are not loaded automatically.
-
-The dependency pin in `requirements.txt` is inherited from the authentication branch. Local verification used the installed Python 3.11.4 / Django 5.2 environment. Package-index access was unavailable during implementation, so the pinned fresh-install environment was not verified.
-
-## Navigation and functionality
-
-The same sidebar appears on every administrator page, including Roles & Permissions, in this order:
-
-1. **Overview** - live total, active, inactive and staff counts; linked account list.
-2. **User Management** - search/filter, view details, create and update accounts, set/reset passwords, activate/deactivate accounts, assign customer/pharmacist/manager/administrator roles.
-3. **Roles & Permissions** - four cards following the supplied reference; edit each operational role's permissions. Changes apply to its members. Super Administrator always has full access.
-4. **Audit Log** - timestamp, actor, action, target and IP; change details, search/filter, pagination and CSV export of all matching events.
-5. **System Settings** - portal name, support email, rows per page, customer and staff registration switches. All settings persist and affect the application.
-6. **Sign Out** - CSRF-protected POST, audit event and session logout.
-
-The four supplied images guided the layouts, colours, table structure and whitespace. System Settings uses the same typography, teal accents and sidebar. Browser screenshot verification could not run because no browser was available to the connected UI tool; template rendering and workflows were verified through Django tests.
-
-Account names open the detail page, which has an **Edit account** button. Role dropdowns have an explicit **Save** action. Deactivation and role changes ask for confirmation in the browser. Administrators cannot deactivate or demote themselves. Edit profile allows changing your own password while preserving your current session.
-
-## Architecture and integration
-
-- `backend/accounts/`: existing email-based `accounts.User`, customer/staff authentication and validation.
-- `backend/config/`: shared project configuration. `/` redirects to the new portal; Django's built-in administration remains at `/admin/`.
-- `backend/superadmin/`: forms, access checks, account/role workflows, audit service, settings and tests.
-- `frontend/templates/superadmin/`: Django-rendered pages with a shared sidebar.
-- `frontend/static/superadmin/`: custom responsive CSS, local Poppins fonts and small confirmation script. No Node build or external font request is needed for the administrator pages.
-- SQLite defaults to `backend/db.sqlite3`. `DJANGO_DATABASE_PATH` can select a different SQLite file.
-
-Migrations preserve the existing `accounts.User` model and create `Role`, `AuditLog` and `SystemSettings`. Roles use Django `Group` and `Permission`; no parallel authentication system is introduced. Public customers receive the Customer group. Public staff registrations remain inactive and unassigned until an administrator assigns their role and activates the account.
-
-`account_type="staff"` represents a pharmacy employee; it does not grant administration access. Portal access requires an active `is_superuser` account. The administration workflow sets Django `is_staff` only for Super Administrators. Operational role permissions cannot grant governance access. Moving between roles replaces the managed role group; unrelated groups/direct permissions are preserved for compatibility.
-
-The catalogue, prescriptions, POS, stock and reporting permission names are persisted permission definitions matching the reference. Those business modules are not implemented on this branch. Their future views must enforce permissions with checks such as:
-
-```python
-request.user.has_perm("superadmin.approve_prescriptions")
-request.user.has_perm("superadmin.adjust_stock")
-```
-
-No customer shop or pharmacy manager branch was imported. Future integration should keep this user model, add business apps to the shared settings/URLs and enforce the appropriate permission codenames.
-
-Audit events cover changes made through this portal plus administrator sign-in/sign-out. Account, role and settings changes are committed with their audit records in the same transaction. Password values are never recorded. The portal provides no audit edit/delete endpoint. Changes made directly in a shell or Django's separate built-in admin are outside this portal's audit service. Future modules can call `superadmin.services.audit(request, action, target, details)` within their write transaction.
-
-CSV export neutralizes spreadsheet formulas. Timestamps use `Indian/Mauritius`. The IP field records the direct connection address, not untrusted forwarded headers.
-
-## Optional reference data
-
-Only for local development, set `VALORA_DEMO_PASSWORD` to a strong password of your choice in your terminal, then run:
-
-```powershell
-python backend/manage.py seed_admin_demo
-```
-
-This creates `admin@valora.mu` plus the six reference customer/staff accounts, all using the password you supplied. It refuses to run outside DEBUG or if any demo email already exists. It never runs automatically. The overview includes the administrator, so these records produce seven total users.
-
-The implementation's isolated `.qa/preview.sqlite3` database is ignored by Git and is separate from the normal application database. It is only test data.
-
-## Verification
-
-Run these from the repository root (use the explicit app labels for test discovery):
+Run Django's system check and the included backend tests with:
 
 ```powershell
 python backend/manage.py check
-python backend/manage.py makemigrations --check --dry-run
-python backend/manage.py test accounts superadmin
+python backend/manage.py test accounts
 ```
 
-Coverage includes the inherited authentication tests plus administrator-only access, account CRUD, role assignment and effective permissions, self-lockout prevention, activation, password/session handling, settings/registration integration, audit transaction rollback, CSV export, filtering, CSRF, POST-only mutations and logout.
+## Configuration and deployment
 
-Local development defaults to DEBUG and an in-process login limiter. Deployment needs a configured secret, allowed hosts, HTTPS, shared cache, database backups and a production WSGI/ASGI server. See `.env.example` and `backend/config/settings.py` for the available settings. SQLite is the local default; higher-concurrency production use needs an appropriate database configuration and concurrency testing.
+Local development works with the default settings. **`.env.example` is a configuration reference; neither Django nor the starter scripts automatically load `.env` files.** Set variables in the current terminal or through your hosting service. For example, in PowerShell:
+
+```powershell
+$env:DJANGO_DEBUG = "false"
+$env:DJANGO_SECRET_KEY = "your-long-random-private-secret"
+$env:DJANGO_ALLOWED_HOSTS = "your-pharmacy.example"
+$env:DJANGO_CSRF_TRUSTED_ORIGINS = "https://your-pharmacy.example"
+```
+
+On macOS/Linux, use `export DJANGO_DEBUG=false`, and similarly export the other values.
+
+| Variable | Development default / purpose |
+| --- | --- |
+| `DJANGO_DEBUG` | `true`; use `false` for production |
+| `DJANGO_SECRET_KEY` | Generated locally in `backend/.dev-secret-key`; supply a private, unique value in production |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1,[::1]`; provide your domain in production |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Optional comma-separated HTTPS origins |
+| `DJANGO_DATABASE_PATH` | Optional database location; otherwise `backend/db.sqlite3` |
+| `DJANGO_SECURE_SSL_REDIRECT` | `false` in development, `true` in production |
+| `DJANGO_CACHE_BACKEND` | `django.core.cache.backends.locmem.LocMemCache`; choose a shared cache for multiple server workers |
+| `DJANGO_CACHE_LOCATION` | `pharmacy-auth`; the cache location or table name required by the selected backend |
+| `DJANGO_EMAIL_BACKEND` | Console in development; SMTP in production for verification and recovery |
+| `DJANGO_DEFAULT_FROM_EMAIL` | Sender address; required in production |
+| `DJANGO_EMAIL_HOST` / `DJANGO_EMAIL_PORT` | SMTP server and port (default port `587`) |
+| `DJANGO_EMAIL_HOST_USER` / `DJANGO_EMAIL_HOST_PASSWORD` | SMTP credentials |
+| `DJANGO_EMAIL_USE_TLS` / `DJANGO_EMAIL_USE_SSL` | SMTP transport security (`true` / `false` by default) |
+
+For Django's built-in shared database cache, set `DJANGO_CACHE_BACKEND=django.core.cache.backends.db.DatabaseCache` and `DJANGO_CACHE_LOCATION=pharmacy_auth_cache`, then run `python backend/manage.py createcachetable` after applying migrations. All server workers must use the same database and cache configuration.
+
+Before deployment, use a production WSGI/ASGI server and HTTPS, run `python backend/manage.py collectstatic`, run `python backend/manage.py check --deploy` with the production settings, configure a shared cache for the login and password recovery limits, verify SMTP delivery to a real inbox, and plan database backups. The included starters run Django's local development server. See Django's [deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/) for hosting configuration.
+
+The project uses **Django 5.2.17 LTS**, the latest 5.2 patch listed on the [official downloads page](https://www.djangoproject.com/download/) when this package was prepared. Django 5.2 supports [Python 3.10–3.14](https://docs.djangoproject.com/en/5.2/releases/5.2/).
+
+## Design source
+
+- [Registration reference — node 187:675](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-675&m=dev)
+- [Customer login reference — node 49:76](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=49-76&m=dev)
+- [Earlier staff-specific reference — node 187:559](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559&m=dev)
+
+The requested screens are implemented as responsive pages, with working Django forms and locally bundled frontend assets.
