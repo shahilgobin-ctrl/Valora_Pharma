@@ -1,4 +1,4 @@
-"""Export the About design as one HTML file with embedded resources."""
+"""Export both page designs as linked, self-contained HTML previews."""
 import os
 import sys
 from pathlib import Path
@@ -11,8 +11,13 @@ import django
 django.setup()
 
 from django.template.loader import render_to_string
+from pages.forms import ContactForm
 
-output = ROOT / "frontend" / "about-preview.html"
-html = render_to_string("pages/about.html", {"active_page": "about", "preview_mode": True})
-output.write_text("\n".join(line.rstrip() for line in html.splitlines()).rstrip() + "\n", encoding="utf-8")
-print(f"Created {output}")
+for page in ("about", "contact"):
+    context = {"active_page": page, "preview_mode": True}
+    if page == "contact":
+        context["form"] = ContactForm()
+    output = ROOT / "frontend" / f"{page}-preview.html"
+    html = render_to_string(f"pages/{page}.html", context)
+    output.write_text("\n".join(line.rstrip() for line in html.splitlines()).rstrip() + "\n", encoding="utf-8")
+    print(f"Created {output}")
