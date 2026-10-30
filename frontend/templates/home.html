@@ -20,9 +20,9 @@
 
     <ul class="nav-links" id="navLinks">
       <li><a href="{% url 'home' %}" class="active">Home</a></li>
+      <li><a href="{% url 'shop:shop' %}">Product</a></li>
       <li><a href="{% url 'pages:about' %}">About</a></li>
       <li><a href="#contact">Contact</a></li>
-      <li><a href="{% url 'shop:shop' %}">Shop</a></li>
       {% if not user.is_authenticated %}<li class="mobile-signin"><a href="{% url 'accounts:login' %}">Sign in</a></li>{% endif %}
     </ul>
 
