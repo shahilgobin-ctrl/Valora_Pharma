@@ -216,7 +216,7 @@ def dashboard(request):
                 completed_at__date=today,
             ).count(),
             revenue_today=(
-                Payment.objects.filter(recorded_at__date=today).aggregate(
+                Payment.objects.filter(recorded_at__date=today, refunded_at__isnull=True).aggregate(
                     total=Sum("amount")
                 )["total"]
                 or 0
@@ -786,11 +786,11 @@ def order_record(request, pk):
                     "Order status updated.",
                 )
 
-            elif action == "complete" and payment_form.is_valid():
+            elif action == "complete" and (Payment.objects.filter(order=order, is_simulated_online=True, refunded_at__isnull=True).exists() or payment_form.is_valid()):
                 complete_order(
                     order.pk,
                     user=request.user,
-                    **payment_form.cleaned_data,
+                    **(payment_form.cleaned_data if payment_form.is_valid() else {"method": "card", "cash_tendered": None}),
                 )
 
                 return redirect(

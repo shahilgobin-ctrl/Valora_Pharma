@@ -406,9 +406,14 @@ def complete_order(pk, method, cash_tendered, user):
     total = sum(
         (item.line_total for item in order.items.all()),
         Decimal("0.00"),
-    )
+    ) + order.delivery_fee
 
-    payment = Payment(
+    existing_payment = Payment.objects.filter(order=order).first()
+    if existing_payment and (not existing_payment.is_simulated_online
+                             or existing_payment.refunded_at or existing_payment.amount != total):
+        raise ValidationError("The recorded payment does not match this order.")
+
+    payment = existing_payment or Payment(
         order=order,
         method=method,
         amount=total,
@@ -447,7 +452,8 @@ def complete_order(pk, method, cash_tendered, user):
             recorded_by=user,
         )
 
-    payment.save()
+    if not existing_payment:
+        payment.save()
 
     order.total_amount = total
     order.status = Order.Status.COMPLETED
@@ -500,6 +506,10 @@ def cancel_order(pk, reason, user):
             "This order is already closed."
         )
 
+    # This is a simulation only: preserve the payment record and record the
+    # reversal rather than deleting it or collecting another payment.
+    Payment.objects.filter(order=order, is_simulated_online=True, refunded_at__isnull=True).update(
+        refunded_at=timezone.now())
     order.status = Order.Status.CANCELLED
     order.cancellation_reason = reason
     order.processed_by = user
@@ -558,3 +568,70 @@ def checkout_walk_in(*, user, lines, method, cash_tendered, **details):
     save_allocations(order.pk, allocation_plan, user)
     return complete_order(order.pk, method, cash_tendered, user)
 
+
+
+@transaction.atomic
+def checkout_online(*, user, prescription_upload=None, delivery_method="delivery"):
+    """Place one paid simulated order in the pharmacist queue, without dispensing."""
+    from django.db.models import Sum
+    from accounts.access import user_has_role
+    from shop.models import Cart, Product, ShopSettings
+    if not user_has_role(user, "customer"):
+        raise PermissionDenied("Only active customers may place orders.")
+    if delivery_method not in {"pickup", "delivery"}:
+        raise ValidationError("Choose delivery or pick up.")
+    cart, _ = Cart.objects.get_or_create(user=user)
+    # Serialize cart mutations and acquire SQLite's write lock before reading.
+    Cart.objects.filter(pk=cart.pk).update(updated_at=timezone.now())
+    items = list(cart.items.select_related("product__medicine").order_by("product__medicine_id"))
+    if not items:
+        raise ValidationError("Your cart is empty.")
+    lines = []
+    for item in items:
+        if not item.product.medicine_id:
+            raise ValidationError("This item must be linked to an inventory medicine.")
+        medicine = Medicine.objects.select_for_update().get(pk=item.product.medicine_id)
+        if not medicine.is_active or item.quantity < 1:
+            raise ValidationError("This medicine is no longer available.")
+        usable = Batch.objects.filter(medicine=medicine, expiry_date__gt=timezone.localdate()).aggregate(
+            total=Sum("quantity_available"))["total"] or 0
+        pending = OrderItem.objects.filter(medicine=medicine, order__kind="online").exclude(
+            order__status__in=["completed", "cancelled"]).aggregate(total=Sum("quantity"))["total"] or 0
+        if item.quantity > max(0, usable - pending):
+            raise ValidationError(f"{medicine.name} no longer has enough available stock.")
+        lines.append((medicine, item.quantity))
+    requires_prescription = any(m.prescription_required for m, _ in lines)
+    if requires_prescription and not prescription_upload:
+        raise ValidationError("Upload a prescription for these medicines.")
+    settings = ShopSettings.objects.get(pk=1)
+    fee = Decimal(settings.delivery_fee) if delivery_method == "delivery" else Decimal("0")
+    total = sum((m.selling_price * q for m, q in lines), Decimal("0")) + fee
+    prescription = None
+    try:
+        if requires_prescription:
+            prescription = Prescription(customer=user, document=prescription_upload)
+            prescription.full_clean()
+            prescription.save()
+        order = Order(kind="online", customer=user, prescription=prescription,
+                      contact_name=user.get_full_name()[:150], contact_phone=user.phone,
+                      delivery_method=delivery_method, delivery_fee=fee, total_amount=total)
+        order.full_clean()
+        order.save()
+        for medicine, quantity in lines:
+            line = OrderItem(order=order, medicine=medicine, medicine_name=str(medicine),
+                             selling_unit=medicine.selling_unit,
+                             prescription_required=medicine.prescription_required,
+                             quantity=quantity, unit_price=medicine.selling_price)
+            line.full_clean()
+            line.save()
+        OrderStatusEvent.objects.create(order=order, status=order.status, recorded_by=user)
+        payment = Payment(order=order, method="card", amount=total, recorded_by=user,
+                          is_simulated_online=True)
+        payment.full_clean()
+        payment.save()
+        cart.items.all().delete()
+        return order
+    except Exception:
+        if prescription and prescription.document and prescription.pk:
+            prescription.document.delete(save=False)
+        raise

@@ -194,6 +194,7 @@
     </section>
   </div>
 
+  <p>Fulfilment: {{ order.get_delivery_method_display }}. Delivery fee: Rs {{ order.delivery_fee|floatformat:2 }}</p>
   <!-- Saved payment -->
 
   <section class="panel">
@@ -202,7 +203,7 @@
     {% if payment %}
       <p>
         <strong>Method:</strong>
-        {{ payment.get_method_display }}
+        {{ payment.get_method_display }}{% if payment.is_simulated_online %} ? simulated online payment{% endif %}{% if payment.refunded_at %} (refunded){% endif %}
       </p>
 
       <p>
@@ -380,10 +381,10 @@
 
           <input type="hidden" name="action" value="complete">
 
-          {{ payment_form.as_p }}
+          {% if payment.is_simulated_online %}<p>Simulated online payment already recorded. Complete fulfilment without collecting another payment.</p>{% else %}{{ payment_form.as_p }}{% endif %}
 
           <button class="button" type="submit">
-            Record payment and complete
+            {% if payment.is_simulated_online %}Complete fulfilment{% else %}Record payment and complete{% endif %}
           </button>
         </form>
       </section>
@@ -398,8 +399,7 @@
       <h2 id="cancel-order-heading">Cancel order</h2>
 
       <p>
-        Cancelling closes this order without recording a payment
-        or deducting stock.
+        Cancelling closes this order without deducting stock. Any simulated online payment is marked refunded.
       </p>
 
       <form method="post">

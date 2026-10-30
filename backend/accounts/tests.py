@@ -170,7 +170,7 @@ class EmailVerificationTests(AuthTestCase):
         self.assertIsNotNone(user.email_verified_at)
         self.assertRedirects(self.client.post(reverse("accounts:login"), {
             "email": user.email, "password": PASSWORD,
-        }), reverse("accounts:customer_landing"))
+        }), reverse("home"))
 
     def test_wrong_codes_are_limited_and_resend_invalidates_old_code(self):
         first_code = self.register()
@@ -233,9 +233,9 @@ class LoginTests(AuthTestCase):
             {"email": " CUSTOMER@EXAMPLE.COM ", "password": PASSWORD},
             follow=True,
         )
-        self.assertRedirects(response, reverse("accounts:customer_landing"))
+        self.assertRedirects(response, reverse("home"))
         self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
-        self.assertEqual(response.context["landing_role"], User.AccountType.CUSTOMER)
+        self.assertTemplateUsed(response, "home.html")
 
     def test_invalid_password_does_not_open_session(self):
         self.customer()
@@ -264,7 +264,7 @@ class LoginTests(AuthTestCase):
                     reverse("accounts:login") + "?next=" + target,
                     {"email": "customer@example.com", "password": PASSWORD},
                 )
-                self.assertEqual(response["Location"], reverse("accounts:customer_landing"))
+                self.assertEqual(response["Location"], reverse("home"))
                 self.client.post(reverse("accounts:logout"))
 
     def test_failure_limit_blocks_authentication_until_counter_expires(self):
@@ -300,7 +300,7 @@ class LoginTests(AuthTestCase):
         }).status_code, 429)
         self.assertRedirects(self.client.post(reverse("accounts:login"), {
             "email": other.email, "password": PASSWORD,
-        }), reverse("accounts:customer_landing"))
+        }), reverse("home"))
 
     def test_logout_requires_post_and_clears_session(self):
         self.client.force_login(self.customer())
@@ -338,9 +338,12 @@ class StaffTests(AuthTestCase):
                 response = self.client.post(
                     reverse("accounts:login"), {"email": user.email, "password": PASSWORD}, follow=True,
                 )
-                destination = "accounts:staff_landing" if user == staff else "accounts:customer_landing"
+                destination = "accounts:staff_landing" if user == staff else "home"
                 self.assertRedirects(response, reverse(destination))
-                self.assertEqual(response.context["landing_role"], user.account_type)
+                if user.account_type == "customer":
+                    self.assertTemplateUsed(response, "home.html")
+                else:
+                    self.assertEqual(response.context["landing_role"], user.account_type)
                 self.assertEqual(self.client.session["_auth_user_id"], str(user.pk))
                 self.client.post(reverse("accounts:logout"))
         self.assertFalse(staff.is_staff)
@@ -376,7 +379,7 @@ class SharedRoleTests(AuthTestCase):
         post = self.client.post(reverse("accounts:staff_login"), {"email": "x@y.mu", "password": "x"})
         self.assertEqual(post.status_code, 307)
         self.assertEqual(post["Location"], reverse("accounts:login"))
-        self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("accounts:customer_landing"))
+        self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("home"))
 
     def test_legacy_staff_login_post_preserves_credentials(self):
         staff = self.customer(email="employee@example.com", account_type=User.AccountType.STAFF)
@@ -409,7 +412,7 @@ class LandingAccessTests(AuthTestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.context["landing_role"], user.account_type)
                 self.assertEqual(self.client.get(reverse("accounts:" + forbidden)).status_code, 403)
-                self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("accounts:" + allowed))
+                self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("home") if user.account_type == User.AccountType.CUSTOMER else reverse("accounts:" + allowed))
                 self.client.post(reverse("accounts:logout"))
         self.assertFalse(staff.is_staff)
 

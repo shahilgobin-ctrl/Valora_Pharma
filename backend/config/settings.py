@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     "prescriptions.apps.PrescriptionsConfig",
     "inventory.apps.InventoryConfig",
     "orders.apps.OrdersConfig",
+    "shop.apps.ShopConfig",
+    "pages.apps.PagesConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -162,3 +164,5 @@ EMAIL_VERIFICATION_MAX_ATTEMPTS = 5
 EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
 EMAIL_VERIFICATION_RESEND_LIMIT = 5
 EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS = 60 * 60
+
+HOMEPAGE_PRODUCT_LIMIT = 4

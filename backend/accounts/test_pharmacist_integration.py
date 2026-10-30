@@ -37,7 +37,7 @@ class PharmacistAuthenticationTests(TestCase):
         self.user.save()
         self.client.force_login(self.user)
         self.assertRedirects(self.client.get(reverse("accounts:login")),
-                             reverse("accounts:customer_landing"))
+                             reverse("home"))
         self.assertEqual(self.client.get(reverse("pharmacist:dashboard")).status_code, 403)
 
     def test_inactive_pharmacist_cannot_sign_in(self):

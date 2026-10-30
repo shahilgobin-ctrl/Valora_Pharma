@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}ValoraPharma Shop{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'shop/shop.css' %}?v=green-20261029">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{% url 'shop:shop' %}">
+        <img class="brand-mark" src="{% static 'accounts/assets/pill-login.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span>
+      </a>
+
+      <nav>
+        <a href="{% url 'home' %}">Home</a>
+        <a href="{% url 'shop:shop' %}">Products</a>
+        <a href="{% url 'pages:about' %}">About</a>
+        <a href="{% url 'home' %}#contact">Contact</a>
+        <a class="nav-shop" href="{% url 'shop:shop' %}">Shop</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="cart-link" href="{% url 'shop:cart' %}" aria-label="Cart">🛒<span class="cart-count">{{ cart_count }}</span></a>
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Sign In</a>
+          <a class="register-link" href="{% url 'accounts:register' %}">Register</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="{% static 'shop/shop.js' %}" defer></script>
+  </body>
+</html>

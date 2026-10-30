@@ -10,7 +10,8 @@
 {% if pharmacy.email %}<p>{{ pharmacy.email }}</p>{% endif %}<h2>Receipt {{ order }}</h2>
 <p>{{ order.get_kind_display }} · {{ order.completed_at|date:'d M Y H:i' }} (UTC+04:00)<br>Served by: {{ order.processed_by.email }}</p>
 <div class="table-wrap"><table><thead><tr><th>Medicine</th><th>Quantity</th><th>Unit price</th><th>Total</th></tr></thead><tbody>{% for item in order.items.all %}<tr><td>{{ item.medicine_name }}<br><small>Per {{ item.selling_unit }}</small></td><td>{{ item.quantity }}</td><td>Rs {{ item.unit_price }}</td><td>Rs {{ item.line_total }}</td></tr>{% endfor %}</tbody></table></div>
-<p class="receipt-total">Total: Rs {{ order.total_amount }}</p><p>Payment: {{ order.payment.get_method_display }}</p>
+<p>Fulfilment: {{ order.get_delivery_method_display }} ? Delivery fee: Rs {{ order.delivery_fee|floatformat:2 }}</p>
+<p class="receipt-total">Total: Rs {{ order.total_amount }}</p><p>Payment: {{ order.payment.get_method_display }}{% if order.payment.is_simulated_online %} (simulated online payment){% endif %}</p>
 {% if order.payment.method == 'cash' %}<p>Cash tendered: Rs {{ order.payment.cash_tendered }}<br>Change: Rs {{ order.payment.change }}</p>{% endif %}
 <div class="actions no-print"><button class="button" type="button" data-print-receipt>Print receipt</button><a class="button secondary" href="{% url 'pharmacist:sale_form' %}">New sale</a><a class="button secondary" href="{% url 'pharmacist:dashboard' %}">Dashboard</a></div>
 {% if pharmacy.receipt_footer %}<p>{{ pharmacy.receipt_footer }}</p>{% endif %}

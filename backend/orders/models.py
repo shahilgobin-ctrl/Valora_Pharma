@@ -29,6 +29,10 @@ class Order(models.Model):
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
 
+    delivery_method = models.CharField(max_length=10, choices=[("pickup", "Pick up"), ("delivery", "Delivery")], default="pickup")
+    delivery_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0,
+                                       validators=[MinValueValidator(Decimal("0.00"))])
+
     kind = models.CharField(
         max_length=10,
         choices=Kind.choices,
@@ -316,6 +320,8 @@ class Allocation(models.Model):
 
 
 class Payment(models.Model):
+    is_simulated_online = models.BooleanField(default=False)
+    refunded_at = models.DateTimeField(null=True, blank=True)
     class Method(models.TextChoices):
         CASH = "cash", "Cash"
         CARD = "card", "Card (simulated)"
