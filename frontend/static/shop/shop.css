@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 :root {
-  --green-dark: #0b3b36;
-  --teal: #0f6b5e;
+  --navy: #06312d;
+  --teal: #0f4c4c;
   --mint: #d1fae5;
-  --green: #0f6b5e;
-  --orange: #d97706;
+  --green: #0f9d6a;
+  --orange: #ff8c2b;
   --ink: #182b32;
   --muted: #69777b
 }
@@ -49,7 +49,7 @@ body {
 }
 
 .brand-accent {
-  color: var(--orange)
+  color: #d98450
 }
 
 .site-header nav,.header-actions {
@@ -79,7 +79,18 @@ body {
 
 .cart-link {
   position: relative;
-  font-size: 17px!important
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px
+}
+
+.cart-link svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  stroke: currentColor
 }
 
 .cart-count {
@@ -102,7 +113,7 @@ body {
 
 .page-banner {
   margin: 0 auto;
-  background: var(--green-dark);
+  background: var(--navy);
   color: white;
   padding: 25px max(calc((100vw - 1250px)/2),6%) 28px;
   min-height: 145px
@@ -114,13 +125,13 @@ body {
 }
 
 .page-banner p {
-  color: #e2efec;
+  color: #9daeb4;
   font-size: 13px;
   margin: 0
 }
 
 .back-link {
-  color: #d6e8e0;
+  color: #c2ced1;
   text-decoration: none;
   font-size: 12px
 }
@@ -149,7 +160,7 @@ body {
 }
 
 .pill.active {
-  background: var(--green-dark);
+  background: #0d4d4d;
   color: white
 }
 
@@ -264,7 +275,7 @@ body {
 }
 
 .card-footer strong,.detail-price {
-  color: var(--green-dark);
+  color: #124d4b;
   font-size: 15px
 }
 
@@ -280,7 +291,7 @@ body {
 }
 
 .add-button:hover {
-  background: var(--green-dark)
+  background: #176260
 }
 
 .sold-out .product-image {
@@ -382,6 +393,39 @@ body {
   font-weight: 700
 }
 
+.fulfillment-options {
+  display: grid;
+  gap: 9px;
+  margin: 18px 0;
+  padding: 0;
+  border: 0
+}
+
+.fulfillment-options legend {
+  margin-bottom: 10px;
+  font-weight: 700
+}
+
+.fulfillment-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  border: 1px solid #dbe5e1;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer
+}
+
+.fulfillment-option input {
+  accent-color: var(--teal)
+}
+
+.fulfillment-option strong {
+  margin-left: auto;
+  white-space: nowrap
+}
+
 .checkout-button {
   display: block;
   width: 100%;
@@ -467,7 +511,7 @@ body {
   bottom: 25px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--green-dark);
+  background: var(--navy);
   color: white;
   padding: 12px 20px;
   border-radius: 10px;
@@ -597,7 +641,7 @@ body {
 }
 
 .search-button:hover {
-  background: var(--green-dark)
+  background: #176260
 }
 
 .clear-filters {
@@ -869,3 +913,6 @@ body {
 .prescription-upload p {
   margin: 8px 0 0;
 }
+
+.header-actions form { margin: 0; display: inline-flex; }
+.header-actions form button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }

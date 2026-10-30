@@ -36,8 +36,8 @@ class OrderAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    list_display = ("id", "user", "total", "status", "created_at")
-    list_filter = ("status", "created_at")
+    list_display = ("id", "user", "delivery_method", "total", "status", "created_at")
+    list_filter = ("delivery_method", "status", "created_at")
     search_fields = ("id", "user__username", "user__email")
     readonly_fields = ("created_at", "prescription_download")
     exclude = ("prescription_file",)

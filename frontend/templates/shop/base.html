@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}ValoraPharma Shop{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'shop/shop.css' %}?v=green-20261029">
+    <link rel="stylesheet" href="{% static 'shop/shop.css' %}?v=integrated-shop-20261030">
   </head>
   <body>
     <header class="site-header">
@@ -22,7 +22,7 @@
       </nav>
 
       <div class="header-actions">
-        <a class="cart-link" href="{% url 'shop:cart' %}" aria-label="Cart">🛒<span class="cart-count">{{ cart_count }}</span></a>
+        <a class="cart-link" href="{% url 'shop:cart' %}" aria-label="Cart">ðŸ›’<span class="cart-count">{{ cart_count }}</span></a>
         {% if user.is_authenticated %}
           <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
         {% else %}

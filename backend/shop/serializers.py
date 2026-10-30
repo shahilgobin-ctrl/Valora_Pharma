@@ -26,7 +26,7 @@ def cart_data(cart):
 
 def order_data(order):
     return {"id": order.pk, "user_id": order.customer_id, "total": order.total_amount,
-            "status": order.status, "payment_status": "succeeded", "simulated": True,
+            "status": order.status, "delivery_method": order.delivery_method, "delivery_fee": order.delivery_fee, "payment_status": "succeeded", "simulated": True,
             "created_at": order.created_at.isoformat(),
             "items": [{"medicine_id": item.medicine_id, "quantity": item.quantity,
                        "unit_price": item.unit_price} for item in order.items.all()]}

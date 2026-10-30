@@ -19,3 +19,10 @@ Do not apply these during this integration. The current plan is orders.0006 (del
 ## Remaining work
 
 The user refreshed origin through GitHub Desktop. Local remote references confirm Home 45d10ed, shop 0286458 and About-page 20650be. No further fetch was performed. Home is ready for its authorised merge commit, followed by shop and About-page in order. Browser checks remain: responsive navigation, customer verification and return-to-cart, shop filters and decimal selling-unit labels, prescription upload/review, simulated checkout, and pharmacist allocation/completion/receipt. No real SMTP or payment verification was performed.
+
+
+## Shop integration
+
+Merged source: origin/shop at 0286458. Preserved the updated shop palette, photographs and delivery/pickup controls. All navigation uses named public routes and logout remains POST-only with CSRF. Pickup has no fee in the server-rendered cart and checkout; delivery uses ShopSettings rather than the branch's hard-coded amount. Currency keeps inventory decimal precision. The incoming simulated-payment regression is retained against orders.Payment, with additional pickup, invalid-method and photograph-preservation tests.
+
+The parallel shop migration histories are retained and joined by shop.0007_merge_shop_histories. Incoming shop.0004_product_photographs and shop.0005_order_delivery_method remain intact; the legacy shop Order delivery field is retained for history, while new orders use orders.Order. Local product photographs are a fallback for empty presentation artwork; custom artwork remains unchanged.

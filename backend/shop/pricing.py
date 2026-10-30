@@ -4,8 +4,10 @@ from django.core.exceptions import ImproperlyConfigured
 from .models import ShopSettings
 
 
-def cart_totals(subtotal, *, has_items):
-    if not has_items:
+def cart_totals(subtotal, *, has_items, delivery_method="delivery"):
+    if delivery_method not in {"delivery", "pickup"}:
+        raise ValueError("Choose delivery or pick up.")
+    if not has_items or delivery_method == "pickup":
         return {"subtotal": subtotal, "delivery": 0, "total": subtotal}
     try:
         delivery = ShopSettings.objects.values_list("delivery_fee", flat=True).get(pk=1)

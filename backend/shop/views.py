@@ -255,7 +255,11 @@ def _catalog_context(request, cart_page=False, paginate=False):
     if selected_cart_category:
         items = [item for item in all_cart_items if item.product.category.slug == selected_cart_category]
     subtotal = sum(item.quantity * item.product.public_price for item in all_cart_items)
-    totals = cart_totals(subtotal, has_items=bool(all_cart_items))
+    delivery_method = request.GET.get("delivery_method", "delivery").strip().lower()
+    if delivery_method not in {"delivery", "pickup"}:
+        delivery_method = "delivery"
+    totals = cart_totals(subtotal, has_items=bool(all_cart_items), delivery_method=delivery_method)
+    delivery_fee = cart_totals(subtotal, has_items=True)["delivery"]
     cart_count = cart_quantity(request.user)
     return {
         "products": products, "categories": categories, "category_links": category_links,
@@ -268,6 +272,7 @@ def _catalog_context(request, cart_page=False, paginate=False):
         "cart_count": cart_count, "has_cart_items": cart_count > 0, "cart_items": items, "subtotal": subtotal,
         "cart_categories": cart_categories, "selected_cart_category": selected_cart_category,
         "delivery": totals["delivery"], "total": totals["total"],
+        "delivery_method": delivery_method, "delivery_fee": delivery_fee,
         "requires_prescription": any(item.product.requires_prescription for item in all_cart_items),
         "cart_page": cart_page,
     }

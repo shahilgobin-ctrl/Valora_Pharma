@@ -108,7 +108,7 @@ class HomeIntegrationTests(TestCase):
         self.product.image = ""
         self.product.medicine.save()
         self.product.save()
-        self.assertContains(self.client.get(reverse("home")), '/static/shop/products/medicine.svg', count=2)
+        self.assertContains(self.client.get(reverse("home")), '/static/shop/products/paracetamol.jpg', count=2)
 
     def test_admin_selected_condition_icon_and_feature_order(self):
         self.category.image = "home/conditions/pain-fever.svg"

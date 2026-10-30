@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
@@ -21,7 +22,12 @@ class Category(models.Model):
 
     @property
     def card_image_url(self):
-        return catalogue_image_url(self.image or getattr(self, "card_image", ""))
+        image = self.image or getattr(self, "card_image", "")
+        if not image:
+            product = self.products.filter(medicine__is_active=True).select_related("medicine").first()
+            if product:
+                return product.image_url
+        return catalogue_image_url(image)
 
     def __str__(self):
         return self.name
@@ -79,7 +85,12 @@ class Product(models.Model):
     @property
     def image_url(self):
         """Share the same catalogue image and fallback across HTML and JSON."""
-        return catalogue_image_url(self.image)
+        image = self.image
+        if not image and self.medicine_id:
+            photograph = f"shop/products/{slugify(self.medicine.name)}.jpg"
+            if finders.find(photograph):
+                image = photograph
+        return catalogue_image_url(image)
 
     @property
     def is_out_of_stock(self):
@@ -109,6 +120,12 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
+    class DeliveryMethod(models.TextChoices):
+        DELIVERY = "delivery", "Delivery"
+        PICKUP = "pickup", "Pick up"
+
+    delivery_method = models.CharField(max_length=10, choices=DeliveryMethod.choices, default=DeliveryMethod.DELIVERY)
+
     class Status(models.TextChoices):
         PLACED = "placed", "Placed"
         PROCESSING = "processing", "Processing"

@@ -1,13 +1,12 @@
-# Updated pharmacist workflows
+# Valora Pharma
 
-Start with [START_HERE.md](START_HERE.md) for installation, migration and demo instructions.
-See [PHARMACIST_IMPLEMENTATION.md](PHARMACIST_IMPLEMENTATION.md) for the six implemented stages and scope boundaries.
+Django pharmacy project with public Home, Shop and About pages; shared login, email verification and recovery; and a protected pharmacist workspace for prescriptions, inventory, orders, walk-in sales and receipts.
 
-# Pharmacy login and registration
+Inventory medicines, batch stock, prices, selling units and prescription flags are authoritative across the public shop and pharmacist workspace. Checkout records a simulated online payment once in the shared order system. Pharmacist fulfilment reuses it and deducts batch stock at completion. Delivery uses the configured shop fee; pickup has no fee. No real payment is processed.
 
-A Django project implementing one shared login for customers, employees, suppliers, and administrators. It includes email-verified customer registration, administrator-provisioned privileged accounts, and password recovery. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
+See [HOME_INTEGRATION.md](HOME_INTEGRATION.md) for migration and integration notes and [backend/shop/README.md](backend/shop/README.md) for the shared data model.
 
-This package covers authentication and protected role-specific integration landing pages. Every role uses the same sign-in page; the customer, employee, supplier, and custom administrator destinations are placeholders until teammates integrate their own pages. Pharmacy operations, medicine inventory, prescriptions, ordering and payments are outside this package. See [TEAM_INTEGRATION.md](TEAM_INTEGRATION.md) before connecting another Django app.
+The existing showcase database and uploads must be preserved. The convenience starters below apply migrations automatically. While migration review is pending, do not run those starters. After reviewing and backing up the configured database and private uploads, apply the approved migrations explicitly; never reset or reseed the showcase data.
 
 ## Start on Windows
 
@@ -46,6 +45,11 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 
 | Page | Local URL |
 | --- | --- |
+| Public Home | http://127.0.0.1:8000/ |
+| Shop | http://127.0.0.1:8000/shop/ |
+| Cart | http://127.0.0.1:8000/cart/ |
+| About | http://127.0.0.1:8000/about/ |
+| Pharmacist workspace | http://127.0.0.1:8000/pharmacist/ |
 | Shared login for all roles | http://127.0.0.1:8000/login/ |
 | Customer landing page (temporary) | http://127.0.0.1:8000/account/customer/ |
 | Staff landing page (temporary) | http://127.0.0.1:8000/account/staff/ |
@@ -58,7 +62,7 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
 | Django administration | http://127.0.0.1:8000/admin/ |
 
-Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, username, date of birth through a calendar picker, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate emails and usernames are rejected case-insensitively. Existing accounts may have no username.
+Active staff in the Pharmacist group reach the pharmacist dashboard. Customers default to Home and retain safe return-to-Shop/cart destinations. Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, username, date of birth through a calendar picker, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate emails and usernames are rejected case-insensitively. Existing accounts may have no username.
 
 The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 

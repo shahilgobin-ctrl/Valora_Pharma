@@ -13,5 +13,5 @@ def homepage_products(limit):
             image = product.homepage_image_override.image
         except HomepageProductImage.DoesNotExist:
             image = product.image
-        product.homepage_image_url = catalogue_image_url(image or product.image)
+        product.homepage_image_url = catalogue_image_url(image) if image else product.image_url
     return products
