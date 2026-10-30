@@ -74,8 +74,17 @@ class AdministrationTests(TestCase):
         self.client.force_login(forged)
         self.assertEqual(self.client.get(self.url("overview")).status_code, 403)
         self.client.logout()
-        self.assertEqual(self.client.post(self.url("login"),
-            {"email": forged.email, "password": PASSWORD}).status_code, 200)
+        self.assertRedirects(
+            self.client.get(self.url("login")),
+            reverse("accounts:login"),
+            fetch_redirect_response=False,
+        )
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"email": forged.email, "password": PASSWORD},
+        )
+        self.assertRedirects(response, reverse("manager:dashboard"))
+        self.assertEqual(self.client.get(self.url("overview")).status_code, 403)
 
     def test_create_customer_and_staff_with_hashed_password_and_audit(self):
         for key in ("customer", "pharmacist", "pharmacy-manager", "super-administrator"):
