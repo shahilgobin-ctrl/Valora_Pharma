@@ -9,7 +9,6 @@ from inventory.models import Batch, Medicine
 from orders.models import Order, OrderItem, Payment
 from prescriptions.models import Prescription
 
-
 # ---------------------------------------------------------------------------
 # Prescription review and queue filters
 # ---------------------------------------------------------------------------
@@ -88,18 +87,18 @@ class SaleForm(forms.Form):
     submission_key = forms.UUIDField(widget=forms.HiddenInput)
 
     customer = forms.ModelChoiceField(
-    queryset=User.objects.filter(
-        account_type=User.AccountType.CUSTOMER,
-        is_active=True,
-    ),
-    required=False,
+        queryset=User.objects.filter(
+            account_type=User.AccountType.CUSTOMER,
+            is_active=True,
+        ),
+        required=False,
     )
 
     prescription = forms.ModelChoiceField(
-    queryset=Prescription.objects.filter(
-        status=Prescription.Status.APPROVED,
-    ),
-    required=False,
+        queryset=Prescription.objects.filter(
+            status=Prescription.Status.APPROVED,
+        ),
+        required=False,
     )
 
     contact_name = forms.CharField(
@@ -119,9 +118,7 @@ class SaleForm(forms.Form):
         prescription = data.get("prescription")
         customer = data.get("customer")
 
-        if prescription and (
-            not customer or prescription.customer_id != customer.pk
-        ):
+        if prescription and (not customer or prescription.customer_id != customer.pk):
             self.add_error(
                 "prescription",
                 "Select the customer who owns this prescription.",
@@ -131,9 +128,7 @@ class SaleForm(forms.Form):
 
 
 class SaleLineForm(forms.Form):
-    medicine = forms.ModelChoiceField(
-        queryset=Medicine.objects.filter(is_active=True)
-    )
+    medicine = forms.ModelChoiceField(queryset=Medicine.objects.filter(is_active=True))
 
     quantity = forms.IntegerField(
         min_value=1,
@@ -226,10 +221,7 @@ class PaymentForm(forms.Form):
     def clean(self):
         data = super().clean()
 
-        if (
-            data.get("method") == "cash"
-            and data.get("cash_tendered") is None
-        ):
+        if data.get("method") == "cash" and data.get("cash_tendered") is None:
             self.add_error(
                 "cash_tendered",
                 "Enter the cash tendered.",
@@ -259,11 +251,11 @@ class OrderFilterForm(forms.Form):
     )
 
     kind = forms.ChoiceField(
-    choices=[
-        *Order.Kind.choices,
-        ("all", "All orders"),
-    ]
-    )   
+        choices=[
+            *Order.Kind.choices,
+            ("all", "All orders"),
+        ]
+    )
 
 
 class InventoryFilterForm(forms.Form):

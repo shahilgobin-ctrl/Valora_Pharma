@@ -27,8 +27,4 @@ urlpatterns = [
     # Inventory.
     path("inventory/", views.inventory_list, name="inventory"),
 
-    # Existing development previews; the view requires DEBUG=True.
-    path("prescriptions/sample/", views.preview, {"page": "prescription_review"}, name="prescription_review"),
-    path("orders/sample/", views.preview, {"page": "order_detail"}, name="order_detail"),
-    path("sales/sample/receipt/", views.preview, {"page": "sale_receipt"}, name="sale_receipt"),
 ]

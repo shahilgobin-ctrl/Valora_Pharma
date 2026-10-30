@@ -1,4 +1,3 @@
-"""Shared domain model ownership will be agreed before database work."""
 """Pharmacy details shared by the interface and receipts."""
 
 from django.db import models

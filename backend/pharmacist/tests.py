@@ -11,7 +11,7 @@ from django.test import Client
 
 from prescriptions.models import Prescription
 
-from .views import PAGES
+PAGES = ("dashboard", "prescription_queue", "order_queue", "sale_form", "inventory")
 
 
 @override_settings(DEBUG=True)
@@ -20,12 +20,8 @@ class PharmacistAccessTests(TestCase):
     def setUpTestData(cls):
         user_model = get_user_model()
 
-        pharmacist_group, _ = Group.objects.get_or_create(
-            name="Pharmacist"
-        )
-        manager_group, _ = Group.objects.get_or_create(
-            name="Pharmacy Manager"
-        )
+        pharmacist_group, _ = Group.objects.get_or_create(name="Pharmacist")
+        manager_group, _ = Group.objects.get_or_create(name="Pharmacy Manager")
 
         cls.pharmacist = user_model.objects.create_user(
             email="pharmacist@example.com",
@@ -61,9 +57,7 @@ class PharmacistAccessTests(TestCase):
                 url = reverse(f"pharmacist:{page}")
                 response = self.client.get(url)
 
-                expected_url = (
-                    f"{reverse('accounts:staff_login')}?next={url}"
-                )
+                expected_url = f"{reverse('accounts:staff_login')}?next={url}"
                 self.assertRedirects(
                     response,
                     expected_url,
@@ -76,9 +70,7 @@ class PharmacistAccessTests(TestCase):
 
         for page in PAGES:
             with self.subTest(page=page):
-                response = self.client.get(
-                    reverse(f"pharmacist:{page}")
-                )
+                response = self.client.get(reverse(f"pharmacist:{page}"))
 
                 self.assertEqual(response.status_code, 200)
                 self.assertTemplateUsed(
@@ -120,7 +112,7 @@ class PharmacistAccessTests(TestCase):
                         )
                     self.assertNotContains(response, "Sample data only")
                 else:
-                    self.assertContains(response, "Sample data only")
+                    self.assertNotContains(response, "Sample data only")
 
     def test_other_roles_cannot_access_pharmacist_pages(self):
         users = (
@@ -135,23 +127,17 @@ class PharmacistAccessTests(TestCase):
 
             for page in PAGES:
                 with self.subTest(user=user.email, page=page):
-                    response = self.client.get(
-                        reverse(f"pharmacist:{page}")
-                    )
+                    response = self.client.get(reverse(f"pharmacist:{page}"))
                     self.assertEqual(response.status_code, 403)
 
             self.client.logout()
 
     def test_customer_with_pharmacist_group_is_still_denied(self):
         # Group membership alone must not bypass account-type checks.
-        self.customer.groups.add(
-            Group.objects.get(name="Pharmacist")
-        )
+        self.customer.groups.add(Group.objects.get(name="Pharmacist"))
         self.client.force_login(self.customer)
 
-        response = self.client.get(
-            reverse("pharmacist:dashboard")
-        )
+        response = self.client.get(reverse("pharmacist:dashboard"))
 
         self.assertEqual(response.status_code, 403)
 
@@ -177,17 +163,9 @@ class PharmacistAccessTests(TestCase):
 
         for page in PAGES:
             with self.subTest(page=page):
-                response = self.client.get(
-                    reverse(f"pharmacist:{page}")
-                )
+                response = self.client.get(reverse(f"pharmacist:{page}"))
 
-                expected_status = (
-                    200 if page in {"prescription_queue", "dashboard", "order_queue", "sale_form"} else 404
-                )
-                self.assertEqual(
-                    response.status_code,
-                    expected_status,
-                )
+                self.assertEqual(response.status_code, 200)
 
     def test_read_only_pages_reject_mutating_requests(self):
         self.client.force_login(self.pharmacist)
@@ -205,14 +183,14 @@ class PharmacistAccessTests(TestCase):
         assets = (
             "css/pharmacist.css",
             "js/pharmacist.js",
-            "css/receipt.css",
+            "css/workflows.css",
+            "css/sale_pos.css",
+            "js/sale_pos.js",
         )
 
         for asset in assets:
             with self.subTest(asset=asset):
-                self.assertIsNotNone(
-                    finders.find(f"pharmacist/{asset}")
-                )
+                self.assertIsNotNone(finders.find(f"pharmacist/{asset}"))
 
     def test_queue_displays_pending_database_records(self):
         # These views do not open files, so only a stored path is needed.
@@ -222,9 +200,7 @@ class PharmacistAccessTests(TestCase):
         )
         self.client.force_login(self.pharmacist)
 
-        response = self.client.get(
-            reverse("pharmacist:prescription_queue")
-        )
+        response = self.client.get(reverse("pharmacist:prescription_queue"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f"RX-{prescription.pk}")
@@ -270,9 +246,7 @@ class PharmacistAccessTests(TestCase):
         )
         self.client.force_login(self.pharmacist)
 
-        response = self.client.get(
-            reverse("pharmacist:prescription_queue")
-        )
+        response = self.client.get(reverse("pharmacist:prescription_queue"))
 
         self.assertQuerySetEqual(
             response.context["prescriptions"],
@@ -416,9 +390,7 @@ class PrescriptionWorkflowTests(TestCase):
         self.assertIsNotNone(self.prescription.reviewed_at)
         self.assertEqual(self.prescription.rejection_reason, "")
 
-        queue = self.client.get(
-            reverse("pharmacist:prescription_queue")
-        )
+        queue = self.client.get(reverse("pharmacist:prescription_queue"))
         self.assertQuerySetEqual(queue.context["prescriptions"], [])
 
     def test_rejection_requires_reason_and_saves_valid_reason(self):
@@ -522,9 +494,7 @@ class PrescriptionWorkflowTests(TestCase):
             response.close()
 
     def test_missing_document_blocks_download_and_approval(self):
-        self.prescription.document.storage.delete(
-            self.prescription.document.name
-        )
+        self.prescription.document.storage.delete(self.prescription.document.name)
 
         self.assertEqual(
             self.client.get(self.document_url).status_code,
@@ -573,3 +543,14 @@ class PrescriptionWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.prescription.refresh_from_db()
         self.assertEqual(self.prescription.status, "pending")
+
+
+class RetiredSampleRouteTests(TestCase):
+    def test_sample_urls_are_removed(self):
+        for path in (
+            "/pharmacist/prescriptions/sample/",
+            "/pharmacist/orders/sample/",
+            "/pharmacist/sales/sample/receipt/",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 404)
