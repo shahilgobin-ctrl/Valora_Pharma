@@ -27,6 +27,7 @@
         .register:hover, .send-button:hover { filter: brightness(.9); }
         {% block page_styles %}{% endblock %}
     </style>
+    {% block extra_styles %}{% endblock %}
 </head>
 <body class="{{ active_page }}-page">
     {% if not preview_mode %}{% url 'home' as home_url %}{% url 'shop:shop' as shop_url %}{% url 'shop:cart' as cart_url %}{% endif %}

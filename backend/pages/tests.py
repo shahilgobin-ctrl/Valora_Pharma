@@ -72,16 +72,22 @@ class PageRenderingTests(TestCase):
             self.assertTrue(all("href" not in a and "tabindex" not in a for a in unavailable))
             self.assertNotContains(response, 'href="#"')
 
-    def test_styles_are_internal_and_assets_are_embedded(self):
+    def test_page_styles_use_local_assets_and_about_uses_static_css(self):
         for page in ("about", "contact"):
             response = self.client.get(reverse(f"pages:{page}"))
             html = response.content.decode()
             self.assertEqual(html.count("<style>"), 1)
             self.assertLess(html.index("</style>"), html.index("</head>"))
-            self.assertNotIn('rel="stylesheet"', html)
+            if page == "about":
+                from django.contrib.staticfiles import finders
+                self.assertIn('href="/static/pages/about.css"', html)
+                self.assertTrue(finders.find("pages/about.css"))
+            else:
+                self.assertNotIn('rel="stylesheet"', html)
             self.assertNotIn("<script", html)
             self.assertNotIn("@import", html)
-            self.assertIn("data:font/woff;base64,", html)
+            if page == "contact":
+                self.assertIn("data:font/woff;base64,", html)
             for tag, attrs in PageElements(html).elements:
                 self.assertNotIn("style", attrs)
                 if tag == "img":

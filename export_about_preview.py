@@ -19,5 +19,9 @@ for page in ("about", "contact"):
         context["form"] = ContactForm()
     output = ROOT / "frontend" / f"{page}-preview.html"
     html = render_to_string(f"pages/{page}.html", context)
+    if page == "about":
+        css = (ROOT / "frontend/static/pages/about.css").read_text(encoding="utf-8")
+        css = css.replace("../accounts/fonts/", "static/accounts/fonts/")
+        html = html.replace('<link rel="stylesheet" href="/static/pages/about.css">', '<style>' + css + '</style>')
     output.write_text("\n".join(line.rstrip() for line in html.splitlines()).rstrip() + "\n", encoding="utf-8")
     print(f"Created {output}")
