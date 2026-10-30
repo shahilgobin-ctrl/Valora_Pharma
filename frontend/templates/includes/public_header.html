@@ -1,0 +1,31 @@
+{% load static %}
+{% if not preview_mode %}{% url 'home' as home_url %}{% url 'shop:shop' as shop_url %}{% url 'shop:cart' as cart_url %}{% endif %}
+<header class="vp-header" id="header">
+  <div class="vp-header__inner">
+    <a class="vp-brand" data-nav="brand" href="{% if preview_mode %}about-preview.html{% elif home_url %}{{ home_url }}{% else %}{% url 'pages:about' %}{% endif %}" aria-label="ValoraPharma home">
+      <img class="vp-brand__mark" src="{% static 'accounts/assets/pill-login.svg' %}" alt="" width="40" height="40">
+      <span class="vp-brand__name">Valora<span class="vp-brand__accent">Pharma</span></span>
+    </a>
+    <nav class="vp-nav" id="navLinks" aria-label="Main navigation">
+      {% if home_url %}<a data-nav="home" href="{{ home_url }}"{% if active_page == 'home' %} aria-current="page"{% endif %}>Home</a>{% else %}<span aria-disabled="true">Home</span>{% endif %}
+      {% if shop_url %}<a data-nav="product" href="{{ shop_url }}"{% if active_page == 'product' %} aria-current="page"{% endif %}>Product</a>{% else %}<span aria-disabled="true">Product</span>{% endif %}
+      <a data-nav="about" href="{% if preview_mode %}about-preview.html{% else %}{% url 'pages:about' %}{% endif %}"{% if active_page == 'about' %} aria-current="page"{% endif %}>About</a>
+      <a data-nav="contact" href="{% if preview_mode %}contact-preview.html{% else %}{% url 'pages:contact' %}{% endif %}"{% if active_page == 'contact' %} aria-current="page"{% endif %}>Contact</a>
+      {% if not user.is_authenticated and not preview_mode %}<a class="vp-mobile-signin" href="{% url 'accounts:login' %}">Sign in</a>{% endif %}
+    </nav>
+    <div class="vp-actions">
+      {% if cart_url %}<a class="vp-cart" data-nav="cart" href="{{ cart_url }}" aria-label="Shopping cart">{% else %}<span class="vp-cart" aria-disabled="true" aria-label="Shopping cart unavailable">{% endif %}
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L21 8H6"/></svg>
+        <span class="cart-count{% if public_cart_count %} show{% endif %}" id="cartCount">{{ public_cart_count|default:0 }}</span>
+      {% if cart_url %}</a>{% else %}</span>{% endif %}
+      {% if preview_mode %}
+        <span class="vp-signin" aria-disabled="true">Sign in</span><span class="vp-register" aria-disabled="true">Register</span>
+      {% elif user.is_authenticated %}
+        <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="vp-register" type="submit">Sign out</button></form>
+      {% else %}
+        <a class="vp-signin" href="{% url 'accounts:login' %}">Sign in</a><a class="vp-register" href="{% url 'accounts:register' %}">Register</a>
+      {% endif %}
+      <button class="vp-menu" id="hamburger" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+  </div>
+</header>

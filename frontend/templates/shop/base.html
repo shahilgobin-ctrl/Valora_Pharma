@@ -6,30 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}ValoraPharma Products{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'shop/shop.css' %}?v=public-style-20261031">
-  </head>
+  <link rel="stylesheet" href="{% static 'public-header.css' %}">
+<script src="{% static 'public-header.js' %}" defer></script>
+</head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="{% url 'home' %}">
-        <img class="brand-mark" src="{% static 'accounts/assets/pill-login.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span>
-      </a>
-
-      <nav aria-label="Main navigation">
-        <a href="{% url 'home' %}">Home</a>
-        <a href="{% url 'shop:shop' %}" aria-current="page">Product</a>
-        <a href="{% url 'pages:about' %}">About</a>
-        <a href="{% url 'pages:contact' %}">Contact</a>
-      </nav>
-
-      <div class="header-actions">
-        <a class="cart-link" href="{% url 'shop:cart' %}" aria-label="Shopping cart"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L21 8H6"/></svg><span class="cart-count">{{ cart_count }}</span></a>
-        {% if user.is_authenticated %}
-          <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="register-link" type="submit">Sign out</button></form>
-        {% else %}
-          <a href="{% url 'accounts:login' %}">Sign in</a>
-          <a class="register-link" href="{% url 'accounts:register' %}">Register</a>
-        {% endif %}
-      </div>
-    </header>
+    {% include "includes/public_header.html" with active_page="product" %}
 
     <main>
       {% block content %}{% endblock %}

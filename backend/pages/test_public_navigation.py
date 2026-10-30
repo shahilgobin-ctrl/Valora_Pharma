@@ -87,3 +87,33 @@ class PublicNavigationTests(TestCase):
                 self.assertEqual(parser.labels.count("Product"), 1)
                 self.assertNotIn("Products", parser.labels)
                 self.assertNotIn("Shop", parser.labels)
+
+
+    def test_public_pages_share_identical_header_branding_and_hide_empty_badge(self):
+        headers = []
+        for route in ["home", "shop:shop", "pages:about", "pages:contact"]:
+            response = self.client.get(reverse(route))
+            self.assertTemplateUsed(response, "includes/public_header.html")
+            header = response.content.decode().split('<header class="vp-header"', 1)[1].split('</header>', 1)[0]
+            self.assertIn('class="cart-count"', header)
+            self.assertNotIn('class="cart-count show"', header)
+            self.assertIn('src="/static/accounts/assets/pill-login.svg"', header)
+            headers.append(header.replace(' aria-current="page"', ''))
+        self.assertTrue(all(header == headers[0] for header in headers))
+
+    def test_saved_cart_count_is_visible_on_every_public_page(self):
+        from inventory.models import Medicine
+        from shop.models import Cart, CartItem
+        medicine = Medicine.objects.create(name="Header medicine", strength="10 mg", dosage_form="Tablet",
+            selling_price="10.00", category_name="Test")
+        item = CartItem.objects.create(cart=Cart.objects.create(user=self.customer),
+            product=medicine.storefront, quantity=2)
+        self.client.force_login(self.customer)
+        routes = ["home", "shop:shop", "pages:about", "pages:contact"]
+        for route in routes:
+            header = self.client.get(reverse(route)).content.decode().split('<header class="vp-header"', 1)[1].split('</header>', 1)[0]
+            self.assertIn('class="cart-count show" id="cartCount">2</span>', header)
+        item.delete()
+        for route in routes:
+            header = self.client.get(reverse(route)).content.decode().split('<header class="vp-header"', 1)[1].split('</header>', 1)[0]
+            self.assertIn('class="cart-count" id="cartCount">0</span>', header)

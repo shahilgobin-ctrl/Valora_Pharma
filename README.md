@@ -266,3 +266,10 @@ also select the directory and takes precedence over the pointer. The directory
 must already exist; configuration errors do not create a fresh empty database.
 DJANGO_DATABASE_PATH, DJANGO_MEDIA_ROOT and DJANGO_SECRET_KEY still override their
 individual values. No computer-specific paths or private files belong in commits.
+
+
+The public pages share includes/public_header.html and public-header.css/js.
+Brand typography, pill artwork, cart icon, active navigation and mobile menu
+therefore have one implementation. The cart badge reads the saved customer cart
+through a lazy context processor; it is hidden when the cart is empty and updated
+when items are added. Page body content is independent of this shared header.

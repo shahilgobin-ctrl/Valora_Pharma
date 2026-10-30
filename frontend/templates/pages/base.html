@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="en">
 <head>
@@ -28,37 +29,14 @@
         {% block page_styles %}{% endblock %}
     </style>
     {% block extra_styles %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'public-header.css' %}">
+    <script src="{% static 'public-header.js' %}" defer></script>
 </head>
 <body class="{{ active_page }}-page">
     {% if not preview_mode %}{% url 'home' as home_url %}{% url 'shop:shop' as shop_url %}{% url 'shop:cart' as cart_url %}{% endif %}
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="site-shell">
-        <header class="site-header">
-            <div class="header-inner">
-                <a class="brand" href="{% if preview_mode %}about-preview.html{% elif home_url %}{{ home_url }}{% else %}{% url 'pages:about' %}{% endif %}" aria-label="ValoraPharma{% if home_url %} — Home{% else %} — About us{% endif %}">
-                    <span class="brand-mark">{% block brand_icon %}{% endblock %}</span>
-                    <span class="brand-name"><span>Valora</span><span class="brand-accent">Pharma</span></span>
-                </a>
-                <nav class="primary-nav" aria-label="Main navigation">
-                    {% if home_url %}<a class="nav-home" href="{{ home_url }}">Home</a>{% else %}<span class="nav-home" aria-disabled="true" title="Home is not connected in this branch">Home</span>{% endif %}
-                    {% if shop_url %}<a class="nav-products" href="{{ shop_url }}">Product</a>{% else %}<span class="nav-products" aria-disabled="true" title="Product is not connected in this branch">Product</span>{% endif %}
-                    <a class="nav-about" href="{% if preview_mode %}about-preview.html{% else %}{% url 'pages:about' %}{% endif %}"{% if active_page == 'about' %} aria-current="page"{% endif %}>About</a>
-                    <a class="nav-contact" href="{% if preview_mode %}contact-preview.html{% else %}{% url 'pages:contact' %}{% endif %}"{% if active_page == 'contact' %} aria-current="page"{% endif %}>Contact</a>
-                </nav>
-                <div class="account-actions">
-                    {% if cart_url %}<a class="cart" href="{{ cart_url }}" aria-label="Shopping cart">{% else %}<span class="cart" role="img" aria-label="Shopping cart unavailable in this branch" aria-disabled="true" title="Cart is not connected in this branch">{% endif %}{% block cart_icon %}{% endblock %}{% if cart_url %}</a>{% else %}</span>{% endif %}
-                    {% if preview_mode %}
-                    <span class="sign-in" aria-disabled="true" title="Run Django to sign in">{% if active_page == 'about' %}Sign in{% else %}Sign In{% endif %}</span>
-                    <span class="register" aria-disabled="true" title="Run Django to register">Register</span>
-                    {% elif user.is_authenticated %}
-                    <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="register" type="submit">Sign out</button></form>
-                    {% else %}
-                    <a class="sign-in" href="{% url 'accounts:login' %}">{% if active_page == 'about' %}Sign in{% else %}Sign In{% endif %}</a>
-                    <a class="register" href="{% url 'accounts:register' %}">Register</a>
-                    {% endif %}
-                </div>
-            </div>
-        </header>
+        {% include "includes/public_header.html" %}
         <main id="main-content" tabindex="-1">{% block content %}{% endblock %}</main>
     </div>
 </body>

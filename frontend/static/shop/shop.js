@@ -28,6 +28,7 @@
   }
 
   const syncProceedButton = (itemCount) => {
+    document.querySelector(".cart-count")?.classList.toggle("show", Number(itemCount || 0) > 0);
     const button = document.querySelector("#proceed-to-cart");
     if (button) button.hidden = Number(itemCount || 0) < 1;
   };

@@ -82,16 +82,15 @@ class PageRenderingTests(TestCase):
                 from django.contrib.staticfiles import finders
                 self.assertIn('href="/static/pages/about.css"', html)
                 self.assertTrue(finders.find("pages/about.css"))
-            else:
-                self.assertNotIn('rel="stylesheet"', html)
-            self.assertNotIn("<script", html)
+            self.assertTrue('href="/static/public-header.css"' in html)
+            self.assertTrue('src="/static/public-header.js"' in html)
             self.assertNotIn("@import", html)
             if page == "contact":
                 self.assertIn("data:font/woff;base64,", html)
             for tag, attrs in PageElements(html).elements:
                 self.assertNotIn("style", attrs)
                 if tag == "img":
-                    self.assertTrue(attrs["src"].startswith("data:image/"))
+                    self.assertTrue(attrs["src"].startswith(("data:image/", "/static/")))
                     self.assertIn("alt", attrs)
 
     def test_about_copy_and_three_benefits_match_the_design(self):
@@ -133,9 +132,9 @@ class PageRenderingTests(TestCase):
         for page in ("about", "contact"):
             response = self.client.get(reverse(f"pages:{page}"))
             elements = PageElements(response.content.decode()).elements
-            links = {a.get("class"): a.get("href") for t, a in elements if t == "a"}
-            self.assertEqual(links["nav-home"], "/home/")
-            self.assertEqual(links["nav-products"], "/catalogue/")
+            links = {a.get("data-nav"): a.get("href") for t, a in elements if t == "a"}
+            self.assertEqual(links["home"], "/home/")
+            self.assertEqual(links["product"], "/catalogue/")
             self.assertEqual(links["cart"], "/catalogue/basket/")
             self.assertEqual(links["brand"], "/home/")
             self.assertNotIn("nav-shop", links)

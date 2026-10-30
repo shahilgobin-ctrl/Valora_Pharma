@@ -1,15 +1,3 @@
-// Mobile menu
-const burger = document.getElementById('hamburger'), links = document.getElementById('navLinks');
-burger.addEventListener('click', () => {
-  const open = links.classList.toggle('open');
-  burger.setAttribute('aria-expanded', open);
-});
-links.addEventListener('click', e => { if(e.target.tagName==='A') links.classList.remove('open'); });
-
-// Header shadow on scroll
-const header = document.getElementById('header');
-addEventListener('scroll', () => header.classList.toggle('scrolled', scrollY > 10), {passive:true});
-
 // Scroll reveal
 const io = new IntersectionObserver(entries => {
   entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });

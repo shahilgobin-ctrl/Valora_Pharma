@@ -76,6 +76,7 @@ TEMPLATES = [{
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
         "pharmacist.context_processors.pharmacy_profile",
+        "pages.context_processors.public_header",
     ]},
 }]
 WSGI_APPLICATION = "config.wsgi.application"

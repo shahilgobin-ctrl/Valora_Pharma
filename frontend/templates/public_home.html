@@ -7,44 +7,13 @@
 <title>Valora Pharma – Your Trusted Community Pharmacy</title>
 <meta name="description" content="Browse our full medicine catalogue and collect from our branch at your convenience.">
 <link rel="stylesheet" href="{% static 'home.css' %}">
+<link rel="stylesheet" href="{% static 'public-header.css' %}">
+<script src="{% static 'public-header.js' %}" defer></script>
 </head>
 <body data-cart-add-url="{% url 'shop:api_cart_add' %}" data-login-url="{% url 'accounts:login' %}">
 
 <!-- ============ HEADER ============ -->
-<header id="header">
-  <div class="container nav">
-    <a href="{% url 'home' %}" class="logo" aria-label="Valora Pharma home">
-      <img class="brand-symbol" src="{% static 'accounts/assets/pill-login.svg' %}" alt="" width="42" height="42">
-      <span>Valora<em>Pharma</em></span>
-    </a>
-
-    <ul class="nav-links" id="navLinks">
-      <li><a href="{% url 'home' %}" class="active">Home</a></li>
-      <li><a href="{% url 'shop:shop' %}">Product</a></li>
-      <li><a href="#contact">Contact</a></li>
-      {% if not user.is_authenticated %}<li class="mobile-signin"><a href="{% url 'accounts:login' %}">Sign in</a></li>{% endif %}
-    </ul>
-
-    <div class="nav-actions">
-      <a href="{% url 'shop:cart' %}" class="cart-btn" aria-label="Shopping cart">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L21 8H6"/></svg>
-        <span class="cart-count{% if cart_count %} show{% endif %}" id="cartCount">{{ cart_count }}</span>
-      </a>
-      {% if user.is_authenticated %}
-      <form method="post" action="{% url 'manager:signout' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn-register">Sign out</button>
-      </form>
-      {% else %}
-      <a href="{% url 'accounts:login' %}" class="link-signin">Sign in</a>
-      <a href="{% url 'accounts:register' %}" class="btn-register">Register</a>
-      {% endif %}
-      <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
+{% include "includes/public_header.html" with active_page="home" %}
 
 <main>
 <!-- ============ HERO ============ -->
