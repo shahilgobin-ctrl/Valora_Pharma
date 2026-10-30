@@ -86,3 +86,38 @@ class SharedManagerInventoryTests(TestCase):
         self.client.force_login(self.pharmacist)
         self.assertEqual(self.client.get(reverse("manager:dashboard")).status_code, 403)
         self.assertEqual(self.client.get(reverse("pharmacist:dashboard")).status_code, 200)
+
+    def test_manager_controls_and_default_image_are_kept_on_merger(self):
+        from .forms import MedicineForm
+        self.client.force_login(self.manager)
+        response = self.client.get(reverse("manager:medicines"))
+        self.assertContains(response, reverse("manager:medicine_delete", args=[self.product.pk]))
+        self.assertContains(response, reverse("manager:signout"))
+        self.assertContains(response, reverse("home"))
+        self.assertNotIn("image", MedicineForm().fields)
+        response = self.client.post(reverse("manager:medicine_new"), {
+            "name": "New catalogue medicine", "strength": "10 mg", "dosage_form": "Tablet",
+            "price": "12.50", "category": self.product.category_id,
+            "image": "https://ignored.example.test/photo.jpg",
+        })
+        self.assertEqual(response.status_code, 302)
+        medicine = Medicine.objects.get(name="New catalogue medicine")
+        self.assertEqual(medicine.storefront.image, "/static/shop/products/default-medicine.svg")
+
+    def test_manager_signout_returns_to_original_public_home(self):
+        self.client.force_login(self.manager)
+        response = self.client.post(reverse("manager:signout"))
+        self.assertRedirects(response, reverse("home"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(self.client.get(reverse("home")), self.product.category.name)
+
+    def test_home_category_links_filter_the_shared_catalogue(self):
+        from shop.models import Category
+        category = self.product.category
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "?category=" + category.slug)
+        response = self.client.get(reverse("shop:api_products"), {"category": category.slug})
+        self.assertEqual([item["id"] for item in response.json()], [self.product.pk])
+        other = Category.objects.create(name="Other category", slug="other-category")
+        response = self.client.get(reverse("shop:api_products"), {"category": other.slug})
+        self.assertEqual(response.json(), [])

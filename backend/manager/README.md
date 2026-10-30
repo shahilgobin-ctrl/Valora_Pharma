@@ -19,8 +19,7 @@ physical unexpired batches and pending order reservations directly.
 Migration `0005_link_existing_inventory` creates reporting links only from
 the existing `shop.Product.medicine_id` and exact `inventory.Batch` IDs.
 If old, unlinked manager batches are present, migration stops for explicit
-review. It never matches medicine names heuristically. The previously
-separate manager tables have no records in the current showcase database.
+review. It never matches medicine names heuristically. Previously separate manager records require an explicit, reviewed link to physical inventory; they must not be imported without that mapping.
 
 Manager access requires an active staff account with the `Pharmacy Managers`
 group permission. Pharmacists keep their own dashboard redirect. Anonymous
@@ -29,3 +28,25 @@ local preview access is disabled. Administrators retain their own login home.
 The shared test suite covers receipt visibility in shop and pharmacist pages,
 pharmacist completion, expiry handling, payments, access rules and redirects.
 Browser layout checks remain necessary after migrations are applied.
+
+
+## Home and manager parity
+
+The merger workspace retains the accessible medicine/batch Delete controls,
+confirmation and history preservation, image-free medicine forms with a default
+image for new medicines, and POST Sign out returning to the original public Home.
+Sales reports use the integrated order/payment records with customer, item,
+quantity and saved-price detail. Do not replace these reads with the older
+Pharmacy-Manager branch's separate order tables.
+
+Home categories and medicine cards are database-driven. Git pulls transfer code,
+not local SQLite records. An empty checkout must receive a reviewed data import
+and explicit inventory links; restarting the server does not populate categories.
+On 30 October 2026 the local merger demo received the approved 8 categories,
+12 linked medicines and 15 linked batches. The destination was backed up first;
+no database or private-media files were removed or committed.
+
+Regression tests in test_shared_inventory.py cover the manager controls, default
+image, sign-out destination and Home category filtering alongside the existing
+physical-inventory integration checks. Shared shop, authentication, pharmacist
+and administrator source files are unchanged by this parity update.
