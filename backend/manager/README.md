@@ -60,3 +60,9 @@ without replacing shop images or duplicating catalogue products. Existing custom
 Home artwork is preserved. Home shows its configured featured selection; the
 full catalogue contains newly added manager medicines. Manager edits update the
 linked authoritative medicine, so Home reads the current saved name and price.
+
+
+The later 31 October audit unified Home and Product artwork: pages migration 0004
+promotes approved Home photos into shop.Product.image, now the shared live field.
+The previous separate Home image rows are retained read-only for history. See
+INTEGRATION_AUDIT.md for database mapping and the full validation results.

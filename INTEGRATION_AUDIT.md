@@ -64,8 +64,9 @@ file was backed up outside the repository before the migration.
 
 ## Verification
 
-- 330 automated tests across accounts, inventory, orders, prescriptions,
-  pharmacist, shop, pages, manager and superadmin passed before the artwork change.
+- All 330 automated tests across accounts, inventory, orders, prescriptions,
+  pharmacist, shop, pages, manager and superadmin passed again after the artwork
+  change and README conflict resolution.
 - 131 pages/shop/manager tests passed after image consolidation; the image test
   checks Home, catalogue, medicine details and API output, and proves price and
   stock stay unchanged.
@@ -75,6 +76,7 @@ file was backed up outside the repository before the migration.
 - All 65 templates compile. No referenced local static files were missing.
 - Django system checks and migration/model consistency checks pass.
 - Static collection dry run passes; pip check reports no broken requirements.
+- All first-party frontend JavaScript files pass node --check syntax validation.
 
 Use explicit app labels when running tests from the repository root; an unlabelled
 python backend/manage.py test run there discovers zero tests. For example:
