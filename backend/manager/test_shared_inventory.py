@@ -24,7 +24,7 @@ class SharedManagerInventoryTests(TestCase):
         self.manager = User.objects.create_user("manager@example.test", "Test-pass-42", account_type="staff")
         self.manager.groups.add(Group.objects.get(name="Pharmacy Managers"))
         self.pharmacist = User.objects.create_user("pharmacist@example.test", "Test-pass-42", account_type="staff")
-        self.pharmacist.groups.add(Group.objects.create(name="Pharmacist"))
+        self.pharmacist.groups.add(Group.objects.get_or_create(name="Pharmacist")[0])
         self.customer = User.objects.create_user("customer@example.test", "Test-pass-42")
         self.medicine = Medicine.objects.create(name="Integrated medicine", strength="20 mg",
             dosage_form="Tablet", selling_unit="tablet", selling_price=Decimal("7.50"),

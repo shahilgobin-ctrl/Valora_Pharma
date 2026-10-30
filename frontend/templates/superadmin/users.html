@@ -1,0 +1,158 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>User Management</h1>
+    <a class="button" href="{% url 'superadmin:user_create' %}">
+      + Create account
+    </a>
+  </header>
+
+  <form class="filters" method="get">
+    <label class="sr-only" for="q">Search accounts</label>
+    <input
+      id="q"
+      name="q"
+      placeholder="Search name or email"
+      value="{{ request.GET.q }}"
+    >
+
+    <label class="sr-only" for="status">Account status</label>
+    <select id="status" name="status">
+      <option value="">All statuses</option>
+      <option
+        value="active"
+        {% if request.GET.status == 'active' %}selected{% endif %}
+      >
+        Active
+      </option>
+      <option
+        value="inactive"
+        {% if request.GET.status == 'inactive' %}selected{% endif %}
+      >
+        Inactive
+      </option>
+    </select>
+
+    <button class="button secondary">Search</button>
+    {% if request.GET.q or request.GET.status %}
+      <a href="{% url 'superadmin:users' %}" class="text-link">Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="table-scroll">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>EMAIL</th>
+          <th>Role</th>
+          <th>JOINED</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for account in accounts %}
+          <tr>
+            <td>
+              <a
+                class="user-link"
+                href="{% url 'superadmin:user_detail' account.pk %}"
+              >
+                {{ account.get_full_name|default:account.email }}
+              </a>
+            </td>
+            <td>{{ account.email }}</td>
+            <td>
+              <form
+                class="role-inline"
+                action="{% url 'superadmin:user_role' account.pk %}"
+                method="post"
+                data-confirm="Apply this role to the account? Super Administrator grants full system access."
+              >
+                {% csrf_token %}
+                <label class="sr-only" for="role-{{ account.pk }}">
+                  Role for {{ account.email }}
+                </label>
+                <select
+                  id="role-{{ account.pk }}"
+                  name="role"
+                  {% if account.pk == request.user.pk %}disabled{% endif %}
+                >
+                  {% if account.portal_role == 'Staff (unassigned)' %}
+                    <option value="" selected disabled>
+                      Staff (unassigned)
+                    </option>
+                  {% endif %}
+                  {% for role in roles %}
+                    <option
+                      value="{{ role.key }}"
+                      {% if account.portal_role == role.title %}selected{% endif %}
+                    >
+                      {{ role.title }}
+                    </option>
+                  {% endfor %}
+                </select>
+                {% if account.pk != request.user.pk %}
+                  <button
+                    class="apply-role"
+                    title="Save role for {{ account.email }}"
+                    aria-label="Save role for {{ account.email }}"
+                  >
+                    Save
+                  </button>
+                {% endif %}
+              </form>
+            </td>
+            <td class="nowrap">{{ account.date_joined|date:"d M Y" }}</td>
+            <td>
+              <span class="badge {% if account.is_active %}active{% else %}inactive{% endif %}">
+                {% if account.is_active %}Active{% else %}Inactive{% endif %}
+              </span>
+            </td>
+            <td>
+              {% if account.pk == request.user.pk %}
+                <a
+                  class="text-link"
+                  href="{% url 'superadmin:user_edit' account.pk %}"
+                >
+                  Edit profile
+                </a>
+              {% else %}
+                <form
+                  action="{% url 'superadmin:user_status' account.pk %}"
+                  method="post"
+                  {% if account.is_active %}
+                    data-confirm="Deactivate this account? The user will no longer be able to sign in."
+                  {% endif %}
+                >
+                  {% csrf_token %}
+                  <input
+                    type="hidden"
+                    name="active"
+                    value="{% if account.is_active %}0{% else %}1{% endif %}"
+                  >
+                  <button class="badge {% if account.is_active %}danger{% else %}active{% endif %}">
+                    {% if account.is_active %}Deactivate{% else %}Activate{% endif %}
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="empty">No accounts match your search.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include 'superadmin/pagination.html' with items=accounts %}
+  <p class="table-hint">
+    Select a user's name to view or update their account.
+  </p>
+{% endblock %}

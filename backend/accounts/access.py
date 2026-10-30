@@ -30,6 +30,8 @@ def role_home_name(user):
         return "manager:dashboard"
     if user.account_type == User.AccountType.ADMIN and not user_has_role(user, User.AccountType.ADMIN):
         return None
+    if user.account_type == User.AccountType.ADMIN:
+        return "superadmin:overview"
     if (user.account_type == User.AccountType.CUSTOMER
             and settings.PHARMACY_ROLE_HOME_ROUTES.get(user.account_type) == "accounts:customer_landing"):
         try:

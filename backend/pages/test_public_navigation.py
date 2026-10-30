@@ -45,7 +45,7 @@ class PublicNavigationTests(TestCase):
 
     def test_about_does_not_change_pharmacist_dashboard_destination(self):
         pharmacist = User.objects.create_user("public-pharmacist@example.test", "Test-pass-42", account_type="staff")
-        pharmacist.groups.add(Group.objects.create(name="Pharmacist"))
+        pharmacist.groups.add(Group.objects.get_or_create(name="Pharmacist")[0])
         self.client.force_login(pharmacist)
         self.assertEqual(self.client.get(reverse("pages:about")).status_code, 200)
         self.assertRedirects(self.client.get(reverse("accounts:login")), reverse("pharmacist:dashboard"))

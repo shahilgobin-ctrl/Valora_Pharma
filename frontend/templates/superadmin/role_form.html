@@ -1,0 +1,42 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}{{ role.title }} permissions{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>{{ role.title }}</h1>
+    <a class="text-link" href="{% url 'superadmin:roles' %}">
+      &larr; Roles &amp; Permissions
+    </a>
+  </header>
+
+  <section class="form-panel">
+    {% if locked %}
+      <h2>Full system governance access</h2>
+      <p>
+        Super Administrators can manage all accounts, assign roles and
+        permissions, view audit logs and update system settings.
+      </p>
+      <p>
+        This role always has full access. To remove administrator access from
+        another user, change their role in User Management.
+      </p>
+    {% else %}
+      <h2>Role permissions</h2>
+      <p class="help">
+        Changes apply to every account assigned to {{ role.title }}.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+        {% include 'superadmin/fields.html' %}
+        <div class="form-actions">
+          <button class="button">Save permissions</button>
+          <a class="button secondary" href="{% url 'superadmin:roles' %}">
+            Cancel
+          </a>
+        </div>
+      </form>
+    {% endif %}
+  </section>
+{% endblock %}

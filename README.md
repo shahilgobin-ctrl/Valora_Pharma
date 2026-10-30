@@ -1,12 +1,12 @@
 # Valora Pharma
 
-Django pharmacy project with public Home, Shop and About pages; shared login, email verification and recovery; and a protected pharmacist workspace for prescriptions, inventory, orders, walk-in sales and receipts.
+Django pharmacy project with public Home, Shop, About and Contact pages; shared login, email verification and recovery; and protected pharmacist, pharmacy manager and administrator workspaces.
 
 Inventory medicines, batch stock, prices, selling units and prescription flags are authoritative across the public shop and pharmacist workspace. Checkout records a simulated online payment once in the shared order system. Pharmacist fulfilment reuses it and deducts batch stock at completion. Delivery uses the configured shop fee; pickup has no fee. No real payment is processed.
 
 See [HOME_INTEGRATION.md](HOME_INTEGRATION.md) for migration and integration notes and [backend/shop/README.md](backend/shop/README.md) for the shared data model.
 
-The existing showcase database and uploads must be preserved. The convenience starters below apply migrations automatically. While migration review is pending, do not run those starters. After reviewing and backing up the configured database and private uploads, apply the approved migrations explicitly; never reset or reseed the showcase data.
+The existing showcase database and uploads must be preserved. The Admin and Manager migrations in this branch are pending review and have not been applied to the existing database. The convenience starters below apply migrations automatically. While migration review is pending, do not run those starters. After reviewing and backing up the configured database and private uploads, apply the approved migrations explicitly; never reset or reseed the showcase data.
 
 ## Start on Windows
 
@@ -49,12 +49,15 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Shop | http://127.0.0.1:8000/shop/ |
 | Cart | http://127.0.0.1:8000/cart/ |
 | About | http://127.0.0.1:8000/about/ |
+| Contact | http://127.0.0.1:8000/contact/ |
+| Pharmacy Manager | http://127.0.0.1:8000/manager/ |
+| Super Administrator | http://127.0.0.1:8000/superadmin/ |
 | Pharmacist workspace | http://127.0.0.1:8000/pharmacist/ |
 | Shared login for all roles | http://127.0.0.1:8000/login/ |
 | Customer landing page (temporary) | http://127.0.0.1:8000/account/customer/ |
 | Staff landing page (temporary) | http://127.0.0.1:8000/account/staff/ |
 | Supplier landing page (temporary) | http://127.0.0.1:8000/account/supplier/ |
-| Custom administrator landing page (temporary) | http://127.0.0.1:8000/account/admin/ |
+| Administrator compatibility route (redirects to workspace) | http://127.0.0.1:8000/account/admin/ |
 | Customer registration | http://127.0.0.1:8000/register/ |
 | Verify customer email | http://127.0.0.1:8000/email/verify/ |
 | Resend customer verification code | http://127.0.0.1:8000/email/resend/ |
@@ -62,11 +65,11 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
 | Django administration | http://127.0.0.1:8000/admin/ |
 
-Active staff in the Pharmacist group reach the pharmacist dashboard. Customers default to Home and retain safe return-to-Shop/cart destinations. Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, username, date of birth through a calendar picker, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate emails and usernames are rejected case-insensitively. Existing accounts may have no username.
+Active staff in the Pharmacist group reach the pharmacist dashboard. Active staff with the Pharmacy Managers permission reach the manager dashboard. Active administrator superusers reach the administrator workspace. The administrator workspace can manage accounts, roles, audit logs and registration settings; public staff registration stays closed. Customers default to Home and retain safe return-to-Shop/cart destinations. Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and password. Registration collects first name, last name, username, date of birth through a calendar picker, gender, email, phone number and password, and requires agreement to the linked Terms and Conditions. The acceptance time and terms version are saved with the account. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate emails and usernames are rejected case-insensitively. Existing accounts may have no username.
 
 The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 
-Customer registration creates an inactive account and emails a six-digit verification code. The customer can sign in only after the code is accepted; codes expire after 15 minutes and have five attempts. A resend page is available if the code expires. Public employee and supplier registration is closed: `/staff/register/` returns 403. A superuser provisions employee and supplier accounts in `/admin/`; those accounts start inactive until that superuser verifies the person's identity and activates them. Employees and suppliers then use `/login/`. Each destination checks the role again on every request. A pharmacy employee account does not receive Django administration access merely by having the pharmacy `staff` role.
+Customer registration creates an inactive account and emails a six-digit verification code. The customer can sign in only after the code is accepted; codes expire after 15 minutes and have five attempts. A resend page is available if the code expires. Public employee and supplier registration is closed: `/staff/register/` returns 403. A superuser provisions employee and supplier accounts in `/superadmin/` or Django administration at `/admin/`; those accounts start inactive until that superuser verifies the person's identity and activates them. Employees and suppliers then use `/login/`. Each destination checks the role again on every request. A pharmacy employee account does not receive Django administration access merely by having the pharmacy `staff` role.
 
 Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited per email-and-IP pair to eight attempts per fifteen minutes, so one user's mistakes do not lock everyone sharing a network. Email resend and password recovery requests have per-address cooldown and hourly limits. The development limiter uses a per-process cache.
 

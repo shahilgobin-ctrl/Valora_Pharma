@@ -28,7 +28,7 @@ class SharedFulfilmentTests(TestCase):
         self.addCleanup(settings.disable)
         self.customer = User.objects.create_user("customer@example.test", "Test-pass-42")
         self.pharmacist = User.objects.create_user("staff@example.test", "Test-pass-42", account_type="staff")
-        self.pharmacist.groups.add(Group.objects.create(name="Pharmacist"))
+        self.pharmacist.groups.add(Group.objects.get_or_create(name="Pharmacist")[0])
         self.medicine = Medicine.objects.create(name="Test medicine", strength="500 mg", dosage_form="Tablet",
             selling_unit="tablet", selling_price=Decimal("3.50"), category_name="Pain relief")
         self.product = self.medicine.storefront

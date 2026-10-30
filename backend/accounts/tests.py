@@ -355,14 +355,14 @@ class SharedRoleTests(AuthTestCase):
         supplier = self.customer(email="supplier@example.com", account_type=User.AccountType.SUPPLIER)
         administrator = User.objects.create_superuser("admin@example.com", PASSWORD)
         for user, home, forbidden in (
-            (supplier, "supplier_landing", "staff_landing"),
-            (administrator, "admin_landing", "supplier_landing"),
+            (supplier, "accounts:supplier_landing", "staff_landing"),
+            (administrator, "superadmin:overview", "supplier_landing"),
         ):
             with self.subTest(role=user.account_type):
                 response = self.client.post(reverse("accounts:login"), {
                     "email": user.email, "password": PASSWORD,
                 }, follow=True)
-                self.assertRedirects(response, reverse("accounts:" + home))
+                self.assertRedirects(response, reverse(home))
                 self.assertEqual(self.client.get(reverse("accounts:" + forbidden)).status_code, 403)
                 self.client.post(reverse("accounts:logout"))
 

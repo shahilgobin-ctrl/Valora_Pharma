@@ -15,7 +15,7 @@ class PharmacistAuthenticationTests(TestCase):
         self.user = User.objects.create_user(
             "pharmacist@example.test", "Maple!River42Sun", account_type="staff",
         )
-        self.user.groups.add(Group.objects.create(name="Pharmacist"))
+        self.user.groups.add(Group.objects.get_or_create(name="Pharmacist")[0])
 
     def test_shared_login_and_authenticated_login_reach_dashboard(self):
         response = self.client.post(reverse("accounts:login"), {

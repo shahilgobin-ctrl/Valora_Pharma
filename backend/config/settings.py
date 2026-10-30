@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "shop.apps.ShopConfig",
     "pages.apps.PagesConfig",
     "manager.apps.ManagerConfig",
+    "superadmin.apps.SuperadminConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
