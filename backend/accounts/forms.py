@@ -44,7 +44,7 @@ class RegistrationForm(forms.ModelForm):
     def clean_email(self):
         email = canonical_email(self.cleaned_data["email"])
         if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("An account with this email already exists. If it is unverified, request another verification code.")
+            raise ValidationError("An account with this email already exists.")
         return email
 
     def clean_date_of_birth(self):
@@ -110,24 +110,13 @@ class LoginForm(forms.Form):
                 self.request, email=cleaned["email"], password=cleaned["password"],
             )
             if user is None or user.account_type not in self.allowed_account_types:
-                raise ValidationError("Invalid email or password. If your account is pending verification or approval, complete that step first.")
+                raise ValidationError("Invalid email or password. Staff accounts may still need administrator approval.")
             self.user = user
         return cleaned
 
 
 class PasswordResetRequestForm(forms.Form):
     email = forms.EmailField(label="Email Address")
-
-    def clean_email(self):
-        return canonical_email(self.cleaned_data["email"])
-
-
-class EmailVerificationForm(forms.Form):
-    email = forms.EmailField(label="Email Address")
-    code = forms.RegexField(
-        regex=r"^\d{6}$", label="Verification Code",
-        error_messages={"invalid": "Enter the six-digit code from your email."},
-    )
 
     def clean_email(self):
         return canonical_email(self.cleaned_data["email"])

@@ -2,7 +2,6 @@ import secrets
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.utils import timezone
 from accounts.models import User, canonical_email
 
 class Command(BaseCommand):
@@ -21,6 +20,5 @@ class Command(BaseCommand):
                 email, password,
                 first_name="Demo", last_name="Customer",
                 account_type=User.AccountType.CUSTOMER,
-                email_verified_at=timezone.now(),
             )
         self.stdout.write(self.style.SUCCESS(f"Development demo created: {user.email} / {password}"))

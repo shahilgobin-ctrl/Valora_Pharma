@@ -6,7 +6,7 @@ The user refreshed origin through GitHub Desktop; no fetch was performed during 
 
 ## Integrated behaviour
 
-The public Home, Shop, cart and About pages use working named navigation routes. Customers default to Home and retain safe return-to-Shop/cart destinations through registration and verification. Shared authentication, email verification, password recovery and role restrictions are preserved. Active staff in the Pharmacist group continue to reach pharmacist:dashboard. Authenticated public headers use POST/CSRF logout.
+The public Home, Shop, cart and About pages use working named navigation routes. Customers default to Home and retain safe return-to-Shop/cart destinations through registration and sign-in. Shared authentication, password recovery and role restrictions are preserved. Customer signup no longer requires an email code. Active staff in the Pharmacist group continue to reach pharmacist:dashboard. Authenticated public headers use POST/CSRF logout.
 
 Inventory Medicine records are authoritative for medicine names, strengths, decimal prices, selling units, descriptions, prescription flags and active states. Public availability uses unexpired batches less pending online orders. Storefront records supply presentation metadata. Customer checkout writes the existing orders.Order queue, records one simulated online orders.Payment, and defers physical stock deductions to pharmacist completion. Uploaded prescriptions enter the existing private review workflow. Completion reuses the online payment and deducts batch stock once; cancellation retains the simulated payment with a refund timestamp. The legacy shop order/payment tables remain read-only history and are not used by new checkout.
 
