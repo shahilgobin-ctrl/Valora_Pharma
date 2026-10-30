@@ -131,7 +131,8 @@ class AboutPageTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "<script>")
 
-    def test_unknown_pages_return_404(self):
+    def test_public_root_and_unknown_pages(self):
+        self.assertEqual(resolve("/").view_name, "home")
         self.assertEqual(self.client.get("/does-not-exist/").status_code, 404)
 
     @override_settings(ROOT_URLCONF=MountedURLs)
