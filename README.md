@@ -6,7 +6,7 @@ Inventory medicines, batch stock, prices, selling units and prescription flags a
 
 See [HOME_INTEGRATION.md](HOME_INTEGRATION.md) for migration and integration notes and [backend/shop/README.md](backend/shop/README.md) for the shared data model.
 
-The existing showcase database and uploads must be preserved. The Admin and Manager migrations in this branch are pending review and have not been applied to the existing database. The convenience starters below apply migrations automatically. While migration review is pending, do not run those starters. After reviewing and backing up the configured database and private uploads, apply the approved migrations explicitly; never reset or reseed the showcase data.
+The existing showcase database and uploads must be preserved. The configured local database currently has no pending migrations. Check the migration plan for each installation before upgrading. The convenience starters below apply migrations automatically; review new migrations and verify database and private-upload backups first. Never reset or reseed the showcase data.
 
 ## Start on Windows
 
@@ -153,7 +153,9 @@ Run Django's system check and the included backend tests with:
 
 ```powershell
 python backend/manage.py check
-python backend/manage.py test accounts
+Push-Location backend
+python manage.py test --noinput
+Pop-Location
 ```
 
 ## Configuration and deployment

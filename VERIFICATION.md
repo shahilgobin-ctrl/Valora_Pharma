@@ -1,15 +1,36 @@
-# Combined verification - 30 October 2026
+# Combined verification
 
-Home, shop and About-page were integrated in order into merger, preserving the existing pharmacist workspace and shared authentication. Full integration details, source commits and the pending migration plan are in [HOME_INTEGRATION.md](HOME_INTEGRATION.md).
+The integrated project includes Home, Shop, About, Contact, pharmacist,
+manager and administrator workspaces. All account roles use the shared login.
+Customer registration creates an active account and returns to sign in;
+customer email verification routes have been removed. Password recovery
+remains available through email codes.
 
-- Full .venv Django suite after removing customer email verification: 321 tests passed across the installed apps.
-- Django check: no issues. makemigrations --check --dry-run: no changes detected.
-- Home and Shop JavaScript: node --check passed.
-- Fresh test-database migrations and a complete upgrade of a disposable showcase copy passed.
-- All original records in the showcase copy were preserved; SQLite integrity passed.
-- Existing pharmacist on the migrated copy: active staff, Pharmacist group, dashboard HTTP 200 and correct shared-login redirect.
-- The real configured database and 24 private uploads remained byte-for-byte unchanged.
+The login merge preserves customer redirects to Home, safe return links,
+pharmacist and manager dashboard redirects, administrator access restrictions,
+POST logout and the disabled manager preview bypass.
 
-Pending on the real database: orders.0006; shop.0001 through 0007, including both parallel 0004/0005 histories; pages.0001; and accounts.0005, which removes customer email verification and activates earlier pending customer signups. No migrations were applied to the real database and nothing was reset or reseeded. No migration history was deleted.
+Merge validation: all 321 combined tests passed, Django checks found no issues,
+and migration model checks found no changes. The configured local database had
+no pending migrations. No migrations were applied during this merge.
 
-Browser layouts and interaction still require combined review. Real SMTP and real payments were not tested; checkout uses a clearly labelled simulation. No deployment was performed.
+Validation commands, using the project virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py check
+.\.venv\Scripts\python.exe backend/manage.py makemigrations --check --dry-run
+.\.venv\Scripts\python.exe backend/manage.py migrate --plan
+Push-Location backend
+..\.venv\Scripts\python.exe manage.py test --noinput
+Pop-Location
+```
+
+Migration plans describe the configured local database. This merge does not
+apply migrations to that database. In particular, review accounts.0005 before
+applying it: it removes verification metadata and activates earlier pending
+customer signups. Preserve database and private upload backups before any
+upgrade. Existing migration history is retained.
+
+Browser review remains necessary for responsive layouts, navigation, shared
+login and logout, role dashboards, and password recovery. Real SMTP delivery
+and real payments are not verified; checkout uses simulated payment.
