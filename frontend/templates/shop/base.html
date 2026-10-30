@@ -22,7 +22,7 @@
       </nav>
 
       <div class="header-actions">
-        <a class="cart-link" href="{% url 'shop:cart' %}" aria-label="Cart">ðŸ›’<span class="cart-count">{{ cart_count }}</span></a>
+        <a class="cart-link" href="{% url 'shop:cart' %}" aria-label="Shopping cart"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L21 8H6"/></svg><span class="cart-count">{{ cart_count }}</span></a>
         {% if user.is_authenticated %}
           <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit">Sign out</button></form>
         {% else %}
