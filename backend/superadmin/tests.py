@@ -208,7 +208,16 @@ class AdministrationTests(TestCase):
 
     def test_login_logout_and_session_invalidation(self):
         self.client.logout()
-        response = self.client.post(self.url("login"), {"email": self.admin.email, "password": PASSWORD})
+        response = self.client.get(self.url("login"))
+        self.assertRedirects(
+            response,
+            reverse("accounts:login"),
+            fetch_redirect_response=False,
+        )
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"email": self.admin.email, "password": PASSWORD},
+        )
         self.assertRedirects(response, self.url("overview"))
         self.assertTrue(AuditLog.objects.filter(action="ADMIN_SIGNED_IN").exists())
         self.client.post(self.url("logout"))
@@ -218,19 +227,35 @@ class AdministrationTests(TestCase):
 
     def test_admin_login_rejects_customer_and_inactive_admin(self):
         self.client.logout()
-        for user in (self.customer, self.admin):
-            if user == self.admin:
-                user.is_active = False
-                user.save()
-            response = self.client.post(self.url("login"), {"email": user.email, "password": PASSWORD})
-            self.assertContains(response, "Unable to sign in")
-            self.assertNotIn("_auth_user_id", self.client.session)
+        response = self.client.get(self.url("login"))
+        self.assertRedirects(
+            response,
+            reverse("accounts:login"),
+            fetch_redirect_response=False,
+        )
+        self.admin.is_active = False
+        self.admin.save()
+        response = self.client.post(
+            reverse("accounts:login"),
+            {"email": self.admin.email, "password": PASSWORD},
+        )
+        self.assertTrue(response.context["form"].non_field_errors())
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_login_is_rate_limited(self):
         self.client.logout()
         for _ in range(8):
-            self.client.post(self.url("login"), {"email": self.admin.email, "password": "wrong"})
-        self.assertEqual(self.client.post(self.url("login"), {"email": self.admin.email, "password": PASSWORD}).status_code, 429)
+            self.client.post(
+                reverse("accounts:login"),
+                {"email": self.admin.email, "password": "wrong"},
+            )
+        self.assertEqual(
+            self.client.post(
+                reverse("accounts:login"),
+                {"email": self.admin.email, "password": PASSWORD},
+            ).status_code,
+            429,
+        )
 
     def test_overview_counts_are_live_and_users_are_searchable(self):
         response = self.client.get(self.url("overview"))

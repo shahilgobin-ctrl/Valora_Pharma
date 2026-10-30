@@ -1,7 +1,7 @@
 import csv
 from functools import wraps
 from django.contrib import messages
-from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth import logout, update_session_auth_hash
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -15,8 +15,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 from accounts.models import User
 from accounts.access import user_has_role
-from accounts.rate_limit import is_limited, key_for_request, record_failure, reset_failures
-from .forms import AccountForm, AdminLoginForm, RolePermissionsForm, SettingsForm
+from .forms import AccountForm, RolePermissionsForm, SettingsForm
 from .models import AuditLog, Role, SystemSettings
 from .services import assign_role, audit, protect_administrator, role_for
 
@@ -26,7 +25,7 @@ def administrator(view):
     @never_cache
     def wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect_to_login(request.get_full_path(), reverse("superadmin:login"))
+            return redirect_to_login(request.get_full_path(), reverse("accounts:login"))
         if not user_has_role(request.user, User.AccountType.ADMIN):
             return render(request, "superadmin/forbidden.html", status=403)
         if request.method == "POST":
@@ -69,20 +68,7 @@ def account_rows(users):
 @never_cache
 @require_http_methods(["GET", "POST"])
 def sign_in(request):
-    if user_has_role(request.user, User.AccountType.ADMIN):
-        return redirect("superadmin:overview")
-    key = key_for_request(request, request.POST.get("email", "superadmin"))
-    blocked = request.method == "POST" and is_limited(key)
-    form = AdminLoginForm(request.POST if request.method == "POST" else None, request=request, blocked=blocked)
-    if request.method == "POST":
-        if form.is_valid():
-            reset_failures(key)
-            login(request, form.user)
-            audit(request, "ADMIN_SIGNED_IN", form.user.email)
-            return redirect("superadmin:overview")
-        if not blocked:
-            record_failure(key)
-    return render(request, "superadmin/login.html", {"form": form, "portal": SystemSettings.current()}, status=429 if blocked else 200)
+    return redirect("accounts:login")
 
 
 @require_POST
