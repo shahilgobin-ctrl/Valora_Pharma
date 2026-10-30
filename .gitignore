@@ -27,3 +27,4 @@ backend/private_uploads/
 /merger.zip
 
 backend/private_media/
+.qa/

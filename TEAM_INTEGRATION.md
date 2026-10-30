@@ -11,9 +11,9 @@ New public customer registrations require a unique username. Older accounts and 
 | `customer` | Public registration | `accounts:customer_landing` | Active customer account |
 | `staff` | Superuser in Django admin, then identity check and activation | `accounts:staff_landing` | Active employee account |
 | `supplier` | Superuser in Django admin, then identity check and activation | `accounts:supplier_landing` | Active supplier account |
-| `admin` | `createsuperuser` | `accounts:admin_landing` | Active Django superuser with admin role |
+| `admin` | `createsuperuser` | `superadmin:overview` | Active Django superuser with admin role |
 
-`is_staff` is Django's permission to enter `/admin/`; it is **not** the pharmacy employee role. `/admin/` is Django's management site. `/account/admin/` is only the temporary custom administrator landing page. Ordinary employees and suppliers must not receive `is_staff` or `is_superuser`.
+`is_staff` is Django's permission to enter `/admin/`; it is **not** the pharmacy employee role. `/admin/` is Django's management site, while `/superadmin/` is the ValoraPharma administration portal. Ordinary employees and suppliers must not receive `is_staff` or `is_superuser`.
 
 After adding a teammate's app to `INSTALLED_APPS`, include its URL configuration in `backend/config/urls.py`. Protect every page and action, not just the post-login redirect:
 

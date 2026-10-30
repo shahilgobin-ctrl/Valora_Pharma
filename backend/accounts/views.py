@@ -172,9 +172,13 @@ def legacy_staff_login_view(request):
 @require_http_methods(["GET", "POST"])
 def register_view(request):
     from superadmin.models import SystemSettings
+
     if not SystemSettings.current().customer_registration:
-        return render(request, "accounts/registration_closed.html",
-                      {"login_url": reverse("accounts:login")}, status=403)
+        context = flow_context(request)
+        return render(
+            request, "accounts/registration_closed.html", context, status=403,
+        )
+
     form = RegistrationForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         try:

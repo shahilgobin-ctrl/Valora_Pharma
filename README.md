@@ -99,7 +99,7 @@ source .venv/bin/activate
 python backend/manage.py createsuperuser
 ```
 
-Open `/admin/`, sign in with that superuser, open **Users**, and select **Add user**. Set **Account type** to **Staff** or **Supplier** and enter an initial password. New privileged accounts start **inactive**. After checking the person's identity, edit the account and enable **Active**. Do not grant Django **Staff status** or **Superuser status** to ordinary pharmacy employees or suppliers. Give the initial password securely, then have them change it using **Forgot password?** once email delivery is configured. Custom administrator accounts are created with `createsuperuser`; they receive the `admin` pharmacy role. `/admin/` is Django's account-management site, while `/account/admin/` is a temporary destination for the teammate's custom admin pages.
+Open `/admin/`, sign in with that superuser, open **Users**, and select **Add user**. Set **Account type** to **Staff** or **Supplier** and enter an initial password. New privileged accounts start **inactive**. After checking the person's identity, edit the account and enable **Active**. Do not grant Django **Staff status** or **Superuser status** to ordinary pharmacy employees or suppliers. Give the initial password securely, then have them change it using **Forgot password?** once email delivery is configured. Custom administrator accounts are created with `createsuperuser`; they receive the `admin` pharmacy role. `/admin/` is Django's account-management site, and `/superadmin/` is the ValoraPharma account, roles, audit and settings portal.
 
 ## Optional development account
 

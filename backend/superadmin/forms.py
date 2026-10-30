@@ -18,7 +18,7 @@ class AccountForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "email", "phone", "date_of_birth", "gender", "is_active"]
+        fields = ["first_name", "last_name", "email", "username", "phone", "date_of_birth", "gender", "is_active"]
         widgets = {"date_of_birth": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
 
     def clean_email(self):
@@ -26,6 +26,12 @@ class AccountForm(forms.ModelForm):
         if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise ValidationError("An account with this email already exists.")
         return email
+
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        if username and User.objects.filter(username__iexact=username).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("This username is already taken.")
+        return username or None
 
     def clean_date_of_birth(self):
         value = self.cleaned_data.get("date_of_birth")
@@ -45,7 +51,12 @@ class AccountForm(forms.ModelForm):
         if not self.instance.pk and not password:
             self.add_error("password", "Enter a password for this account.")
         if password:
-            candidate = User(email=data.get("email", ""), first_name=data.get("first_name", ""), last_name=data.get("last_name", ""))
+            candidate = User(
+                email=data.get("email", ""),
+                username=data.get("username"),
+                first_name=data.get("first_name", ""),
+                last_name=data.get("last_name", ""),
+            )
             try:
                 validate_password(password, candidate)
             except ValidationError as exc:

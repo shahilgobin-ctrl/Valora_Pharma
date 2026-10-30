@@ -95,11 +95,49 @@ class AdministrationTests(TestCase):
                 account = User.objects.get(email=payload["email"])
                 self.assertTrue(account.check_password(PASSWORD))
                 self.assertNotEqual(account.password, PASSWORD)
-                self.assertEqual(account.account_type, "customer" if key == "customer" else "admin" if key == "super-administrator" else "staff")
+                self.assertEqual(
+                    account.account_type,
+                    "customer" if key == "customer" else (
+                        "admin" if key == "super-administrator" else "staff"
+                    ),
+                )
                 self.assertEqual(account.is_superuser, key == "super-administrator")
                 self.assertTrue(account.groups.filter(portal_role__key=key).exists())
                 log = AuditLog.objects.get(action="USER_CREATED", target=account.email)
                 self.assertNotIn(PASSWORD, str(log.details))
+
+    def test_admin_can_sign_in_from_the_shared_staff_login(self):
+        self.client.logout()
+
+        staff_login = self.client.get(reverse("accounts:staff_login"))
+        self.assertRedirects(staff_login, reverse("accounts:login"))
+
+        credentials = {
+            "email": self.admin.email,
+            "password": PASSWORD,
+        }
+        response = self.client.post(reverse("accounts:staff_login"), credentials)
+        self.assertEqual(response.status_code, 307)
+        response = self.client.post(response["Location"], credentials)
+        self.assertRedirects(response, self.url("overview"))
+        self.assertEqual(
+            self.client.session["_auth_user_id"],
+            str(self.admin.pk),
+        )
+
+    def test_username_is_saved_searchable_and_unique_ignoring_case(self):
+        response = self.client.post(self.url("user_create"), self.payload(username="PortalUser"))
+        self.assertEqual(response.status_code, 302)
+        account = User.objects.get(email="new@example.test")
+        self.assertEqual(account.username, "PortalUser")
+        results = self.client.get(self.url("users"), {"q": "portaluser"})
+        self.assertEqual(results.context["accounts"].paginator.count, 1)
+        self.assertContains(self.client.get(self.url("user_detail", account.pk)), "PortalUser")
+        duplicate = self.client.post(self.url("user_create"),
+            self.payload(email="another@example.test", username="PORTALUSER"))
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertIn("username", duplicate.context["form"].errors)
+        self.assertFalse(User.objects.filter(email="another@example.test").exists())
 
     def test_duplicate_email_and_weak_password_rejected(self):
         response = self.client.post(self.url("user_create"), self.payload(email="CUSTOMER@example.test"))
@@ -267,9 +305,14 @@ class AdministrationTests(TestCase):
         )
 
     def test_overview_counts_are_live_and_users_are_searchable(self):
+        User.objects.create_user(
+            email="staff@example.test",
+            password=PASSWORD,
+            account_type=User.AccountType.STAFF,
+        )
         response = self.client.get(self.url("overview"))
-        self.assertEqual(response.context["total"], 2)
-        self.assertEqual(response.context["staff_count"], 1)
+        self.assertEqual(response.context["total"], 3)
+        self.assertEqual(response.context["staff_count"], 2)
         response = self.client.get(self.url("users"), {"q": "Alex"})
         self.assertEqual(response.context["accounts"].paginator.count, 1)
         self.assertContains(response, self.customer.email)

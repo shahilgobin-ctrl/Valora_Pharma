@@ -52,7 +52,12 @@ def filtered_users(request):
     users = User.objects.prefetch_related("groups").order_by("date_joined", "pk")
     query = request.GET.get("q", "").strip()
     if query:
-        users = users.filter(Q(email__icontains=query) | Q(first_name__icontains=query) | Q(last_name__icontains=query))
+        users = users.filter(
+            Q(email__icontains=query)
+            | Q(username__icontains=query)
+            | Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+        )
     status = request.GET.get("status", "")
     if status in ("active", "inactive"):
         users = users.filter(is_active=status == "active")
@@ -110,7 +115,13 @@ def account_edit(request, pk=None):
     account = get_object_or_404(User, pk=pk) if pk else User()
     initial_role = Role.objects.filter(title=role_for(account)).first() if pk else Role.objects.get(key="customer")
     form = AccountForm(request.POST if request.method == "POST" else None, instance=account, initial={"role": initial_role})
-    before = {field: str(getattr(account, field)) for field in ("first_name", "last_name", "email", "phone", "date_of_birth", "gender", "is_active")}
+    before = {
+        field: str(getattr(account, field))
+        for field in (
+            "first_name", "last_name", "email", "username", "phone",
+            "date_of_birth", "gender", "is_active",
+        )
+    }
     previous_role = role_for(account) if pk else None
     if request.method == "POST" and form.is_valid():
         role = form.cleaned_data["role"]

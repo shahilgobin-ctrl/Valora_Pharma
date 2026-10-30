@@ -102,7 +102,7 @@ PHARMACY_ROLE_HOME_ROUTES = {
     "customer": "accounts:customer_landing",
     "staff": "accounts:staff_landing",
     "supplier": "accounts:supplier_landing",
-    "admin": "accounts:admin_landing",
+    "admin": "superadmin:overview",
 }
 SESSION_COOKIE_AGE = 12 * 60 * 60
 SESSION_COOKIE_HTTPONLY = True

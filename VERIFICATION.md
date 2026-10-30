@@ -10,7 +10,7 @@ The login merge preserves customer redirects to Home, safe return links,
 pharmacist and manager dashboard redirects, administrator access restrictions,
 POST logout and the disabled manager preview bypass.
 
-Merge validation: all 321 combined tests passed, Django checks found no issues,
+Merge validation: all 323 combined tests passed, Django checks found no issues,
 and migration model checks found no changes. The configured local database had
 no pending migrations. No migrations were applied during this merge.
 
