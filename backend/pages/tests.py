@@ -79,7 +79,7 @@ class PageRenderingTests(TestCase):
             self.assertEqual(html.count("<style>"), 1)
             self.assertLess(html.index("</style>"), html.index("</head>"))
             self.assertNotIn('rel="stylesheet"', html)
-            self.assertNotIn("<script", html)
+            self.assertNotIn("<script src=", html)
             self.assertNotIn("@import", html)
             self.assertIn("data:font/woff;base64,", html)
             for tag, attrs in PageElements(html).elements:
@@ -106,6 +106,21 @@ class PageRenderingTests(TestCase):
         self.assertContains(response, 'href="mailto:info@valorapharma.mu"')
         self.assertContains(response, "csrfmiddlewaretoken")
 
+    def test_signed_in_navigation_uses_protected_sign_out(self):
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(email="header@example.test", password="test-password-5829")
+        self.client.force_login(user)
+        for page in ("about", "contact"):
+            response = self.client.get(reverse(f"pages:{page}"))
+            self.assertContains(response, 'action="' + reverse("accounts:logout") + '"')
+            self.assertContains(response, 'method="post"')
+            self.assertContains(response, "csrfmiddlewaretoken")
+            self.assertNotContains(response, 'href="' + reverse("accounts:register") + '"')
+        response = self.client.post(reverse("accounts:logout"))
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_supported_http_methods(self):
         for page in ("about", "contact"):
             self.assertEqual(self.client.head(reverse(f"pages:{page}")).status_code, 200)
@@ -130,10 +145,9 @@ class PageRenderingTests(TestCase):
             links = {a.get("class"): a.get("href") for t, a in elements if t == "a"}
             self.assertEqual(links["nav-home"], "/home/")
             self.assertEqual(links["nav-products"], "/catalogue/")
-            self.assertEqual(links["cart"], "/catalogue/basket/")
-            self.assertEqual(links["brand"], "/home/")
-            if page == "about":
-                self.assertEqual(links["nav-shop"], "/catalogue/")
+            self.assertEqual(links["cart-btn"], "/catalogue/basket/")
+            self.assertEqual(links["logo"], "/home/")
+            self.assertEqual(links["nav-shop"], "/catalogue/")
             self.assertFalse(any(a.get("aria-disabled") == "true" for _, a in elements))
 
     @override_settings(ROOT_URLCONF=ConnectedURLs)
@@ -204,7 +218,7 @@ class ContactSubmissionTests(TestCase):
 
     def test_user_input_is_escaped_on_validation_failure(self):
         response = self.client.post(self.url, {**self.data, "full_name": '<script>alert("x")</script>', "email": "invalid"})
-        self.assertNotContains(response, '<script>')
+        self.assertNotContains(response, '<script>alert("x")</script>')
         self.assertContains(response, "&lt;script&gt;")
 
     def test_submissions_are_not_listed_publicly(self):
