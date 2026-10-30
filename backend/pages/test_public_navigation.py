@@ -56,3 +56,34 @@ class PublicNavigationTests(TestCase):
         for route in ["home", "shop:shop", "pages:about"]:
             self.assertEqual(self.client.get(reverse(route)).status_code, 200)
         self.assertEqual(self.client.get(reverse("shop:cart")).status_code, 403)
+
+
+    def test_each_public_header_has_one_product_link_in_the_same_order(self):
+        from html.parser import HTMLParser
+        class Navigation(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.inside = False
+                self.link = False
+                self.labels = []
+            def handle_starttag(self, tag, attrs):
+                if tag == "nav" or (tag == "ul" and dict(attrs).get("id") == "navLinks"):
+                    self.inside = True
+                if self.inside and tag == "a":
+                    self.link = True
+            def handle_endtag(self, tag):
+                if tag == "a":
+                    self.link = False
+                if tag in {"nav", "ul"}:
+                    self.inside = False
+            def handle_data(self, data):
+                if self.inside and self.link and data.strip():
+                    self.labels.append(data.strip())
+        for route in ["home", "shop:shop", "pages:about", "pages:contact"]:
+            with self.subTest(route=route):
+                parser = Navigation()
+                parser.feed(self.client.get(reverse(route)).content.decode())
+                self.assertEqual(parser.labels[:4], ["Home", "Product", "About", "Contact"])
+                self.assertEqual(parser.labels.count("Product"), 1)
+                self.assertNotIn("Products", parser.labels)
+                self.assertNotIn("Shop", parser.labels)

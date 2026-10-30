@@ -132,8 +132,7 @@ class PageRenderingTests(TestCase):
             self.assertEqual(links["nav-products"], "/catalogue/")
             self.assertEqual(links["cart"], "/catalogue/basket/")
             self.assertEqual(links["brand"], "/home/")
-            if page == "about":
-                self.assertEqual(links["nav-shop"], "/catalogue/")
+            self.assertNotIn("nav-shop", links)
             self.assertFalse(any(a.get("aria-disabled") == "true" for _, a in elements))
 
     @override_settings(ROOT_URLCONF=ConnectedURLs)

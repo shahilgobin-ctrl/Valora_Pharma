@@ -40,8 +40,7 @@
                 </a>
                 <nav class="primary-nav" aria-label="Main navigation">
                     {% if home_url %}<a class="nav-home" href="{{ home_url }}">Home</a>{% else %}<span class="nav-home" aria-disabled="true" title="Home is not connected in this branch">Home</span>{% endif %}
-                    {% if shop_url %}<a class="nav-products" href="{{ shop_url }}">Products</a>{% else %}<span class="nav-products" aria-disabled="true" title="Products is not connected in this branch">Products</span>{% endif %}
-                    {% if active_page == 'about' %}{% if shop_url %}<a class="nav-shop" href="{{ shop_url }}">Shop</a>{% else %}<span class="nav-shop" aria-disabled="true" title="Shop is not connected in this branch">Shop</span>{% endif %}{% endif %}
+                    {% if shop_url %}<a class="nav-products" href="{{ shop_url }}">Product</a>{% else %}<span class="nav-products" aria-disabled="true" title="Product is not connected in this branch">Product</span>{% endif %}
                     <a class="nav-about" href="{% if preview_mode %}about-preview.html{% else %}{% url 'pages:about' %}{% endif %}"{% if active_page == 'about' %} aria-current="page"{% endif %}>About</a>
                     <a class="nav-contact" href="{% if preview_mode %}contact-preview.html{% else %}{% url 'pages:contact' %}{% endif %}"{% if active_page == 'contact' %} aria-current="page"{% endif %}>Contact</a>
                 </nav>
