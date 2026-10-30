@@ -44,7 +44,10 @@ def risks():
 
 
 def purchase_orders():
-    return PurchaseOrder.objects.select_related("supplier", "created_by").prefetch_related("lines__product").order_by("-created_at", "-pk")
+    return PurchaseOrder.objects.select_related("supplier", "created_by").prefetch_related("lines__product").annotate(
+        ordered_units=Coalesce(Sum("lines__quantity"), Value(0)),
+        received_units=Coalesce(Sum("lines__received_quantity"), Value(0)),
+    ).order_by("-created_at", "-pk")
 
 
 def paid_sales():
@@ -76,3 +79,9 @@ def supplier_events():
         | ~Q(before__received_date=F("after__received_date"))
         | ~Q(before__expiry_date=F("after__expiry_date"))
     )
+
+
+def purchasing_overview():
+    """One count and at most five due open orders, with prefetched line details."""
+    open_orders = purchase_orders().filter(cancelled=False, ordered_units__gt=F("received_units"))
+    return {"count": open_orders.count(), "orders": open_orders.order_by("expected_date", "pk")[:5]}

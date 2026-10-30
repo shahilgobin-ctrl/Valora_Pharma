@@ -1,11 +1,17 @@
 {% extends 'manager/base.html' %}{% block title %}Manager dashboard{% endblock %}{% block heading %}Manager Dashboard{% endblock %}{% block content %}
 <div class="kpis">
-<a class="kpi" href="{% url 'manager:medicines' %}"><div class="ic g">✚</div><div><b>{{ total }}</b><span>Active medicines</span></div></a>
-<a class="kpi" href="{% url 'manager:alerts' %}#low"><div class="ic a">△</div><div><b>{{ counts.low }}</b><span>Low stock items</span></div></a>
 <a class="kpi" href="{% url 'manager:alerts' %}#out"><div class="ic r">⊗</div><div><b>{{ counts.out }}</b><span>Out of stock</span></div></a>
-<a class="kpi" href="{% url 'manager:reports' %}"><div class="ic g">↗</div><div><b>Rs {{ latest_sales.total|floatformat:2 }}</b><span>{{ latest_sales.label }} recorded sales</span></div></a>
+<a class="kpi" href="{% url 'manager:alerts' %}#low"><div class="ic a">△</div><div><b>{{ counts.low }}</b><span>Below reorder level</span></div></a>
+<a class="kpi" href="{% url 'manager:alerts' %}#expiring"><div class="ic a">△</div><div><b>{{ counts.expiring }}</b><span>Expiring soon</span></div></a>
+<a class="kpi" href="{% url 'manager:orders' %}?status=Open"><div class="ic g">↗</div><div><b>{{ purchasing.count }}</b><span>Open purchase orders</span></div></a>
 </div>
 <section aria-labelledby="shortcuts-heading"><h2 id="shortcuts-heading">What would you like to do?</h2><div class="shortcut-grid">{% for shortcut in shortcuts %}<a class="card shortcut" href="{{ shortcut.url }}"><svg class="i"><use href="#{{ shortcut.icon }}"/></svg><strong>{{ shortcut.label }}</strong><span class="mut">{{ shortcut.description }}</span><span aria-hidden="true" class="shortcut-arrow">↗</span></a>{% endfor %}</div></section>
 <div class="charts"><section class="card pad"><h2>Monthly Sales (Rs)</h2><div class="plot" aria-hidden="true"><div class="bars">{% for month in sales %}<div class="bar"><i style="height:{{ month.height }}%" title="{{ month.label }}: Rs {{ month.total }}"></i><span>{{ month.label }}</span></div>{% endfor %}</div></div><details class="chart-values"><summary>View sales figures</summary><table><thead><tr><th>Month</th><th>Recorded payments (Rs)</th></tr></thead><tbody>{% for month in sales %}<tr><td>{{ month.label }}</td><td>{{ month.total|floatformat:2 }}</td></tr>{% endfor %}</tbody></table></details></section>
 <section class="card pad"><h2>Stock Status</h2>{% if stock_total %}<div class="stock-ring" aria-hidden="true" style="background:conic-gradient(var(--teal) 0 {{ in_percent }}%,var(--amber) {{ in_percent }}% {{ low_percent }}%,var(--red) {{ low_percent }}% 100%)"></div>{% else %}<p class="empty">No active medicines.</p>{% endif %}<div class="leg"><p><i style="background:var(--teal)"></i>In stock <b>{{ counts.in_stock }}</b></p><p><i style="background:var(--amber)"></i>Low stock <b>{{ counts.low }}</b></p><p><i style="background:var(--red)"></i>Out of stock <b>{{ counts.out }}</b></p></div></section></div>
+<section class="card pad purchasing-summary" aria-labelledby="purchasing-heading">
+<h2 id="purchasing-heading">Expected supplier deliveries</h2>
+{% if purchasing.orders %}<p class="mut">Next open orders by expected date.</p><table><thead><tr><th>Order</th><th>Supplier</th><th>Expected</th><th>Received / ordered</th><th>Status</th><th>Total (Rs)</th></tr></thead><tbody>
+{% for order in purchasing.orders %}<tr><td><a href="{% url 'manager:purchase_detail' order.pk %}">{{ order.reference }}</a></td><td>{{ order.supplier.name }}</td><td>{{ order.expected_date|date:'d M Y' }}</td><td>{{ order.received_units }} / {{ order.ordered_units }}</td><td>{{ order.status }}</td><td>{{ order.total|floatformat:2 }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<p class="mut">No outstanding supplier deliveries.</p>{% endif %}
+</section>
 {% endblock %}

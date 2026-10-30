@@ -7,7 +7,7 @@ from django.templatetags.static import static
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import DecimalField, F, Q, Sum
+from django.db.models import DecimalField, F, Q, Sum, Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -15,12 +15,12 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from shop.models import Category, Product
-from orders.models import Order, Payment
+from orders.models import Order, Payment, OrderStatusEvent
 from .access import manager_required
 from .forms import (AdjustmentForm, BatchForm, CategoryForm, DateRangeForm, MedicineForm,
     ProductInventoryForm, BatchRemovalForm, PurchaseLines, PurchaseOrderForm, ReceiveLines, SupplierForm)
 from .models import Batch, BatchHistory, MedicineDetails, PurchaseOrder, StockMovement, Supplier
-from .selectors import medicines as catalogue, monthly_sales, paid_sales, policy, purchase_orders as orders_query, risks, batches_with_policy, supplier_events
+from .selectors import medicines as catalogue, monthly_sales, paid_sales, policy, purchase_orders as orders_query, risks, batches_with_policy, supplier_events, purchasing_overview
 from .services import adjust_stock, audit, receive_order, save_batch, remove_batch, delete_supplier
 
 
@@ -54,7 +54,7 @@ def dashboard(request):
     shortcuts = [{"label": label, "url": reverse("manager:" + route), "icon": icon, "description": description}
                  for label, route, icon, description in specs]
     return page(request, "overview", "overview", total=catalogue().filter(is_active=True).count(),
-        counts=counts, sales=sales, latest_sales=sales[-1], shortcuts=shortcuts, stock_total=stock_total,
+        counts=counts, sales=sales, latest_sales=sales[-1], shortcuts=shortcuts, stock_total=stock_total, purchasing=purchasing_overview(),
         in_percent=counts["in_stock"] / stock_total * 100 if stock_total else 0,
         low_percent=(counts["in_stock"] + counts["low"]) / stock_total * 100 if stock_total else 0)
 
@@ -325,8 +325,16 @@ def purchase_orders(request):
     else:
         rows = rows.none()
     status = request.GET.get("status", "")
-    if status in {"Pending", "Partial", "Received", "Cancelled"}:
-        rows = [order for order in rows if order.status == status]
+    if status == "Open":
+        rows = rows.filter(cancelled=False, ordered_units__gt=F("received_units"))
+    elif status == "Pending":
+        rows = rows.filter(cancelled=False, received_units=0)
+    elif status == "Partial":
+        rows = rows.filter(cancelled=False, received_units__gt=0, ordered_units__gt=F("received_units"))
+    elif status == "Received":
+        rows = rows.filter(cancelled=False, ordered_units__gt=0, ordered_units=F("received_units"))
+    elif status == "Cancelled":
+        rows = rows.filter(cancelled=True)
     return page(request, "purchase_orders", "orders", rows=paginate(request, rows), q=q, selected_status=status, date_form=dates)
 
 
@@ -463,7 +471,10 @@ def customer_orders(request):
 @manager_required
 @require_GET
 def customer_order_detail(request, pk):
-    order = get_object_or_404(Order.objects.select_related("customer", "payment").prefetch_related("items__medicine"), pk=pk)
+    order = get_object_or_404(Order.objects.select_related(
+        "customer", "payment", "prescription__reviewed_by", "processed_by"
+    ).prefetch_related("items__medicine", Prefetch("status_events",
+        queryset=OrderStatusEvent.objects.select_related("recorded_by").order_by("recorded_at", "pk"))), pk=pk)
     return page(request, "customer_order_detail", "customer_orders", order=order)
 
 

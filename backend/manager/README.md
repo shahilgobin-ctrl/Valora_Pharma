@@ -66,3 +66,15 @@ The later 31 October audit unified Home and Product artwork: pages migration 000
 promotes approved Home photos into shop.Product.image, now the shared live field.
 The previous separate Home image rows are retained read-only for history. See
 INTEGRATION_AUDIT.md for database mapping and the full validation results.
+
+
+The overview shows four risk/purchasing indicators and six existing shortcuts.
+Its supplier-delivery summary fetches at most five open orders, with prefetched
+lines and a database-backed Open filter. Manager order details read saved
+prescription review, payment/refund, order contact, optional pickup time and
+chronological status history. They never change pharmacist decisions or invent
+missing events. Checkout currently snapshots the customer's account name/phone
+and selected delivery method; it does not collect a scheduled pickup time. The
+manager therefore displays Not recorded when that optional field is empty.
+Later profile edits do not replace the order's saved contact snapshot. Walk-in
+orders show Walk-in and do not show a pickup-time field.

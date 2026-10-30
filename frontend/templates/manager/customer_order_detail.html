@@ -1,1 +1,28 @@
-{% extends 'manager/base.html' %}{% block title %}Order {{ order.pk }}{% endblock %}{% block heading %}Customer Order #{{ order.pk }}{% endblock %}{% block content %}<a class="btn ghost" href="{% url 'manager:customer_orders' %}">Back to customer orders</a><section class="card pad"><h2>{{ order.customer.first_name }} {{ order.customer.last_name }}</h2><p>{{ order.customer.email }}</p><p>{{ order.created_at|date:'d M Y H:i' }} · {{ order.get_status_display }}</p><p>Payment: {{ order.payment.method|default:'Not recorded' }} · Paid Rs {{ order.payment.amount|default:0 }}</p><p>Prescription document: {% if order.prescription %}Attached; clinical review belongs to the pharmacist.{% else %}Not attached{% endif %}</p></section><div class="card"><table><thead><tr><th>Medicine</th><th>Quantity</th><th>Unit price at purchase</th></tr></thead><tbody>{% for item in order.items.all %}<tr><td>{{ item.medicine_name }}</td><td>{{ item.quantity }}</td><td>Rs {{ item.unit_price|floatformat:2 }}</td></tr>{% endfor %}</tbody></table><p class="pad"><b>Order total Rs {{ order.total_amount|floatformat:2 }}</b></p></div>{% endblock %}
+{% extends 'manager/base.html' %}
+{% block title %}Order {{ order.pk }}{% endblock %}
+{% block heading %}Customer Order #{{ order.pk }}{% endblock %}
+{% block content %}
+<a class="btn ghost" href="{% url 'manager:customer_orders' %}">Back to customer orders</a>
+<section class="card pad"><h2>Order overview</h2><dl class="order-facts">
+<div><dt>Customer</dt><dd>{{ order.customer.get_full_name|default:order.contact_name|default:'Walk-in customer' }}</dd></div>
+<div><dt>Email</dt><dd>{{ order.customer.email|default:'Not recorded' }}</dd></div>
+<div><dt>Created</dt><dd>{{ order.created_at|date:'d M Y H:i' }}</dd></div>
+<div><dt>Current status</dt><dd>{{ order.get_status_display }}</dd></div>
+<div><dt>Payment</dt><dd>{% if order.payment %}{{ order.payment.get_method_display }} · Rs {{ order.payment.amount|floatformat:2 }}{% if order.payment.refunded_at %} · Refunded {{ order.payment.refunded_at|date:'d M Y H:i' }}{% endif %}{% else %}Not recorded{% endif %}</dd></div>
+</dl></section>
+<div class="two-panels order-panels">
+<section class="card pad"><h2>Fulfilment and contact</h2><dl class="order-facts">
+<div><dt>Method</dt><dd>{% if order.kind == 'walk_in' %}Walk-in{% else %}{{ order.get_delivery_method_display }}{% endif %}</dd></div>
+<div><dt>Contact name</dt><dd>{{ order.contact_name|default:'Not recorded' }}</dd></div>
+<div><dt>Contact phone</dt><dd>{{ order.contact_phone|default:'Not recorded' }}</dd></div>
+{% if order.kind == 'online' and order.delivery_method == 'pickup' %}<div><dt>Pickup time</dt><dd>{% if order.pickup_time %}{{ order.pickup_time|date:'d M Y H:i' }}{% else %}Not recorded{% endif %}</dd></div>{% endif %}
+</dl></section>
+<section class="card pad"><h2>Prescription review</h2>
+{% if order.prescription %}<dl class="order-facts"><div><dt>Status</dt><dd>{{ order.prescription.get_status_display }}</dd></div>
+{% if order.prescription.reviewed_at %}<div><dt>Reviewed</dt><dd>{{ order.prescription.reviewed_at|date:'d M Y H:i' }}</dd></div><div><dt>Pharmacist</dt><dd>{{ order.prescription.reviewed_by.get_full_name|default:order.prescription.reviewed_by.email }}</dd></div>{% endif %}
+{% if order.prescription.rejection_reason %}<div><dt>Rejection reason</dt><dd>{{ order.prescription.rejection_reason }}</dd></div>{% endif %}</dl>
+{% else %}<p class="mut">No prescription attached.</p>{% endif %}
+</section></div>
+<section class="card"><table><thead><tr><th>Medicine</th><th>Quantity</th><th>Unit price at purchase</th><th>Line total</th></tr></thead><tbody>{% for item in order.items.all %}<tr><td>{{ item.medicine_name }}</td><td>{{ item.quantity }}</td><td>Rs {{ item.unit_price|floatformat:2 }}</td><td>Rs {{ item.line_total|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="4">No medicine lines recorded.</td></tr>{% endfor %}</tbody></table><p class="pad"><b>Order total Rs {{ order.total_amount|floatformat:2 }}</b></p></section>
+<section class="card pad"><h2>Order timeline</h2><ol class="order-timeline">{% for event in order.status_events.all %}<li><strong>{{ event.get_status_display }}</strong><time datetime="{{ event.recorded_at|date:'c' }}">{{ event.recorded_at|date:'d M Y H:i' }}</time>{% if event.recorded_by %}<span>{{ event.recorded_by.get_full_name|default:event.recorded_by.email }}</span>{% endif %}{% if event.note %}<p class="mut">{{ event.note }}</p>{% endif %}</li>{% empty %}<li class="mut">No status history recorded.</li>{% endfor %}</ol></section>
+{% endblock %}
