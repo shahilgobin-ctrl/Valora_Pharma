@@ -1,71 +1,97 @@
-# About Us page
+# About and Contact pages
 
-The About page is integrated into the existing Django project at `/about/`.
-It follows the supplied design, using semantic HTML and one internal `<style>`
-element in the document head. The photograph and fonts are embedded; the About
-page needs no separate stylesheet, image, font download or JavaScript.
+This contribution provides `/about/` and `/contact/` in the existing Django
+project. Both pages extend `frontend/templates/pages/base.html`, use semantic
+HTML and keep all CSS inside one `<style>` in the document head. Fonts, images
+and icons are embedded; these pages need no external assets or JavaScript.
 
-## Open it on Windows
+## Run locally
 
-1. Download or pull the `About-page` branch and open the project folder in VS Code.
-2. Run `run_windows.bat`, as described in the main README.
-3. Open **http://127.0.0.1:8000/about/** in your browser.
+1. Pull or download the `About-page` branch into your own project folder.
+2. On Windows, run `run_windows.bat`. On macOS/Linux, run `bash run.sh`.
+3. Open **http://127.0.0.1:8000/about/** or **http://127.0.0.1:8000/contact/**.
 
-For an immediate preview without Python or a server, open
-**`frontend/about-preview.html`** directly in Chrome or Edge. This is a complete,
-self-contained HTML file. The Sign in and Register links work in the Django
-version; they are inactive in the direct-file preview.
+The existing launcher installs dependencies and applies migrations, including
+the new ContactMessage table. Keep any existing database whose data you need.
+For an already configured environment:
 
-For comparison with the supplied screenshot, use a browser viewport of
-**856 × 686 px at 100% zoom**. The page adapts at other sizes. The introduction
-stacks below 820 px and the cards stack below 600 px. Font rendering and the
-recreated small SVG icons can differ slightly from the original Figma view.
-
-## Edit the page
-
-| File | Purpose |
-|---|---|
-| `frontend/templates/pages/base.html` | HTML document, internal CSS, embedded fonts and navigation |
-| `frontend/templates/pages/about.html` | Company text, embedded photograph and benefit cards |
-| `backend/pages/views.py` | Renders the About template |
-| `backend/pages/urls.py` | Named `pages:about` route |
-| `backend/pages/tests.py` | About page checks |
-| `export_about_preview.py` | Rebuilds the direct-file HTML preview |
-
-After editing the templates, regenerate the preview from the repository root:
-
-```powershell
-.\.venv\Scripts\python.exe export_about_preview.py
+```sh
+python backend/manage.py migrate
+python backend/manage.py runserver
 ```
 
-The existing account pages and their base template are preserved. Integration
-adds `pages.apps.PagesConfig` to the installed apps and includes `pages.urls`.
-The root URL still opens the existing login page. No About model or migration is
-needed because the content is fixed and does not collect or store input.
+For a preview without a server, open `frontend/about-preview.html` or
+`frontend/contact-preview.html`. They link to each other. Account links and
+Contact submission are inactive in the static previews; test those in Django.
+
+## Figma reference
+
+| Page | Source node | Native comparison viewport |
+| --- | --- | --- |
+| [About](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=62-9) | `62:9` | 1265 × 1014 px |
+| [Contact](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=137-323) | `137:323` | 1579 × 1224 px |
+
+The original assets, text, fonts, colours and geometry are retained. Compare at
+100% browser zoom. Responsive layouts cover widths down to 320 px. Browser font
+rasterisation can differ from Figma exports; identical pixels across browsers
+are not claimed. The two Figma frames themselves use different header styles
+and fonts. Poppins, Inter and Plus Jakarta Sans are embedded as WOFF fonts with
+their full SIL Open Font Licenses retained in templates and previews.
+
+## Behaviour
+
+- About, Contact, Sign in and Register use named Django routes.
+- Home, Products/Shop and Cart become links when the integrated project exposes
+  `home`, `shop:shop` and `shop:cart`. Without those routes they are inactive.
+- Contact validates five fields on the server; phone is optional. A valid
+  submission saves a ContactMessage and redirects to a confirmation. Refresh
+  after the redirect does not resubmit the message.
+- The form has CSRF protection, escaped output, field errors, labels and keyboard
+  focus. Saved messages are available in Django administration to users with the
+  relevant model permissions. There is no public list of messages.
+- Contact submission stores a message in the database. It sends no email or SMS.
+
+The pharmacy services, certifications, address and contact details reproduce the
+supplied design concept. This contribution does not independently verify those
+claims or implement every service described. The original orange/white colours
+are retained for fidelity; this is not an accessibility conformance certification.
+
+## Contribution files
+
+| File | Purpose |
+| --- | --- |
+| `frontend/templates/pages/base.html` | Shared document, internal CSS and navigation |
+| `frontend/templates/pages/about.html` | About design and embedded assets |
+| `frontend/templates/pages/contact.html` | Contact design and bound form |
+| `backend/pages/views.py` | Original About view, preserved |
+| `backend/pages/contact_views.py` | Contact GET/POST handling |
+| `backend/pages/urls.py` | Named page routes |
+| `backend/pages/forms.py` | Contact validation |
+| `backend/pages/models.py` | Contact message persistence |
+| `backend/pages/admin.py` | Permission-protected message administration |
+| `backend/pages/migrations/0001_initial.py` | Contact table migration |
+| `backend/pages/tests.py` | 22 page, navigation and submission tests |
+| `export_about_preview.py` | Generates both standalone previews |
+
+After editing templates, run `python export_about_preview.py`.
 
 ## Verification
 
-Checked on 26 October 2026 with Python 3.12 and the repository's Django 5.2.17:
+Checked on 30 October 2026 with Python 3.12, Django 5.2.17 and Chromium
+134.0.6998.35 on Linux:
 
-```powershell
-.\.venv\Scripts\python.exe backend\manage.py check
-.\.venv\Scripts\python.exe backend\manage.py test accounts pages
+```sh
+python backend/manage.py check
+python backend/manage.py makemigrations --check --dry-run
+python backend/manage.py test accounts pages
 ```
 
-All **39 tests passed**: 20 existing account tests and 19 About tests.
-Chromium checks passed at 1440, 1024, 856, 768, 390 and 320 px, including embedded
-resources, keyboard navigation, text resizing and the working account links.
-The About page loads with one HTML request and no external page resources.
-These checks ran on Linux; the Windows startup instructions use the existing
-project launcher.
+All **42 tests passed**: 20 existing account tests and 22 page/form tests.
+Browser checks cover both pages at 320, 390, 600, 768, 1024, 1100, 1264, 1265,
+1440 and 1579 px, including overflow, embedded assets and active navigation.
+Nine interaction checks cover page navigation, account links, keyboard access,
+Contact submission and linked static previews. The existing Windows launcher
+was not executed in this Linux environment.
 
-## Design assets
-
-The embedded photograph is the photo area from the supplied design reference.
-Poppins Regular and SemiBold are embedded as WOFF fonts; their full SIL Open
-Font License is retained in the base template and exported HTML. The original
-orange and teal palette is preserved. White text on the original orange has
-2.83:1 contrast and needs review before a public accessibility sign-off.
-
-The page describes the supplied pharmacy concept. Its existing project-scope
-note distinguishes planned services from implemented functionality.
+See [ABOUT_CONTACT_INTEGRATION.md](ABOUT_CONTACT_INTEGRATION.md) for the exact
+teammate revisions tested, template differences and unresolved integration work.
