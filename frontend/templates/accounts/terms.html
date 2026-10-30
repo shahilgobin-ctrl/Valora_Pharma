@@ -1,0 +1,23 @@
+{% extends 'accounts/base.html' %}
+{% load static %}
+{% block title %}Terms &amp; Conditions · ValoraPharma{% endblock %}
+{% block body_class %}registration-page terms-page{% endblock %}
+{% block content %}
+<main class="register-card terms-card" aria-labelledby="terms-title">
+  <header class="register-header">
+    <a class="register-brand brand" href="{% url 'accounts:login' %}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
+    <a class="back-link" href="{{ back_url }}">Back</a>
+  </header>
+  <h1 id="terms-title">Terms &amp; Conditions</h1>
+  <div class="terms-content">
+    <p class="terms-draft"><strong>Draft example.</strong> Your project team must review and replace this text with approved terms before launching ValoraPharma.</p>
+    <h2>Account use</h2>
+    <p>Provide accurate details when creating an account, keep your password private, and use your account responsibly.</p>
+    <h2>Health information</h2>
+    <p>Information shown in ValoraPharma is for general use. Ask a qualified healthcare professional about your own care or medicines.</p>
+    <h2>Staff access</h2>
+    <p>Staff accounts are issued by a pharmacy administrator.</p>
+  </div>
+  <a class="primary-button terms-return" href="{{ back_url }}">Back to Registration</a>
+</main>
+{% endblock %}
