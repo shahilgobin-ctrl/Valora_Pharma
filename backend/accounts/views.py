@@ -21,19 +21,15 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from .access import pharmacy_role_required, role_home_name
 from .forms import (
-    EmailVerificationForm, LoginForm, PasswordResetNewPasswordForm, PasswordResetRequestForm,
+    LoginForm, PasswordResetNewPasswordForm, PasswordResetRequestForm,
     PasswordResetVerifyForm, RegistrationForm,
 )
-from .models import EmailVerificationChallenge, PasswordResetChallenge, TERMS_VERSION, User, canonical_email
+from .models import PasswordResetChallenge, TERMS_VERSION, User, canonical_email
 from .rate_limit import is_limited, key_for_request, record_failure, reset_failures
 
 logger = logging.getLogger(__name__)
 RESET_SESSION_KEY = "password_reset_flow"
 INVALID_CODE_MESSAGE = "The code is invalid or expired. Request a new code if needed."
-
-
-class VerificationDeliveryError(Exception):
-    pass
 
 
 def _redirect_to_landing(request):
@@ -127,7 +123,6 @@ def flow_context(request):
         "login_url_with_next": _url_with_next("accounts:login", customer_next),
         "register_url": reverse("accounts:register"),
         "register_url_with_next": _url_with_next("accounts:register", customer_next),
-        "resend_url_with_next": _url_with_next("accounts:email_resend", customer_next),
         "password_forgot_url": reverse("accounts:password_forgot"),
         "terms_url": reverse("accounts:terms"),
     }
@@ -177,28 +172,22 @@ def register_view(request):
             with transaction.atomic():
                 user = form.save(commit=False)
                 user.account_type = User.AccountType.CUSTOMER
-                user.is_active = False
+                user.is_active = True
                 user.is_staff = False
                 user.is_superuser = False
                 user.terms_accepted_at = timezone.now()
                 user.terms_version = TERMS_VERSION
                 user.save()
-                _send_email_verification(user)
         except IntegrityError:
             # The database catches duplicate emails or usernames arriving at once.
             if User.objects.filter(username__iexact=form.cleaned_data["username"]).exists():
                 form.add_error("username", "This username is already taken.")
             else:
                 form.add_error("email", "An account with this email already exists.")
-        except VerificationDeliveryError:
-            form.add_error(None, "We could not send a verification code. Please try again later.")
         else:
-            messages.success(request, "We sent a verification code to your email address.")
-            parameters = {"email": user.email}
+            messages.success(request, "Your account is ready. Sign in with your email and password.")
             destination = _safe_browse_next(request)
-            if destination:
-                parameters["next"] = destination
-            return redirect(reverse("accounts:email_verify") + "?" + urlencode(parameters))
+            return redirect(_url_with_next("accounts:login", destination))
     context = flow_context(request)
     context["form"] = form
     context["today_iso"] = timezone.localdate().isoformat()
@@ -226,107 +215,6 @@ def _email_request_allowed(prefix, email, cooldown_seconds, limit, window_second
             cache.add(count_key, 1, timeout=window_seconds)
     return True
 
-
-def _verification_code_hash(token, code):
-    return salted_hmac("accounts.email-verification", f"{token}:{code}").hexdigest()
-
-
-def _send_email_verification(user):
-    code = f"{secrets.randbelow(1_000_000):06d}"
-    challenge = EmailVerificationChallenge.objects.create(
-        user=user,
-        code_hash="",
-        expires_at=timezone.now() + timedelta(seconds=settings.EMAIL_VERIFICATION_CODE_TTL_SECONDS),
-    )
-    challenge.code_hash = _verification_code_hash(challenge.token, code)
-    challenge.save(update_fields=["code_hash"])
-    try:
-        delivered = send_mail(
-            "Verify your ValoraPharma email",
-            f"A customer account was requested for this address. Your verification code is {code}. "
-            f"It expires in {settings.EMAIL_VERIFICATION_CODE_TTL_SECONDS // 60} minutes. "
-            "If this was not you, ignore this email.",
-            settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False,
-        )
-        if delivered != 1:
-            raise RuntimeError("Verification email was not accepted by the email backend.")
-    except Exception as error:
-        logger.exception("Email verification delivery failed")
-        challenge.delete()
-        raise VerificationDeliveryError from error
-    EmailVerificationChallenge.objects.filter(
-        user=user, consumed_at__isnull=True,
-    ).exclude(pk=challenge.pk).update(consumed_at=timezone.now())
-
-
-@never_cache
-@require_http_methods(["GET", "POST"])
-def email_verify_view(request):
-    initial = {"email": request.GET.get("email", "")}
-    form = EmailVerificationForm(request.POST if request.method == "POST" else None, initial=initial)
-    if request.method == "POST" and form.is_valid():
-        email = form.cleaned_data["email"]
-        with transaction.atomic():
-            user = User.objects.select_for_update().filter(
-                email=email, account_type=User.AccountType.CUSTOMER,
-                email_verified_at__isnull=True, is_active=False,
-            ).first()
-            challenge = None
-            if user:
-                challenge = EmailVerificationChallenge.objects.select_for_update().filter(
-                    user=user, consumed_at__isnull=True,
-                ).order_by("-created_at").first()
-            if (challenge and challenge.expires_at > timezone.now()
-                    and challenge.attempts < settings.EMAIL_VERIFICATION_MAX_ATTEMPTS):
-                if constant_time_compare(
-                    challenge.code_hash, _verification_code_hash(challenge.token, form.cleaned_data["code"]),
-                ):
-                    user.email_verified_at = timezone.now()
-                    user.is_active = True
-                    user.save(update_fields=["email_verified_at", "is_active"])
-                    challenge.consumed_at = timezone.now()
-                    challenge.save(update_fields=["consumed_at"])
-                    messages.success(request, "Email verified. You can now sign in.")
-                    return redirect(_url_with_next("accounts:login", _safe_browse_next(request)))
-                challenge.attempts += 1
-                challenge.save(update_fields=["attempts"])
-        form.add_error("code", "The code is invalid or expired. Request a new code if needed.")
-    context = flow_context(request)
-    context.update(form=form, back_url=context["register_url_with_next"])
-    return render(request, "accounts/email_verify.html", context)
-
-
-@never_cache
-@require_http_methods(["GET", "POST"])
-def email_resend_view(request):
-    form = PasswordResetRequestForm(request.POST if request.method == "POST" else None)
-    if request.method == "POST" and form.is_valid():
-        email = form.cleaned_data["email"]
-        if _email_request_allowed(
-            "email-verification", email,
-            settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS,
-            settings.EMAIL_VERIFICATION_RESEND_LIMIT,
-            settings.EMAIL_VERIFICATION_RESEND_WINDOW_SECONDS,
-        ):
-            user = User.objects.filter(
-                email=email, account_type=User.AccountType.CUSTOMER,
-                email_verified_at__isnull=True, is_active=False,
-            ).first()
-            if user:
-                try:
-                    with transaction.atomic():
-                        _send_email_verification(user)
-                except VerificationDeliveryError:
-                    pass
-        messages.success(request, "If an unverified customer account exists, we have sent a new code.")
-        parameters = {"email": email}
-        destination = _safe_browse_next(request)
-        if destination:
-            parameters["next"] = destination
-        return redirect(reverse("accounts:email_verify") + "?" + urlencode(parameters))
-    context = flow_context(request)
-    context.update(form=form, back_url=_url_with_next("accounts:email_verify", context["customer_next"]))
-    return render(request, "accounts/email_resend.html", context)
 
 @require_POST
 def logout_view(request):

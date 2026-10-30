@@ -59,7 +59,6 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
     terms_version = models.CharField(max_length=20, blank=True)
-    email_verified_at = models.DateTimeField(null=True, blank=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = UserManager()
@@ -91,16 +90,3 @@ class PasswordResetChallenge(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["user", "created_at"], name="accounts_pr_user_created_idx")]
-
-
-class EmailVerificationChallenge(models.Model):
-    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="email_verification_challenges")
-    code_hash = models.CharField(max_length=64)
-    created_at = models.DateTimeField(default=timezone.now)
-    expires_at = models.DateTimeField()
-    attempts = models.PositiveSmallIntegerField(default=0)
-    consumed_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        indexes = [models.Index(fields=["user", "created_at"], name="accounts_ev_user_created_idx")]

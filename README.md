@@ -1,6 +1,6 @@
 # Pharmacy login and registration
 
-A Django project implementing one shared login for customers, employees, suppliers, and administrators. It includes email-verified customer registration, administrator-provisioned privileged accounts, and password recovery. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
+A Django project implementing one shared login for customers, employees, suppliers, and administrators. It includes direct customer registration, administrator-provisioned privileged accounts, and password recovery. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
 
 This package covers authentication and protected role-specific integration landing pages. Every role uses the same sign-in page; the customer, employee, supplier, and custom administrator destinations are placeholders until teammates integrate their own pages. Pharmacy operations, medicine inventory, prescriptions, ordering and payments are outside this package. See [TEAM_INTEGRATION.md](TEAM_INTEGRATION.md) before connecting another Django app.
 
@@ -47,8 +47,6 @@ For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your dis
 | Supplier landing page (temporary) | http://127.0.0.1:8000/account/supplier/ |
 | Custom administrator landing page (temporary) | http://127.0.0.1:8000/account/admin/ |
 | Customer registration | http://127.0.0.1:8000/register/ |
-| Verify customer email | http://127.0.0.1:8000/email/verify/ |
-| Resend customer verification code | http://127.0.0.1:8000/email/resend/ |
 | Shared password recovery | http://127.0.0.1:8000/password/forgot/ |
 | Terms and Conditions (draft) | http://127.0.0.1:8000/terms/ |
 | Django administration | http://127.0.0.1:8000/admin/ |
@@ -57,15 +55,15 @@ Older `/staff/login/` bookmarks redirect to `/login/`. Login uses email and pass
 
 The Terms and Conditions page contains **draft example text**. Replace it with your team's approved terms before launching the site; update `TERMS_VERSION` in `backend/accounts/models.py` when the text changes.
 
-Customer registration creates an inactive account and emails a six-digit verification code. The customer can sign in only after the code is accepted; codes expire after 15 minutes and have five attempts. A resend page is available if the code expires. Public employee and supplier registration is closed: `/staff/register/` returns 403. A superuser provisions employee and supplier accounts in `/admin/`; those accounts start inactive until that superuser verifies the person's identity and activates them. Employees and suppliers then use `/login/`. Each destination checks the role again on every request. A pharmacy employee account does not receive Django administration access merely by having the pharmacy `staff` role.
+Customer registration creates an active account and sends the customer to sign in without an email code. Public employee and supplier registration is closed: `/staff/register/` returns 403. A superuser provisions employee and supplier accounts in `/admin/`; those accounts start inactive until that superuser verifies the person's identity and activates them. Employees and suppliers then use `/login/`. Each destination checks the role again on every request. A pharmacy employee account does not receive Django administration access merely by having the pharmacy `staff` role.
 
-Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited per email-and-IP pair to eight attempts per fifteen minutes, so one user's mistakes do not lock everyone sharing a network. Email resend and password recovery requests have per-address cooldown and hourly limits. The development limiter uses a per-process cache.
+Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited per email-and-IP pair to eight attempts per fifteen minutes, so one user's mistakes do not lock everyone sharing a network. Password recovery requests have per-address cooldown and hourly limits. The development limiter uses a per-process cache.
 
 ## Password recovery and email
 
 From the shared sign-in page, select **Forgot password?**, enter the account email, enter the six-digit code, then set a new password. Codes expire after ten minutes, allow five verification attempts, and cannot be reused after the password changes. The request page shows the same response for unknown addresses. Recovery is available only for active accounts.
 
-In local development, Django prints verification and reset emails in the **server terminal**. For delivery to an inbox, configure your email provider through the `DJANGO_EMAIL_*` settings below before starting Django. Never commit SMTP credentials. A production SMTP setup requires a sender address and email host. The project needs a shared cache when run with multiple workers for request limits; see the configuration section.
+In local development, Django prints password reset emails in the **server terminal**. For delivery to an inbox, configure your email provider through the `DJANGO_EMAIL_*` settings below before starting Django. Never commit SMTP credentials. A production SMTP setup requires a sender address and email host. The project needs a shared cache when run with multiple workers for request limits; see the configuration section.
 
 ## Create an administrator and employee accounts
 
@@ -177,7 +175,7 @@ On macOS/Linux, use `export DJANGO_DEBUG=false`, and similarly export the other 
 
 For Django's built-in shared database cache, set `DJANGO_CACHE_BACKEND=django.core.cache.backends.db.DatabaseCache` and `DJANGO_CACHE_LOCATION=pharmacy_auth_cache`, then run `python backend/manage.py createcachetable` after applying migrations. All server workers must use the same database and cache configuration.
 
-Before deployment, use a production WSGI/ASGI server and HTTPS, run `python backend/manage.py collectstatic`, run `python backend/manage.py check --deploy` with the production settings, configure a shared cache for the login and email limits, verify SMTP delivery to a real inbox, and plan database backups. The included starters run Django's local development server. Existing customer accounts created before email verification was added remain active; review them before a real launch. See Django's [deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/) for hosting configuration.
+Before deployment, use a production WSGI/ASGI server and HTTPS, run `python backend/manage.py collectstatic`, run `python backend/manage.py check --deploy` with the production settings, configure a shared cache for the login and password recovery limits, verify SMTP delivery to a real inbox, and plan database backups. The included starters run Django's local development server. See Django's [deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/) for hosting configuration.
 
 The project uses **Django 5.2.17 LTS**, the latest 5.2 patch listed on the [official downloads page](https://www.djangoproject.com/download/) when this package was prepared. Django 5.2 supports [Python 3.10–3.14](https://docs.djangoproject.com/en/5.2/releases/5.2/).
 

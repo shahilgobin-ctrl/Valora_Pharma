@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import RegistrationForm
-from .models import EmailVerificationChallenge, PasswordResetChallenge, TERMS_VERSION, User
+from .models import PasswordResetChallenge, TERMS_VERSION, User
 
 
 PASSWORD = "Maple!River42Sun"
@@ -57,7 +57,7 @@ class AuthTestCase(TestCase):
 class RegistrationTests(AuthTestCase):
     def test_customer_registration_saves_profile_and_hashes_password(self):
         response = self.client.post(reverse("accounts:register"), self.registration_data(), follow=True)
-        self.assertEqual(response.resolver_match.view_name, "accounts:email_verify")
+        self.assertEqual(response.resolver_match.view_name, "accounts:login")
         user = User.objects.get()
         self.assertEqual(user.email, "jamie@example.com")
         self.assertEqual(user.first_name, "Jamie")
@@ -68,14 +68,22 @@ class RegistrationTests(AuthTestCase):
         self.assertEqual(user.gender, "prefer_not_to_say")
         self.assertTrue(user.check_password(PASSWORD))
         self.assertNotEqual(user.password, PASSWORD)
-        self.assertFalse(user.is_active)
-        self.assertIsNone(user.email_verified_at)
+        self.assertTrue(user.is_active)
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertIsNotNone(user.terms_accepted_at)
         self.assertEqual(user.terms_version, TERMS_VERSION)
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertRedirects(self.client.post(reverse("accounts:login"), {
+            "email": user.email, "password": PASSWORD,
+        }), reverse("accounts:customer_landing"))
+
+    def test_customer_email_code_pages_are_removed(self):
+        for path in ("/email/verify/", "/email/resend/"):
+            with self.subTest(path=path):
+                self.assertEqual(self.client.get(path).status_code, 404)
+        self.assertNotContains(self.client.get(reverse("accounts:login")), "Resend code")
 
     def test_registration_rejects_missing_terms_acceptance(self):
         data = self.registration_data()
@@ -144,80 +152,6 @@ class RegistrationTests(AuthTestCase):
         self.assertEqual(user.account_type, User.AccountType.CUSTOMER)
         self.assertFalse(user.is_staff)
         self.assertFalse(user.is_superuser)
-
-
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-class EmailVerificationTests(AuthTestCase):
-    def register(self):
-        response = self.client.post(reverse("accounts:register"), self.registration_data())
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(len(mail.outbox), 1)
-        return re.search(r"\b\d{6}\b", mail.outbox[0].body).group()
-
-    def test_code_proves_email_ownership_before_customer_can_sign_in(self):
-        code = self.register()
-        user = User.objects.get(email="jamie@example.com")
-        self.assertFalse(user.is_active)
-        denied = self.client.post(reverse("accounts:login"), {"email": user.email, "password": PASSWORD})
-        self.assertTrue(denied.context["form"].non_field_errors())
-        other_browser = Client()
-        verified = other_browser.post(reverse("accounts:email_verify"), {
-            "email": "JAMIE@EXAMPLE.COM", "code": code,
-        })
-        self.assertRedirects(verified, reverse("accounts:login"))
-        user.refresh_from_db()
-        self.assertTrue(user.is_active)
-        self.assertIsNotNone(user.email_verified_at)
-        self.assertRedirects(self.client.post(reverse("accounts:login"), {
-            "email": user.email, "password": PASSWORD,
-        }), reverse("accounts:customer_landing"))
-
-    def test_wrong_codes_are_limited_and_resend_invalidates_old_code(self):
-        first_code = self.register()
-        wrong_code = f"{(int(first_code) + 1) % 1_000_000:06d}"
-        for _ in range(settings.EMAIL_VERIFICATION_MAX_ATTEMPTS):
-            response = self.client.post(reverse("accounts:email_verify"), {
-                "email": "jamie@example.com", "code": wrong_code,
-            })
-            self.assertIn("code", response.context["form"].errors)
-        self.assertIn("code", self.client.post(reverse("accounts:email_verify"), {
-            "email": "jamie@example.com", "code": first_code,
-        }).context["form"].errors)
-        cache.clear()
-        self.client.post(reverse("accounts:email_resend"), {"email": "jamie@example.com"})
-        self.assertEqual(len(mail.outbox), 2)
-        second_code = re.search(r"\b\d{6}\b", mail.outbox[-1].body).group()
-        self.assertRedirects(self.client.post(reverse("accounts:email_verify"), {
-            "email": "jamie@example.com", "code": second_code,
-        }), reverse("accounts:login"))
-
-    def test_expired_code_and_unknown_resend_do_not_activate_account(self):
-        code = self.register()
-        EmailVerificationChallenge.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
-        response = self.client.post(reverse("accounts:email_verify"), {
-            "email": "jamie@example.com", "code": code,
-        })
-        self.assertIn("code", response.context["form"].errors)
-        self.assertFalse(User.objects.get(email="jamie@example.com").is_active)
-        self.client.post(reverse("accounts:email_resend"), {"email": "unknown@example.com"})
-        self.assertEqual(len(mail.outbox), 1)
-
-    def test_delivery_failure_rolls_back_registration(self):
-        with patch("accounts.views.send_mail", side_effect=RuntimeError("SMTP unavailable")), \
-                patch("accounts.views.logger.exception"):
-            response = self.client.post(reverse("accounts:register"), self.registration_data())
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.context["form"].non_field_errors())
-        self.assertFalse(User.objects.exists())
-        self.assertFalse(EmailVerificationChallenge.objects.exists())
-
-    def test_verification_forms_require_csrf(self):
-        client = Client(enforce_csrf_checks=True)
-        for name in ("accounts:email_verify", "accounts:email_resend"):
-            with self.subTest(name=name):
-                self.assertEqual(client.post(reverse(name), {
-                    "email": "jamie@example.com", "code": "123456",
-                }).status_code, 403)
 
 
 class LoginTests(AuthTestCase):
@@ -678,7 +612,6 @@ class SecurityAndManagementTests(AuthTestCase):
         self.assertEqual(User.objects.count(), 1)
         demo.refresh_from_db()
         self.assertEqual(demo.password, first_hash)
-        self.assertIsNotNone(demo.email_verified_at)
         self.assertFalse(demo.is_staff)
         self.assertFalse(demo.is_superuser)
 

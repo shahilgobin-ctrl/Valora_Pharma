@@ -8,7 +8,7 @@ New public customer registrations require a unique username. Older accounts and 
 
 | `User.account_type` | Who creates it | First destination | Access rule |
 | --- | --- | --- | --- |
-| `customer` | Public registration followed by email verification | `accounts:customer_landing` | Active customer account |
+| `customer` | Public registration | `accounts:customer_landing` | Active customer account |
 | `staff` | Superuser in Django admin, then identity check and activation | `accounts:staff_landing` | Active employee account |
 | `supplier` | Superuser in Django admin, then identity check and activation | `accounts:supplier_landing` | Active supplier account |
 | `admin` | `createsuperuser` | `accounts:admin_landing` | Active Django superuser with admin role |
@@ -32,12 +32,12 @@ Once an app has a named home URL, change only its entry in `PHARMACY_ROLE_HOME_R
 
 ## Accounts and migrations
 
-Apply migrations with `python backend/manage.py migrate` after backing up any existing SQLite database. Migration `0003` adds supplier and administrator roles plus email-verification records; it maps existing Django superusers to the `admin` pharmacy role. Existing active customer accounts remain active to avoid unexpectedly locking out earlier users; **only new public customer signups are email-verified**. Review legacy accounts before a real launch.
+Apply migrations with `python backend/manage.py migrate` after backing up any existing SQLite database. Migration `0003` adds supplier and administrator roles. Migration `0005` removes the former customer email-code feature and activates customer signups that were waiting for a code. Existing active accounts remain active. Review legacy accounts before a real launch.
 
-New customer accounts remain inactive until a six-digit email code is verified. The code can be entered in a different browser using the email address. Resend is available at `/email/resend/`. New employee and supplier accounts created in `/admin/` start inactive and require a superuser to check identity and activate them. The admin role cannot be selected through the regular add-user form; use `createsuperuser`.
+New customer accounts are active after registration and can sign in immediately. New employee and supplier accounts created in `/admin/` start inactive and require a superuser to check identity and activate them. The admin role cannot be selected through the regular add-user form; use `createsuperuser`.
 
 ## Email and local testing
 
-Development defaults to Django's console email backend: verification and reset codes appear in the server terminal. To send to real inboxes, set `DJANGO_EMAIL_BACKEND`, `DJANGO_DEFAULT_FROM_EMAIL`, `DJANGO_EMAIL_HOST`, `DJANGO_EMAIL_PORT`, `DJANGO_EMAIL_HOST_USER`, `DJANGO_EMAIL_HOST_PASSWORD`, and exactly one of `DJANGO_EMAIL_USE_TLS` or `DJANGO_EMAIL_USE_SSL` for the provider. `.env.example` is a reference, not an automatically loaded file. Test delivery to an address you control before inviting real users. Failed verification delivery leaves no new account behind.
+Development defaults to Django's console email backend: password reset codes appear in the server terminal. To send to real inboxes, set `DJANGO_EMAIL_BACKEND`, `DJANGO_DEFAULT_FROM_EMAIL`, `DJANGO_EMAIL_HOST`, `DJANGO_EMAIL_PORT`, `DJANGO_EMAIL_HOST_USER`, `DJANGO_EMAIL_HOST_PASSWORD`, and exactly one of `DJANGO_EMAIL_USE_TLS` or `DJANGO_EMAIL_USE_SSL` for the provider. `.env.example` is a reference, not an automatically loaded file. Test delivery to an address you control before inviting real users.
 
 The login and email request limits use Django's cache. The default local-memory cache is suitable for the single-process demo. Use a shared cache when multiple server workers are deployed; otherwise each worker has separate counters.

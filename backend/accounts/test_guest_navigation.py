@@ -1,7 +1,5 @@
 """Check the auth flow when the team's Home and Shop routes are mounted."""
 
-import re
-
 from django.core import mail
 from django.http import HttpResponse
 from django.test import TestCase, override_settings
@@ -42,7 +40,7 @@ class GuestNavigationTests(TestCase):
         })
         self.assertRedirects(response, reverse("home"))
 
-    def test_registration_and_email_verification_keep_shop_destination(self):
+    def test_registration_without_email_code_keeps_shop_destination(self):
         shop_url = reverse("shop:shop")
         page = self.client.get(reverse("accounts:login"), {"next": shop_url})
         self.assertContains(page, 'name="next" value="/shop/"')
@@ -57,13 +55,8 @@ class GuestNavigationTests(TestCase):
         response = self.client.post(reverse("accounts:register"), registration)
         self.assertEqual(response.status_code, 302)
         self.assertIn("next=%2Fshop%2F", response["Location"])
-        self.assertFalse(User.objects.get(email="jamie@example.com").is_active)
-
-        code = re.search(r"\b\d{6}\b", mail.outbox[0].body).group()
-        response = self.client.post(reverse("accounts:email_verify"), {
-            "email": "jamie@example.com", "code": code, "next": shop_url,
-        })
-        self.assertRedirects(response, "/login/?next=%2Fshop%2F", fetch_redirect_response=False)
+        self.assertTrue(User.objects.get(email="jamie@example.com").is_active)
+        self.assertEqual(len(mail.outbox), 0)
         response = self.client.post(reverse("accounts:login"), {
             "email": "jamie@example.com", "password": self.password, "next": shop_url,
         })
