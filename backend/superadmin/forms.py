@@ -1,6 +1,5 @@
 import re
 from django import forms
-from django.contrib.auth import authenticate
 from django.contrib.auth.models import Permission
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -10,25 +9,6 @@ from .models import Role, SystemSettings
 
 def assignable_permissions():
     return Permission.objects.filter(content_type__app_label="superadmin", content_type__model="role").order_by("id")
-
-class AdminLoginForm(forms.Form):
-    email = forms.EmailField(widget=forms.EmailInput(attrs={"autocomplete": "username", "placeholder": "you@valora.mu"}))
-    password = forms.CharField(strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}))
-
-    def __init__(self, *args, request=None, blocked=False, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.request, self.blocked, self.user = request, blocked, None
-
-    def clean(self):
-        data = super().clean()
-        if self.blocked:
-            raise ValidationError("Too many sign-in attempts. Please try again in 15 minutes.")
-        if data.get("email") and data.get("password"):
-            user = authenticate(self.request, email=canonical_email(data["email"]), password=data["password"])
-            if user is None or not user.is_active or not user.is_superuser:
-                raise ValidationError("Unable to sign in with these administrator credentials.")
-            self.user = user
-        return data
 
 class AccountForm(forms.ModelForm):
     role = forms.ModelChoiceField(queryset=Role.objects.select_related("group").order_by("pk"), empty_label="Choose a role")

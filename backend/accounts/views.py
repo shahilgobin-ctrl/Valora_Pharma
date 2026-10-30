@@ -146,6 +146,11 @@ def login_view(request):
         if form.is_valid():
             reset_failures(key)
             login(request, form.user)
+            if (form.user.account_type == User.AccountType.ADMIN
+                    and form.user.is_superuser and form.user.is_staff):
+                from superadmin.services import audit
+
+                audit(request, "ADMIN_SIGNED_IN", form.user.email)
             destination = _safe_browse_next(request)
             if form.user.account_type == User.AccountType.CUSTOMER and destination:
                 return redirect(destination)
