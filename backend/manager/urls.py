@@ -1,0 +1,38 @@
+from django.urls import path
+from . import views
+
+app_name = "manager"
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    path("medicines/", views.medicines, name="medicines"),
+    path("medicines/<int:pk>/", views.medicine_detail, name="medicine_detail"),
+    path("medicines/new/", views.medicine_form, name="medicine_new"),
+    path("medicines/<int:pk>/edit/", views.medicine_form, name="medicine_edit"),
+    path("medicines/<int:pk>/delete/", views.medicine_status, name="medicine_delete"),
+    path("sign-out/", views.signout, name="signout"),
+    path("medicines/<int:pk>/status/", views.medicine_status, name="medicine_status"),
+    path("categories/", views.categories, name="categories"),
+    path("batches/", views.batches, name="batches"),
+    path("batches/<int:pk>/", views.batch_detail, name="batch_detail"),
+    path("batches/<int:pk>/delete/", views.batch_delete, name="batch_delete"),
+    path("batches/new/", views.batch_form, name="batch_new"),
+    path("batches/<int:pk>/edit/", views.batch_form, name="batch_edit"),
+    path("inventory/", views.alerts, name="alerts"),
+    path("alerts/", views.alerts, name="alerts_legacy"),
+    path("inventory/adjust/", views.adjustment, name="adjustment"),
+    path("inventory/movements/", views.movements, name="movements"),
+    path("inventory/settings/", views.settings_view, name="settings"),
+    path("suppliers/", views.suppliers, name="suppliers"),
+    path("suppliers/<int:pk>/", views.supplier_detail, name="supplier_detail"),
+    path("suppliers/<int:pk>/delete/", views.supplier_delete, name="supplier_delete"),
+    path("suppliers/new/", views.supplier_form, name="supplier_new"),
+    path("suppliers/<int:pk>/edit/", views.supplier_form, name="supplier_edit"),
+    path("purchase-orders/", views.purchase_orders, name="orders"),
+    path("purchase-orders/new/", views.purchase_form, name="purchase_new"),
+    path("purchase-orders/<int:pk>/", views.purchase_detail, name="purchase_detail"),
+    path("purchase-orders/<int:pk>/receive/", views.receive, name="receive"),
+    path("purchase-orders/<int:pk>/cancel/", views.cancel_order, name="purchase_cancel"),
+    path("orders/", views.customer_orders, name="customer_orders"),
+    path("orders/<int:pk>/", views.customer_order_detail, name="customer_order_detail"),
+    path("reports/", views.reports, name="reports"),
+]

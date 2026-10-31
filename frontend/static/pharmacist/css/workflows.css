@@ -1,0 +1,319 @@
+.wf {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 30px;
+  color: var(--vp-ink);
+}
+
+.wf h1 {
+  font-size: 1.9rem;
+  margin: 0 0 12px;
+}
+
+.wf h2 {
+  font-size: 1.2rem;
+  margin-top: 0;
+}
+
+.wf p,
+.wf li {
+  line-height: 1.6;
+}
+
+.wf a {
+  color: var(--vp-primary);
+}
+
+.wf .panel {
+  padding: 24px;
+  margin: 16px 0;
+  border: 1px solid #dce4ef;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 3px 15px #12403A10;
+}
+
+.wf .stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.wf .stats .panel {
+  text-decoration: none;
+}
+
+.wf .stats strong {
+  display: block;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.wf .columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.wf .columns > * {
+  min-width: 0;
+}
+
+.wf .muted {
+  color: #617087;
+}
+
+.wf .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 18px;
+  min-height: 44px;
+  border: 1px solid var(--vp-primary);
+  border-radius: 8px;
+  color: white;
+  background: var(--vp-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wf .button.secondary {
+  background: var(--vp-mint);
+  color: var(--vp-primary);
+}
+
+.wf .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.wf label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.wf input:not([type="checkbox"]),
+.wf select,
+.wf textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #b9c8dc;
+  border-radius: 7px;
+  font: inherit;
+  min-height: 44px;
+  background: white;
+}
+
+.wf input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+.wf .helptext {
+  display: block;
+  font-size: 0.9rem;
+  color: #617087;
+}
+
+.wf .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e4eaf2;
+}
+
+.wf .form-row p {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.wf .errorlist,
+.wf .error {
+  color: #a21c2a;
+}
+
+.wf .error,
+.wf .notice {
+  padding: 14px;
+  border-radius: 8px;
+  background: #fff0f0;
+}
+
+.wf .notice {
+  background: #e9f7ee;
+  color: #17643b;
+}
+
+.wf table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: left;
+}
+
+.wf th,
+.wf td {
+  padding: 14px 10px;
+  border-bottom: 1px solid #e4eaf2;
+}
+
+.wf th {
+  background: #f4f7fb;
+}
+
+.wf .table-wrap {
+  overflow-x: auto;
+}
+
+.wf .badge {
+  display: inline-block;
+  font-size: 0.9rem;
+  background: #ECF4EF;
+  color: var(--vp-primary);
+  padding: 7px 12px;
+  border-radius: 20px;
+}
+
+.wf .receipt {
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+.wf .receipt-total {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.vp-signout {
+  padding: 10px 16px;
+  margin-top: 24px;
+  background: white;
+  color: var(--vp-primary);
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.wf :focus-visible {
+  outline: 3px solid #91CDB9;
+  outline-offset: 3px;
+}
+
+/* Prescription status on the order details page. */
+
+.wf .rx-status-box {
+  margin: 20px 0;
+  padding: 20px 24px;
+  border: 1px solid;
+  border-left-width: 6px;
+  border-radius: 12px;
+}
+
+.wf .rx-status-box h2 {
+  margin: 0 0 10px;
+  color: inherit;
+}
+
+.wf .rx-status-box p {
+  margin: 8px 0;
+}
+
+.wf .rx-status-box--pending {
+  background: #fffbeb;
+  border-color: #d97706;
+  color: #78350f;
+}
+
+.wf .rx-status-box--approved {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #14532d;
+}
+
+.wf .rx-status-box--rejected {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #7f1d1d;
+}
+
+.wf .rx-status-box .rx-status-link {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.wf .rx-status-box .rx-status-link:hover {
+  background: #ffffff;
+}
+
+.wf .rx-rejection-reason {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+@media (max-width: 1000px) {
+  .wf .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wf .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .wf {
+    padding: 16px;
+  }
+
+  .wf .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .wf .panel {
+    padding: 16px;
+  }
+
+  .wf .rx-status-box {
+    padding: 16px;
+  }
+}
+
+@media print {
+  .vp-sidebar,
+  .vp-preview,
+  .vp-skip,
+  .no-print {
+    display: none !important;
+  }
+
+  .vp-shell,
+  .vp-workspace {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .wf {
+    padding: 0;
+  }
+
+  .wf .receipt {
+    box-shadow: none;
+    border: 0;
+  }
+}

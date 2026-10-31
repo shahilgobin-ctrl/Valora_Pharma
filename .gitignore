@@ -8,8 +8,8 @@ htmlcov/
 .env
 .env.*
 !.env.example
-backend/db.sqlite3
-backend/db.sqlite3-*
+*.sqlite3
+*.sqlite3-*
 backend/.dev-secret-key
 backend/staticfiles/
 *.log
@@ -17,3 +17,17 @@ backend/staticfiles/
 Thumbs.db
 .idea/
 .vscode/
+backend/private_uploads/
+
+# Local source-transfer archives (not application source).
+/backend.zip
+/backend(*).zip
+/frontend.zip
+/frontend(*).zip
+/merger.zip
+
+backend/private_media/
+.qa/
+
+# Optional PC-local pointer to shared database, uploads and development session key.
+backend/.data-directory

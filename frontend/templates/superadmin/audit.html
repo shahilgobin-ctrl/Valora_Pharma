@@ -1,0 +1,90 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>Audit Log</h1>
+    <a
+      class="export-link"
+      href="{% url 'superadmin:audit_export' %}?q={{ request.GET.q|urlencode }}&amp;action={{ request.GET.action|urlencode }}"
+    >
+      <svg><use href="#i-export" /></svg>
+      <span>Export</span>
+    </a>
+  </header>
+
+  <form class="filters" method="get">
+    <label class="sr-only" for="q">Search audit log</label>
+    <input
+      id="q"
+      name="q"
+      value="{{ request.GET.q }}"
+      placeholder="Search user, action or target"
+    >
+
+    <label class="sr-only" for="action">Action</label>
+    <select id="action" name="action">
+      <option value="">All actions</option>
+      {% for action in actions %}
+        <option {% if request.GET.action == action %}selected{% endif %}>
+          {{ action }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <button class="button secondary">Search</button>
+    {% if request.GET.q or request.GET.action %}
+      <a class="text-link" href="{% url 'superadmin:audit' %}">Clear</a>
+    {% endif %}
+  </form>
+
+  <div class="table-scroll">
+    <table class="audit-table">
+      <thead>
+        <tr>
+          <th>TIMESTAMP</th>
+          <th>USER</th>
+          <th>ACTION</th>
+          <th>TARGET</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in logs %}
+          <tr>
+            <td class="nowrap">
+              {{ entry.created_at|date:"d M Y" }}<br>
+              {{ entry.created_at|date:"H:i:s" }}
+            </td>
+            <td>{{ entry.actor_email }}</td>
+            <td>{{ entry.action }}</td>
+            <td>
+              {{ entry.target }}
+              {% if entry.details %}
+                <details>
+                  <summary>Details</summary>
+                  <pre>{{ entry.details }}</pre>
+                </details>
+              {% endif %}
+            </td>
+            <td class="nowrap">
+              {{ entry.ip_address|default:"Not available" }}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="empty">
+              No audit events match your search.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include 'superadmin/pagination.html' with items=logs %}
+  <p class="table-hint">
+    Times shown in Indian/Mauritius. Export includes all matching events.
+  </p>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}Overview{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>System Administration</h1>
+  </header>
+
+  <div class="stats">
+    <a class="stat teal" href="{% url 'superadmin:users' %}">
+      <svg><use href="#i-users" /></svg>
+      <strong>{{ total }}</strong>
+      <span>Total Users</span>
+    </a>
+    <a class="stat orange" href="{% url 'superadmin:users' %}?status=active">
+      <svg><use href="#i-check" /></svg>
+      <strong>{{ active_count }}</strong>
+      <span>Active accounts</span>
+    </a>
+    <a class="stat teal" href="{% url 'superadmin:users' %}?status=inactive">
+      <svg><use href="#i-inactive" /></svg>
+      <strong>{{ inactive_count }}</strong>
+      <span>Inactive Accounts</span>
+    </a>
+    <div class="stat orange">
+      <svg><use href="#i-shield" /></svg>
+      <strong>{{ staff_count }}</strong>
+      <span>Staff Members</span>
+    </div>
+  </div>
+
+  <section class="all-accounts">
+    <h2>All Accounts</h2>
+    <div class="account-list">
+      {% for account in accounts %}
+        <a class="account-row" href="{% url 'superadmin:user_detail' account.pk %}">
+          <svg><use href="#i-user" /></svg>
+          <div class="identity">
+            <strong>{{ account.get_full_name|default:account.email }}</strong>
+            <span>{{ account.email }}</span>
+          </div>
+          <span class="account-role">{{ account.portal_role }}</span>
+          <span class="status-text {% if not account.is_active %}inactive{% endif %}">
+            {% if account.is_active %}Active{% else %}Inactive{% endif %}
+          </span>
+        </a>
+      {% empty %}
+        <p class="empty">No accounts found.</p>
+      {% endfor %}
+    </div>
+    {% include 'superadmin/pagination.html' with items=accounts %}
+  </section>
+{% endblock %}

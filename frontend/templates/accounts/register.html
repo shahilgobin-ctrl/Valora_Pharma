@@ -1,18 +1,19 @@
 {% extends 'accounts/base.html' %}
 {% load static %}
-{% block title %}{% if is_staff_flow %}Staff Registration{% else %}Customer Registration{% endif %} · ValoraPharma{% endblock %}
-{% block body_class %}registration-page{% if is_staff_flow %} registration-page--staff{% endif %}{% endblock %}
+{% block title %}Customer Registration · ValoraPharma{% endblock %}
+{% block body_class %}registration-page customer-register-page{% endblock %}
 {% block content %}
 <main class="register-card" aria-labelledby="register-title">
   <header class="register-header">
-    <a class="register-brand brand" href="{{ login_url }}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
-    <a class="back-link" href="{{ login_url }}">Back</a>
+    <a class="register-brand brand" href="{{ login_url_with_next }}" aria-label="ValoraPharma sign in"><img src="{% static 'accounts/assets/pill-register.svg' %}" alt=""><span>Valora<span class="brand-accent">Pharma</span></span></a>
+    <a class="back-link" href="{{ login_url_with_next }}">Back</a>
   </header>
-  <h1 id="register-title">{% if is_staff_flow %}Staff Registration{% else %}Create Customer Account{% endif %}</h1>
+  <h1 id="register-title">Create Customer Account</h1>
   <p class="register-subtitle">Fill in your personal details to get started</p>
   {% include 'accounts/feedback.html' %}
   <form class="register-form" action="{{ register_url }}" method="post">
     {% csrf_token %}
+    {% if customer_next %}<input type="hidden" name="next" value="{{ customer_next }}">{% endif %}
     <div class="register-pair register-pair--names">
       <div class="register-field register-field--first-name">
         <label for="id_first_name">First Name</label>
@@ -28,7 +29,7 @@
     <div class="register-pair register-pair--personal">
       <div class="register-field register-field--date">
         <label for="id_date_of_birth">Date of Birth</label>
-        <div class="date-control"><input id="id_date_of_birth" name="date_of_birth" type="text" inputmode="numeric" autocomplete="bday" placeholder="dd-mm-yyyy" title="Enter your date of birth as DD-MM-YYYY" value="{{ form.date_of_birth.value|default_if_none:'' }}" required{% if form.date_of_birth.errors %} aria-invalid="true" aria-describedby="date-errors"{% endif %}><span aria-hidden="true">📅</span></div>
+        <div class="date-control"><input id="id_date_of_birth" name="date_of_birth" type="date" autocomplete="bday" max="{{ today_iso }}" value="{{ form.date_of_birth.value|default_if_none:'' }}" required{% if form.date_of_birth.errors %} aria-invalid="true" aria-describedby="date-errors"{% endif %}></div>
         {% if form.date_of_birth.errors %}<div class="field-errors" id="date-errors">{% for error in form.date_of_birth.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
       </div>
       <div class="register-field register-field--gender">
@@ -42,17 +43,29 @@
       <input id="id_email" name="email" type="email" autocomplete="email" placeholder="✉  you@example.mu" value="{{ form.email.value|default_if_none:'' }}" required maxlength="254"{% if form.email.errors %} aria-invalid="true" aria-describedby="email-errors"{% endif %}>
       {% if form.email.errors %}<div class="field-errors" id="email-errors">{% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
-    <div class="register-field register-field--phone register-field--full">
-      <label for="id_phone">Phone Number</label>
-      <input id="id_phone" name="phone" type="tel" autocomplete="tel" placeholder="☎ +230 5740 0000" value="{{ form.phone.value|default_if_none:'' }}" required maxlength="30"{% if form.phone.errors %} aria-invalid="true" aria-describedby="phone-errors"{% endif %}>
-      {% if form.phone.errors %}<div class="field-errors" id="phone-errors">{% for error in form.phone.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+    <div class="register-pair register-pair--contact">
+      <div class="register-field register-field--username">
+        <label for="id_username">Username</label>
+        <input id="id_username" name="username" type="text" autocomplete="username" placeholder="Choose a username" value="{{ form.username.value|default_if_none:'' }}" required minlength="3" maxlength="30"{% if form.username.errors %} aria-invalid="true" aria-describedby="username-errors"{% endif %}>
+        {% if form.username.errors %}<div class="field-errors" id="username-errors">{% for error in form.username.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+      </div>
+      <div class="register-field register-field--phone">
+        <label for="id_phone">Phone Number</label>
+        <input id="id_phone" name="phone" type="tel" autocomplete="tel" placeholder="☎ +230 5740 0000" value="{{ form.phone.value|default_if_none:'' }}" required maxlength="30"{% if form.phone.errors %} aria-invalid="true" aria-describedby="phone-errors"{% endif %}>
+        {% if form.phone.errors %}<div class="field-errors" id="phone-errors">{% for error in form.phone.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+      </div>
     </div>
     <div class="register-field register-field--password register-field--full">
       <label for="id_password">Password</label>
       <div class="password-control"><input id="id_password" name="password" type="password" autocomplete="new-password" placeholder="🔒  Create a password" required{% if form.password.errors %} aria-invalid="true" aria-describedby="password-errors"{% endif %}><button class="password-toggle" type="button" aria-label="Show password" aria-controls="id_password" aria-pressed="false" data-password-toggle><span aria-hidden="true">👁</span></button></div>
       {% if form.password.errors %}<div class="field-errors" id="password-errors">{% for error in form.password.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
+    <div class="register-consent">
+      <label for="id_agree_terms"><input id="id_agree_terms" name="agree_terms" type="checkbox" required{% if form.agree_terms.value %} checked{% endif %}{% if form.agree_terms.errors %} aria-invalid="true" aria-describedby="terms-errors"{% endif %}><span>I agree to the <a href="{% url 'accounts:terms' %}">Terms &amp; Conditions</a>.</span></label>
+      {% if form.agree_terms.errors %}<div class="field-errors" id="terms-errors">{% for error in form.agree_terms.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+    </div>
     <button class="primary-button register-submit" type="submit"><span>Register</span></button>
   </form>
+  <p class="register-switch">Already signed up? <a class="account-link" href="{{ login_url_with_next }}">Sign in</a></p>
 </main>
 {% endblock %}

@@ -1,0 +1,74 @@
+{% extends "pharmacist/base.html" %}
+{% load static %}
+{% block page_styles %}<link rel="stylesheet" href="{% static 'pharmacist/css/sale_pos.css' %}?v=pos-20261026">{% endblock %}
+{% block content %}
+<main id="main-content" class="pos">
+  <header class="pos-heading"><div><p class="pos-eyebrow">Pharmacy workspace</p><h1>Walk-in sale</h1><p>Select medicines, check the cart and record payment.</p></div><a href="{% url 'pharmacist:order_queue' %}?kind=walk_in&amp;status=open">Open sale drafts ↗</a></header>
+  {% for message in messages %}<p class="pos-notice" role="status">{{ message }}</p>{% endfor %}
+  <form method="post" id="pos-sale-form">
+    {% csrf_token %}{{ form.submission_key }}
+    <div class="pos-errors" role="alert">{{ form.non_field_errors }}{{ form.submission_key.errors }}{{ formset.non_form_errors }}{{ formset.management_form.errors }}{{ payment_form.non_field_errors }}</div>
+    <div class="pos-layout">
+      <section class="pos-cart pos-panel" aria-labelledby="cart-heading">
+        <header class="pos-section-heading"><h2 id="cart-heading">Current sale</h2><span id="pos-item-count">Cart</span></header>
+        <details class="pos-customer" {% if form.errors %}open{% endif %}>
+          <summary>Customer &amp; prescription <small>Optional for non-prescription sales</small></summary>
+          <div class="pos-customer-fields">
+            <div>{{ form.customer.label_tag }}{{ form.customer }}{{ form.customer.errors }}</div>
+            <div>{{ form.prescription.label_tag }}{{ form.prescription }}{{ form.prescription.errors }}<small>Prescription medicines need an approved prescription belonging to this customer.</small></div>
+            <div>{{ form.contact_name.label_tag }}{{ form.contact_name }}{{ form.contact_name.errors }}</div>
+            <div>{{ form.contact_phone.label_tag }}{{ form.contact_phone }}{{ form.contact_phone.errors }}<small>{{ form.contact_phone.help_text }}</small></div>
+          </div>
+        </details>
+        {{ formset.management_form }}
+        <div class="pos-cart-head" aria-hidden="true"><span>Medicine / price</span><span>Qty</span><span>Subtotal</span><span></span></div>
+        <div id="pos-lines">{% for line in formset %}<div class="pos-line">
+  <div class="pos-line-medicine"><label>Medicine {{ line.medicine }}</label><strong class="pos-line-name"></strong><small class="pos-line-price"></small>{{ line.medicine.errors }}</div>
+  <div class="pos-quantity"><label for="{{ line.quantity.id_for_label }}">Qty</label>{{ line.quantity }}{{ line.quantity.errors }}</div>
+  <strong class="pos-line-total">—</strong>
+  <div class="pos-line-delete"><span class="pos-delete-fallback">{{ line.DELETE.label_tag }}{{ line.DELETE }}</span><button type="button" class="pos-remove" aria-label="Remove medicine" hidden>×</button></div>
+  {{ line.non_field_errors }}
+</div>{% endfor %}</div>
+        <p id="pos-cart-empty" class="pos-empty" hidden>Your cart is empty. Select a medicine from the catalogue.</p>
+        <template id="pos-empty-line">{% with line=formset.empty_form %}<div class="pos-line">
+  <div class="pos-line-medicine"><label>Medicine {{ line.medicine }}</label><strong class="pos-line-name"></strong><small class="pos-line-price"></small>{{ line.medicine.errors }}</div>
+  <div class="pos-quantity"><label for="{{ line.quantity.id_for_label }}">Qty</label>{{ line.quantity }}{{ line.quantity.errors }}</div>
+  <strong class="pos-line-total">—</strong>
+  <div class="pos-line-delete"><span class="pos-delete-fallback">{{ line.DELETE.label_tag }}{{ line.DELETE }}</span><button type="button" class="pos-remove" aria-label="Remove medicine" hidden>×</button></div>
+  {{ line.non_field_errors }}
+</div>{% endwith %}</template>
+        <p class="pos-rx-warning" id="pos-rx-warning" hidden>This cart contains prescription medicines. Select the customer and their approved prescription above.</p>
+        <div class="pos-checkout">
+          <div class="pos-total"><span>Sale total</span><strong id="pos-total">Rs 0.00</strong></div>
+          <p class="pos-help">Catalogue prices are checked again on the server.</p>
+          <h3>Payment</h3>
+          <div class="pos-payment-fields">
+            <div>{{ payment_form.method.label_tag }}{{ payment_form.method }}{{ payment_form.method.errors }}</div>
+            <div id="pos-cash-field">{{ payment_form.cash_tendered.label_tag }}{{ payment_form.cash_tendered }}{{ payment_form.cash_tendered.errors }}</div>
+          </div>
+          <p class="pos-change">Change <strong id="pos-change">—</strong></p>
+          <p class="pos-help">Card payments are simulated. No card details are collected.</p>
+          <button type="submit" name="action" value="checkout" class="pos-pay">Record payment &amp; complete</button>
+          <button type="submit" name="action" value="draft" class="pos-draft">Save draft / choose batches manually</button>
+          <p class="pos-help">Checkout uses available batches with the earliest expiry first. Stock and payment are saved together. A draft does not deduct or reserve stock.</p>
+        </div>
+      </section>
+      <section class="pos-catalogue pos-panel" aria-labelledby="catalogue-heading">
+        <header class="pos-section-heading"><h2 id="catalogue-heading">Medicine catalogue</h2><span id="pos-product-count"></span></header>
+        <div class="pos-catalogue-tools" hidden id="pos-catalogue-tools">
+          <label class="pos-search">Find a medicine<input id="pos-search" type="search" placeholder="Name, strength or category" autocomplete="off"></label>
+          <label>Category<select id="pos-category"><option value="">All categories</option></select></label>
+        </div>
+        <p class="pos-help">Quantities shown exclude batches expiring today or earlier. Select a tile to add one selling unit.</p>
+        <div id="pos-products" class="pos-products"></div>
+        <p id="pos-no-products" class="pos-empty" hidden>No medicines match your search.</p>
+        <noscript><p class="pos-notice">Enable JavaScript for catalogue tiles and live totals. You can still select medicines and quantities in the cart and submit the sale.</p></noscript>
+      </section>
+    </div>
+  </form>
+  {{ catalogue|json_script:"pos-catalogue-data" }}
+  {{ prescription_owners|json_script:"pos-prescription-owners" }}
+</main>
+{% endblock %}
+{% block page_scripts %}<script src="{% static 'pharmacist/js/sale_pos.js' %}?v=pos-20261026" defer></script>{% endblock %}
+

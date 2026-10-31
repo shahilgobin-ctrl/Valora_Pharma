@@ -1,0 +1,32 @@
+{% extends 'superadmin/base.html' %}
+
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+  <header class="page-heading">
+    <h1>System Settings</h1>
+  </header>
+
+  <section class="form-panel settings-panel">
+    <div class="section-heading">
+      <svg><use href="#i-settings" /></svg>
+      <div>
+        <h2>General settings</h2>
+        <p class="help">
+          Manage your administration portal and account registration.
+        </p>
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include 'superadmin/fields.html' %}
+      <div class="form-actions">
+        <button class="button">Save settings</button>
+        <a class="button secondary" href="{% url 'superadmin:settings' %}">
+          Reset changes
+        </a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

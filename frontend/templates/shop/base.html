@@ -1,0 +1,21 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}ValoraPharma Products{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'shop/shop.css' %}?v=public-style-20261031">
+  <link rel="stylesheet" href="{% static 'public-header.css' %}">
+<script src="{% static 'public-header.js' %}" defer></script>
+</head>
+  <body>
+    {% include "includes/public_header.html" with active_page="product" %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <script src="{% static 'shop/shop.js' %}" defer></script>
+  </body>
+</html>

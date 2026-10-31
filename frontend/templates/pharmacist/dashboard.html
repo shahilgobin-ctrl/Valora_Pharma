@@ -1,0 +1,228 @@
+{% extends "pharmacist/base.html" %}
+{% load static %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{% static 'pharmacist/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main-content" class="pd-dashboard">
+  <div class="pd-container">
+
+    <header class="pd-page-header">
+      <div>
+        <p class="pd-eyebrow">{% now "l, j F Y" %} <span class="pd-eyebrow-dot"></span> LIVE OVERVIEW</p>
+        <h1>Pharmacy overview</h1>
+        <p class="pd-lede">Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}. Here's what needs your attention today.</p>
+      </div>
+      <a class="pd-main-cta" href="{% url 'pharmacist:sale_form' %}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New walk-in sale
+      </a>
+    </header>
+
+    {% for message in messages %}
+      <p class="pd-notice" role="status">{{ message }}</p>
+    {% endfor %}
+
+    <!-- Operational KPI cards: linked to existing workflows -->
+    <section class="pd-kpis" aria-label="Key pharmacy indicators">
+      <a class="pd-kpi pd-kpi-featured" href="{% url 'pharmacist:prescription_queue' %}?status=pending">
+        <div class="pd-kpi-top">
+          <span class="pd-kpi-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M15 3v5h5M9 13h6M12 10v6"/></svg>
+          </span>
+          <span class="pd-kpi-open" aria-hidden="true">↗</span>
+        </div>
+        <div><span class="pd-kpi-label">Pending prescriptions</span>
+          <strong class="pd-kpi-value">{{ pending_prescriptions }}</strong>
+          <span class="pd-kpi-help">Awaiting pharmacist review</span>
+        </div>
+      </a>
+
+      <a class="pd-kpi" href="{% url 'pharmacist:order_queue' %}?status=open&amp;kind=online">
+        <div class="pd-kpi-top">
+          <span class="pd-kpi-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="M3 7v10l9 5 9-5V7M12 12v10"/></svg>
+          </span>
+          <span class="pd-kpi-open" aria-hidden="true">↗</span>
+        </div>
+        <div><span class="pd-kpi-label">Open online orders</span>
+          <strong class="pd-kpi-value">{{ open_orders }}</strong>
+          <span class="pd-kpi-help">Not completed or cancelled</span>
+        </div>
+      </a>
+
+      <a class="pd-kpi" href="{% url 'pharmacist:inventory' %}?availability=low">
+        <div class="pd-kpi-top">
+          <span class="pd-kpi-icon pd-icon-warm" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5m0 3v.2"/></svg>
+          </span>
+          <span class="pd-kpi-open" aria-hidden="true">↗</span>
+        </div>
+        <div><span class="pd-kpi-label">Low-stock medicines</span>
+          <strong class="pd-kpi-value">{{ low_stock_count }}</strong>
+          <span class="pd-kpi-help">At or below reorder level</span>
+        </div>
+      </a>
+
+      <div class="pd-kpi">
+        <div class="pd-kpi-top">
+          <span class="pd-kpi-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h5"/></svg>
+          </span>
+          <span class="pd-kpi-tag">TODAY</span>
+        </div>
+        <div><span class="pd-kpi-label">Payments recorded</span>
+          <strong class="pd-kpi-value pd-kpi-money">Rs {{ revenue_today|floatformat:2 }}</strong>
+          <span class="pd-kpi-help">{{ sales_today }} completed transaction{{ sales_today|pluralize }} today</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seven-day real activity and actions: no fabricated chart values -->
+    <div class="pd-main-grid">
+      <section class="pd-panel pd-chart-panel" aria-labelledby="pd-activity-heading">
+        <div class="pd-panel-titlebar">
+          <div>
+            <span class="pd-section-eyebrow">ACTIVITY</span>
+            <h2 id="pd-activity-heading">Orders &amp; sales overview</h2>
+            <p>Daily order creation and completion over the last 7 days</p>
+          </div>
+          <span class="pd-time-pill">Last 7 days</span>
+        </div>
+
+        <div class="pd-chart-legend" aria-hidden="true">
+          <span><i class="pd-legend-new"></i> New orders</span>
+          <span><i class="pd-legend-complete"></i> Completed</span>
+        </div>
+
+        <div class="pd-chart" role="group" aria-label="Seven day orders and completions chart">
+          <div class="pd-chart-plot">
+            {% for point in activity %}
+              <div class="pd-chart-day" title="{{ point.date|date:'j M Y' }}: {{ point.new }} new, {{ point.completed }} completed">
+                <div class="pd-chart-columns">
+                  <div class="pd-chart-track">
+                    <span class="pd-chart-bar pd-bar-new"
+                          style="--bar-height: {{ point.new_pct }}%;"
+                          aria-label="{{ point.new }} new orders on {{ point.date|date:'j M' }}"></span>
+                    <span class="pd-chart-bar pd-bar-complete"
+                          style="--bar-height: {{ point.completed_pct }}%;"
+                          aria-label="{{ point.completed }} completed on {{ point.date|date:'j M' }}"></span>
+                  </div>
+                </div>
+                <span class="pd-chart-dayname">{{ point.date|date:'D' }}</span>
+                <span class="pd-chart-daynum">{{ point.date|date:'j M' }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="pd-chart-footer">
+          <span><strong>{{ activity_new_total }}</strong> new orders</span>
+          <span><strong>{{ activity_completed_total }}</strong> completed</span>
+          {% if not activity_has_data %}<small>No transactions in the last seven days</small>{% endif %}
+        </div>
+      </section>
+
+      <aside class="pd-panel pd-workflow-panel" aria-labelledby="pd-workflow-heading">
+        <div class="pd-workflow-top">
+          <span class="pd-section-eyebrow">SHORTCUTS</span>
+          <h2 id="pd-workflow-heading">Your next actions</h2>
+          <p>Move through daily pharmacy tasks faster.</p>
+        </div>
+        <nav class="pd-workflow-links" aria-label="Pharmacy quick actions">
+          <a href="{% url 'pharmacist:prescription_queue' %}?status=pending">
+            <span class="pd-workflow-symbol" aria-hidden="true">Rx</span>
+            <span><strong>Review prescriptions</strong><small>{{ pending_prescriptions }} awaiting decision</small></span>
+            <span class="pd-workflow-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a href="{% url 'pharmacist:order_queue' %}?status=ready&amp;kind=online">
+            <span class="pd-workflow-symbol" aria-hidden="true">✓</span>
+            <span><strong>Ready for pickup</strong><small>{{ ready_orders }} customer order{{ ready_orders|pluralize }}</small></span>
+            <span class="pd-workflow-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a href="{% url 'pharmacist:inventory' %}?availability=low">
+            <span class="pd-workflow-symbol" aria-hidden="true">!</span>
+            <span><strong>Check inventory</strong><small>{{ low_stock_count }} low-stock medicine{{ low_stock_count|pluralize }}</small></span>
+            <span class="pd-workflow-arrow" aria-hidden="true">↗</span>
+          </a>
+          <a href="{% url 'pharmacist:sale_form' %}">
+            <span class="pd-workflow-symbol" aria-hidden="true">+</span>
+            <span><strong>Start walk-in sale</strong><small>Record an in-store transaction</small></span>
+            <span class="pd-workflow-arrow" aria-hidden="true">↗</span>
+          </a>
+        </nav>
+      </aside>
+    </div>
+
+    <!-- Operational detail -->
+    <div class="pd-bottom-grid">
+      <section class="pd-panel pd-orders-panel" aria-labelledby="pd-orders-heading">
+        <div class="pd-panel-titlebar">
+          <div>
+            <span class="pd-section-eyebrow">LATEST ACTIVITY</span>
+            <h2 id="pd-orders-heading">Recent orders</h2>
+            <p>The latest customer and walk-in transactions</p>
+          </div>
+          <a class="pd-view-link" href="{% url 'pharmacist:order_queue' %}?status=all&amp;kind=all">View all <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="pd-table-scroll">
+          <table class="pd-orders-table">
+            <thead><tr><th scope="col">Reference / customer</th><th scope="col">Kind</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col"><span class="pd-sr-only">Action</span></th></tr></thead>
+            <tbody>
+              {% for order in recent_orders %}
+                <tr>
+                  <td>
+                    <strong>ORD-{{ order.pk }}</strong>
+                    <small>{% if order.contact_name %}{{ order.contact_name }}{% elif order.customer %}{% firstof order.customer.get_full_name order.customer.email "Customer" %}{% else %}Walk-in customer{% endif %}</small>
+                  </td>
+                  <td>{{ order.get_kind_display }}</td>
+                  <td class="pd-table-money">Rs {{ order.total_amount|floatformat:2 }}</td>
+                  <td><span class="pd-status pd-status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                  <td><a class="pd-table-action" href="{% url 'pharmacist:order_record' order.pk %}" aria-label="Open ORD-{{ order.pk }}">View <span aria-hidden="true">↗</span></a></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="pd-table-empty">No orders yet. New transactions will appear here automatically.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="pd-panel pd-inventory-panel" aria-labelledby="pd-inventory-heading">
+        <div class="pd-panel-titlebar">
+          <div>
+            <span class="pd-section-eyebrow">STOCK HEALTH</span>
+            <h2 id="pd-inventory-heading">Inventory attention</h2>
+            <p>Stock and expiry warnings</p>
+          </div>
+          <a class="pd-view-link" href="{% url 'pharmacist:inventory' %}?availability=low">View stock <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="pd-inventory-summary">
+          <div><strong>{{ active_medicines_count }}</strong><span>Active medicines</span></div>
+          <div><strong>{{ out_of_stock_count }}</strong><span>Out of stock</span></div>
+          <div><strong>{{ expiring_batches_count }}</strong><span>Expiring ≤30d</span></div>
+        </div>
+        <div class="pd-stock-list">
+          {% for medicine in low_stock %}
+            <div class="pd-stock-row">
+              <span class="pd-stock-dot" aria-hidden="true"></span>
+              <div class="pd-stock-details">
+                <strong>{{ medicine.name }} {{ medicine.strength }}</strong>
+                <small>Reorder at {{ medicine.reorder_level }} units</small>
+              </div>
+              <span class="pd-stock-amount">{{ medicine.available }} left</span>
+            </div>
+          {% empty %}
+            <div class="pd-stock-healthy">
+              <span aria-hidden="true">✓</span>
+              <div><strong>No low-stock alerts</strong><small>All active medicines are above their reorder thresholds.</small></div>
+            </div>
+          {% endfor %}
+        </div>
+        <p class="pd-inventory-footnote">Availability excludes expired medicine batches.</p>
+      </section>
+    </div>
+  </div>
+</main>
+{% endblock %}

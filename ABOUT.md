@@ -7,7 +7,7 @@ and icons are embedded; these pages need no external assets or JavaScript.
 
 ## Run locally
 
-1. Pull or download the `About-page` branch into your own project folder.
+1. Open the integrated `merger` project folder.
 2. On Windows, run `run_windows.bat`. On macOS/Linux, run `bash run.sh`.
 3. Open **http://127.0.0.1:8000/about/** or **http://127.0.0.1:8000/contact/**.
 
@@ -69,7 +69,7 @@ are retained for fidelity; this is not an accessibility conformance certificatio
 | `backend/pages/forms.py` | Contact validation |
 | `backend/pages/models.py` | Contact message persistence |
 | `backend/pages/admin.py` | Permission-protected message administration |
-| `backend/pages/migrations/0001_initial.py` | Contact table migration |
+| `backend/pages/migrations/0002_contact_message.py` | Contact table migration after Home artwork |
 | `backend/pages/tests.py` | 22 page, navigation and submission tests |
 | `export_about_preview.py` | Generates both standalone previews |
 
@@ -86,7 +86,7 @@ python backend/manage.py makemigrations --check --dry-run
 python backend/manage.py test accounts pages
 ```
 
-All **42 tests passed**: 20 existing account tests and 22 page/form tests.
+The combined integration suite passes **229 tests**. The branch previously passed 42 tests.
 Browser checks cover both pages at 320, 390, 600, 768, 1024, 1100, 1264, 1265,
 1440 and 1579 px, including overflow, embedded assets and active navigation.
 Nine interaction checks cover page navigation, account links, keyboard access,

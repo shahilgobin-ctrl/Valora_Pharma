@@ -1,0 +1,27 @@
+{% extends 'shop/base.html' %}
+{% block title %}{{ product.public_name }} | ValoraPharma{% endblock %}
+{% block content %}
+  <section class="page-banner">
+    <a href="{% url 'shop:shop' %}" class="back-link">‹ &nbsp; Back to products</a>
+    <h1>{{ product.public_name }}</h1>
+    <p>{{ product.category.name }}</p>
+  </section>
+
+  <section class="detail-wrap">
+    <div class="detail-image" style="{% if product.image_url %}background-image:url('{{ product.image_url }}'){% endif %}"></div>
+    <div class="detail-content">
+      {% if product.requires_prescription %}
+        <span class="rx-tag">Rx Required</span>
+      {% endif %}
+      <h2>{{ product.public_name }}</h2>
+      <p class="strength">{{ product.public_strength }}</p>
+      <p>{{ product.public_description }}</p>
+      <strong class="detail-price">Rs {{ product.public_price|floatformat:2 }} / {{ product.medicine.selling_unit }}</strong>
+      {% if product.is_out_of_stock %}
+        <button class="add-button disabled" disabled>Out of stock</button>
+      {% else %}
+        <button class="add-button" data-add-product="{{ product.id }}">Add to cart</button>
+      {% endif %}
+    </div>
+  </section>
+{% endblock %}

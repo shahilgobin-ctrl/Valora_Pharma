@@ -1,0 +1,112 @@
+{% extends 'shop/base.html' %}
+{% block title %}Your Cart | ValoraPharma{% endblock %}
+{% block content %}
+  <section class="page-banner cart-banner">
+    <a href="{% url 'shop:shop' %}" class="back-link">‹ &nbsp; Back</a>
+    <h1>Your Cart</h1>
+    <p><span class="cart-items-count">{{ cart_count }}</span> items added</p>
+  </section>
+
+  <section class="catalog cart-catalog">
+    {% if cart_categories %}
+      <nav class="category-pills" aria-label="Filter cart by category">
+        <a class="pill {% if not selected_cart_category %}active{% endif %}" href="{% url 'shop:cart' %}">All items</a>
+        {% for category in cart_categories %}
+          <a class="pill {% if selected_cart_category == category.slug %}active{% endif %}" href="?category={{ category.slug|urlencode }}">{{ category.name }}</a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+
+    <div class="cart-layout">
+      <div class="cart-products">
+        {% for item in cart_items %}
+          <article class="product-card {% if item.product.is_out_of_stock %}sold-out{% endif %}">
+            <a class="product-image" href="{% url 'shop:product' item.product.slug %}" style="{% if item.product.image_url %}background-image:url('{{ item.product.image_url }}'){% endif %}">
+              <span class="category-tag">{{ item.product.category.name }}</span>
+            </a>
+            <div class="card-content">
+              <a class="product-name" href="{% url 'shop:product' item.product.slug %}">{{ item.product.public_name }}</a>
+              <p class="strength">{{ item.product.public_strength }}</p>
+              <p class="description">{{ item.product.public_description }}</p>
+              <div class="card-footer">
+                <strong>Rs {{ item.product.public_price|floatformat:2 }} / {{ item.product.medicine.selling_unit }}</strong>
+                <div class="quantity">
+                  <button data-quantity="{{ item.id }}" data-value="{{ item.quantity|add:'-1' }}" aria-label="Decrease quantity">−</button>
+                  <span>{{ item.quantity }}</span>
+                  <button data-quantity="{{ item.id }}" data-value="{{ item.quantity|add:'1' }}" aria-label="Increase quantity">+</button>
+                </div>
+                <button class="add-button remove-button" data-remove-item="{{ item.id }}">Remove from cart</button>
+              </div>
+            </div>
+          </article>
+        {% empty %}
+          <div class="empty-cart">
+            <h2>{% if selected_cart_category %}No cart items in this category{% else %}Your cart is empty{% endif %}</h2>
+            <p>{% if selected_cart_category %}Choose another category or view all cart items.{% else %}Browse the shop and add medicines to your cart.{% endif %}</p>
+            <a class="checkout-button" href="{% if selected_cart_category %}/cart/{% else %}/shop/{% endif %}">
+              {% if selected_cart_category %}View all cart items{% else %}Browse products{% endif %}
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      <aside class="summary" id="checkout" data-cart-summary data-subtotal="{{ subtotal }}" data-delivery-fee="{{ delivery_fee }}">
+        <div>
+            <span>Subtotal:</span>
+            <strong id="cart-subtotal">Rs {{ subtotal }}</strong>
+        </div>
+        <div>
+            <span>Delivery / pickup fee:</span>
+            <strong id="cart-delivery-fee">Rs {{ delivery }}</strong>
+        </div>
+        {% if has_cart_items %}
+          <form class="fulfillment-form" method="get" action="{% url 'shop:cart' %}">
+            {% if selected_cart_category %}<input type="hidden" name="category" value="{{ selected_cart_category }}">{% endif %}
+            <fieldset class="fulfillment-options" data-fulfillment-options>
+              <legend>How would you like to receive your order?</legend>
+              <label class="fulfillment-option">
+                <input type="radio" name="delivery_method" value="delivery" {% if delivery_method == 'delivery' %}checked{% endif %} onchange="this.form.requestSubmit()">
+                <span>Home delivery</span>
+                <strong>Rs {{ delivery_fee }}</strong>
+              </label>
+              <label class="fulfillment-option">
+                <input type="radio" name="delivery_method" value="pickup" {% if delivery_method == 'pickup' %}checked{% endif %} onchange="this.form.requestSubmit()">
+                <span>Pick up</span>
+                <strong>No fee</strong>
+              </label>
+            </fieldset>
+          </form>
+        {% endif %}
+        <hr>
+        <div class="total">
+          <span>Total:</span>
+          <strong id="cart-total">Rs {{ total }}</strong>
+        </div>
+
+        <section class="payment-section" aria-labelledby="payment-heading">
+          <div class="payment-section-heading">
+            <h2 id="payment-heading">Payment</h2>
+            <span class="payment-status">Demo mode</span>
+          </div>
+          <div class="payment-method">
+            <span class="payment-method-icon" aria-hidden="true">&#128179;</span>
+            <div>
+              <strong>Online payment</strong>
+              <p>Demo checkout records this as a successful payment.</p>
+            </div>
+          </div>
+          <p class="payment-note">This is a simulated demo status only. No card details are collected and no real payment is processed.</p>
+        </section>
+
+        {% if requires_prescription %}
+          <div class="prescription-upload">
+            <label for="prescription-upload">Prescription document <span>(required)</span></label>
+            <input id="prescription-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" data-prescription-file required>
+            <p>PDF, JPG, or PNG; maximum 5 MB. Only pharmacy staff can download this file.</p>
+          </div>
+        {% endif %}
+        <button class="checkout-button" data-checkout {% if not cart_count %}disabled{% endif %}>Checkout</button>
+      </aside>
+    </div>
+  </section>
+{% endblock %}

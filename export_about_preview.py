@@ -18,5 +18,17 @@ for page in ("about", "contact"):
     if page == "contact":
         context["form"] = ContactForm()
     output = ROOT / "frontend" / f"{page}-preview.html"
-    output.write_text(render_to_string(f"pages/{page}.html", context), encoding="utf-8")
+    html = render_to_string(f"pages/{page}.html", context)
+    if page == "about":
+        css = (ROOT / "frontend/static/pages/about.css").read_text(encoding="utf-8")
+        css = css.replace("../accounts/fonts/", "static/accounts/fonts/")
+        html = html.replace('<link rel="stylesheet" href="/static/pages/about.css">', '<style>' + css + '</style>')
+    header_css = (ROOT / "frontend/static/public-header.css").read_text(encoding="utf-8")
+    header_css = header_css.replace("url('accounts/", "url('static/accounts/")
+    html = html.replace('<link rel="stylesheet" href="/static/public-header.css">', '<style>' + header_css + '</style>')
+    header_js = (ROOT / "frontend/static/public-header.js").read_text(encoding="utf-8")
+    html = html.replace('<script src="/static/public-header.js" defer></script>', '')
+    html = html.replace('</body>', '<script>' + header_js + '</script>\n</body>')
+    html = html.replace('src="/static/accounts/assets/pill-login.svg"', 'src="static/accounts/assets/pill-login.svg"')
+    output.write_text("\n".join(line.rstrip() for line in html.splitlines()).rstrip() + "\n", encoding="utf-8")
     print(f"Created {output}")

@@ -1,25 +1,36 @@
-# Verified authentication project
+# Combined verification
 
-The delivered scope is customer and staff login/registration from the supplied Figma file. There is no pharmacy dashboard, product catalogue, checkout, or prescription workflow.
+The integrated project includes Home, Shop, About, Contact, pharmacist,
+manager and administrator workspaces. All account roles use the shared login.
+Customer registration creates an active account and returns to sign in;
+customer email verification routes have been removed. Password recovery
+remains available through email codes.
 
-## Checks performed
+The login merge preserves customer redirects to Home, safe return links,
+pharmacist and manager dashboard redirects, administrator access restrictions,
+POST logout and the disabled manager preview bypass.
 
-- Django 5.2.17 system check: no issues.
-- Migration consistency check: no changes required.
-- Migrations applied successfully to a temporary SQLite database outside the deliverable.
-- 20 automated authentication/security tests passed. These include hashed passwords, email uniqueness, input validation, CSRF, POST-only logout, customer/staff separation, staff approval, login throttling and protected demo seeding.
-- Browser flow verified: customer registration, password visibility, rejection of an incorrect password, successful login, logout, staff registration, and rejection of staff login while awaiting approval.
-- Registration layouts checked at desktop size and mobile widths 361, 375 and 390 pixels: no horizontal scrolling; vector dimensions preserved.
+Merge validation: all 323 combined tests passed, Django checks found no issues,
+and migration model checks found no changes. The configured local database had
+no pending migrations. No migrations were applied during this merge.
 
-A successful login shows a signed-in confirmation on the login page because only authentication screens are included. Staff registrations require administrator approval. The Figma demo customer is created only by the optional seed_demo command.
+Validation commands, using the project virtual environment:
 
-## Design references
+```powershell
+.\.venv\Scripts\python.exe backend/manage.py check
+.\.venv\Scripts\python.exe backend/manage.py makemigrations --check --dry-run
+.\.venv\Scripts\python.exe backend/manage.py migrate --plan
+Push-Location backend
+..\.venv\Scripts\python.exe manage.py test --noinput
+Pop-Location
+```
 
-- Customer register: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-675
-- Customer login: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=49-76
-- Staff login: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559
-- Staff register: https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=163-233
+Migration plans describe the configured local database. This merge does not
+apply migrations to that database. In particular, review accounts.0005 before
+applying it: it removes verification metadata and activates earlier pending
+customer signups. Preserve database and private upload backups before any
+upgrade. Existing migration history is retained.
 
-Native Figma frames: customer register 502 x 624; staff register 519 x 651; login 1285 x 900. Layout adapts to smaller screens. Images and vectors are stored locally in frontend/static/accounts/assets. Poppins, Sacramento and Kavivanar are stored locally with their font licence notices.
-
-The ZIP excludes virtual environments, personal accounts, database files, temporary verification files and development secrets. First startup creates your own local database.
+Browser review remains necessary for responsive layouts, navigation, shared
+login and logout, role dashboards, and password recovery. Real SMTP delivery
+and real payments are not verified; checkout uses simulated payment.

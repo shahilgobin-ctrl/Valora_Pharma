@@ -5,9 +5,10 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    initial = True
+    initial = False
 
     dependencies = [
+        ("pages", "0001_homepage_product_images"),
     ]
 
     operations = [

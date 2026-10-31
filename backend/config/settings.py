@@ -4,8 +4,11 @@ import secrets
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
+from .runtime import data_directory
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BASE_DIR.parent
+DATA_DIR = data_directory(BASE_DIR)
 
 def env_bool(name, default):
     value = os.environ.get(name)
@@ -22,7 +25,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     if not DEBUG:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY is required when DJANGO_DEBUG=false.")
-    secret_file = BASE_DIR / ".dev-secret-key"
+    secret_file = DATA_DIR / ".dev-secret-key"
     try:
         with secret_file.open("x", encoding="utf-8") as handle:
             handle.write(secrets.token_urlsafe(64))
@@ -45,7 +48,14 @@ INSTALLED_APPS = [
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
     "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
     "accounts.apps.AccountsConfig",
+    "pharmacist.apps.PharmacistConfig",
+    "prescriptions.apps.PrescriptionsConfig",
+    "inventory.apps.InventoryConfig",
+    "orders.apps.OrdersConfig",
+    "shop.apps.ShopConfig",
     "pages.apps.PagesConfig",
+    "manager.apps.ManagerConfig",
+    "superadmin.apps.SuperadminConfig",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -65,13 +75,15 @@ TEMPLATES = [{
         "django.template.context_processors.request",
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
+        "pharmacist.context_processors.pharmacy_profile",
+        "pages.context_processors.public_header",
     ]},
 }]
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {"default": {
     "ENGINE": "django.db.backends.sqlite3",
-    "NAME": os.environ.get("DJANGO_DATABASE_PATH", str(BASE_DIR / "db.sqlite3")),
+    "NAME": os.environ.get("DJANGO_DATABASE_PATH", str(DATA_DIR / "db.sqlite3")),
     "OPTIONS": {"timeout": 20},
 }}
 AUTH_USER_MODEL = "accounts.User"
@@ -90,6 +102,12 @@ STATICFILES_DIRS = [PROJECT_DIR / "frontend" / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
+PHARMACY_ROLE_HOME_ROUTES = {
+    "customer": "accounts:customer_landing",
+    "staff": "accounts:staff_landing",
+    "supplier": "accounts:supplier_landing",
+    "admin": "superadmin:overview",
+}
 SESSION_COOKIE_AGE = 12 * 60 * 60
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
@@ -112,3 +130,41 @@ CACHES = {"default": {
 }}
 LOGIN_MAX_FAILURES = 8
 LOGIN_LOCKOUT_SECONDS = 15 * 60
+
+# Uploaded documents are served through permission-checked views.
+MEDIA_ROOT = Path(
+    os.environ.get(
+        "DJANGO_MEDIA_ROOT",
+        str(DATA_DIR / "private_uploads"),
+    )
+)
+MEDIA_URL = "/private-uploads/"
+
+# Local development prints reset emails to the terminal; deployment uses SMTP.
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_DEFAULT_FROM_EMAIL", "ValoraPharma <no-reply@example.com>")
+if not DEBUG and not os.environ.get("DJANGO_DEFAULT_FROM_EMAIL"):
+    raise ImproperlyConfigured("DJANGO_DEFAULT_FROM_EMAIL is required when DJANGO_DEBUG=false.")
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("DJANGO_EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("DJANGO_EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = 10
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise ImproperlyConfigured("Enable only one of DJANGO_EMAIL_USE_TLS or DJANGO_EMAIL_USE_SSL.")
+
+PASSWORD_RESET_CODE_TTL_SECONDS = 10 * 60
+PASSWORD_RESET_MAX_ATTEMPTS = 5
+PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS = 60
+PASSWORD_RESET_EMAIL_LIMIT = 5
+PASSWORD_RESET_EMAIL_WINDOW_SECONDS = 60 * 60
+
+HOMEPAGE_PRODUCT_LIMIT = 4
+
+MANAGER_LOCAL_PREVIEW = False

@@ -1,0 +1,163 @@
+/* Valora Pharma — shared pharmacist shell and brand tokens */
+:root {
+  --vp-primary: #12403A;
+  --vp-primary-deep: #0C302B;
+  --vp-teal-mid: #1F514E;
+  --vp-teal-soft: #3B6E67;
+  --vp-sage: #879E9D;
+  --vp-mint: #E8F2EC;
+  --vp-lime: #DCECA3;
+  --vp-accent-warm: #A46A3C;
+  --vp-accent-warm-deep: #733C0C;
+  --vp-page: #F4F7F6;
+  --vp-card: #FFFFFF;
+  --vp-border: #E1EAE5;
+  --vp-ink: #162A27;
+  --vp-muted: #617670;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body.vp-body {
+  display: block; margin: 0; border: 0;
+  background: var(--vp-page); color: var(--vp-ink);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+}
+.vp-shell { display: grid; grid-template-columns: 256px minmax(0,1fr); min-height:100vh; }
+.vp-workspace { min-width: 0; }
+.vp-workspace > main { width:100%; min-width:0; margin:0; }
+.vp-skip {
+  position:fixed; left:12px; top:-100px; z-index:1000;
+  padding:12px 16px; border-radius:9px;
+  color:var(--vp-primary); background:white;
+}
+.vp-skip:focus { top:12px; }
+:focus-visible { outline:3px solid #91CDB9; outline-offset:3px; }
+
+/* Sidebar */
+.vp-sidebar {
+  display:flex; flex-direction:column; gap:0;
+  width:256px; height:100vh; position:sticky; top:0;
+  padding:26px 15px 18px; overflow-y:auto;
+  background:var(--vp-primary); color:white;
+}
+.vp-brand-new {
+  display:flex; align-items:center; gap:12px;
+  padding:2px 10px; margin-bottom:32px;
+  color:white; text-decoration:none;
+}
+.vp-brand-new:hover { color:white; }
+.vp-brand-logo {
+  display:grid; place-items:center; width:40px; height:40px;
+  flex:none; border-radius:12px;
+  background:var(--vp-lime); color:var(--vp-primary);
+  transition:transform .2s ease;
+}
+.vp-brand-new:hover .vp-brand-logo { transform:rotate(-7deg); }
+.vp-brand-logo svg, .vp-sidebar .vp-signout svg {
+  width:20px; height:20px; fill:none; stroke:currentColor;
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+}
+.vp-brand-text { display:flex; flex-direction:column; gap:3px; }
+.vp-brand-text strong { font-size:18px; font-weight:750; line-height:1.1; }
+.vp-brand-text small { font-size:12px; color:#BDD4CA; }
+.vp-sidebar .vp-nav { display:flex; flex-direction:column; gap:6px; }
+.vp-sidebar .vp-nav a {
+  display:flex; align-items:center; gap:12px;
+  min-height:46px; padding:11px 13px; border-radius:11px;
+  color:#D2E1DB; font-size:14px; font-weight:550;
+  text-decoration:none;
+  transition:background .2s ease, color .2s ease, transform .2s ease;
+}
+.vp-sidebar .vp-nav a:hover {
+  background:var(--vp-teal-mid); color:white; transform:translateX(2px);
+}
+.vp-sidebar .vp-nav a[aria-current="page"] {
+  background:var(--vp-lime); color:var(--vp-primary);
+  font-weight:750;
+}
+.vp-sidebar .vp-nav a[aria-current="page"]:hover { transform:none; }
+.vp-nav-icon { display:grid; place-items:center; flex:none; width:21px; height:21px; }
+.vp-nav-icon svg {
+  width:20px; height:20px; fill:none; stroke:currentColor;
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;
+}
+.vp-sidebar .vp-logout-form {
+  margin:auto 0 0; padding:22px 0 0; width:100%; flex:none;
+}
+.vp-sidebar .vp-signout {
+  display:flex; justify-content:center; align-items:center; gap:10px;
+  width:100%; min-height:46px; margin:0; padding:11px 16px;
+  border:1px solid #6E9285; border-radius:11px;
+  background:var(--vp-teal-mid); color:white;
+  font-family:inherit; font-size:14px; font-weight:600; line-height:1.35;
+  cursor:pointer; transition:background .2s ease;
+}
+.vp-sidebar .vp-signout:hover {
+  background:#2F6860; color:white;
+}
+
+/* Top bar is real workspace navigation, not a simulated dashboard search box. */
+.vp-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; min-height:78px; padding:14px 34px;
+  background:#FFFFFF; border-bottom:1px solid var(--vp-border);
+}
+.vp-topbar-path { display:flex; align-items:center; gap:11px; color:var(--vp-sage); font-size:13px; }
+.vp-topbar-path strong { color:var(--vp-primary); font-size:14px; }
+.vp-topbar-user { display:flex; align-items:center; gap:11px; min-width:0; }
+.vp-topbar-indicator { width:8px; height:8px; background:#67AC80; border-radius:50%; }
+.vp-topbar-user-copy { display:flex; flex-direction:column; gap:2px; min-width:0; text-align:right; }
+.vp-topbar-user-copy strong { max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.vp-topbar-user-copy small { color:var(--vp-muted); font-size:11px; }
+.vp-topbar-avatar {
+  display:grid; place-items:center; flex:none; width:38px; height:38px;
+  border-radius:50%; color:var(--vp-primary); background:var(--vp-lime);
+  font-size:14px; font-weight:750;
+}
+.vp-preview {
+  margin:0; padding:12px 24px; color:#65480b; font-size:13px;
+  background:#fff3d8; border-bottom:1px solid #e7d7b0; line-height:1.6;
+}
+.vp-preview a { color:var(--vp-primary); margin-left:12px; text-decoration:underline; }
+
+@media (max-width:800px) {
+  .vp-shell { grid-template-columns:minmax(0,1fr); }
+  .vp-sidebar {
+    position:static; width:100%; height:auto; overflow:visible;
+    padding:16px; gap:4px;
+  }
+  .vp-brand-new { margin-bottom:12px; }
+  .vp-sidebar .vp-nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; }
+  .vp-sidebar .vp-nav a { font-size:13px; padding:10px; }
+  .vp-sidebar .vp-logout-form { margin:12px 0 0; padding-top:10px; border-top:1px solid #3B6E67; }
+  .vp-topbar { padding:12px 18px; min-height:64px; }
+  .vp-workspace > main { padding:22px 16px 50px; }
+  .vp-preview { padding:12px 16px; }
+}
+@media (max-width:480px) {
+  .vp-sidebar .vp-nav { grid-template-columns:1fr; }
+  .vp-topbar-breadcrumb, .vp-topbar-user-copy, .vp-topbar-indicator { display:none; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation:none!important; transition:none!important; }
+}
+@media print {
+  .vp-sidebar, .vp-topbar, .vp-preview, .vp-skip, .vp-no-print { display:none!important; }
+  .vp-shell { display:block; }
+}
+
+/* Navigation states: enforce the teal shell consistently on all live pages. */
+.vp-sidebar .vp-brand-new:visited { color: #FFFFFF; }
+.vp-sidebar .vp-nav a:visited { color: #D2E1DB; }
+.vp-sidebar .vp-nav a:hover,
+.vp-sidebar .vp-nav a:visited:hover {
+  background: var(--vp-teal-mid);
+  color: #FFFFFF;
+}
+.vp-sidebar .vp-nav a[aria-current="page"],
+.vp-sidebar .vp-nav a[aria-current="page"]:visited,
+.vp-sidebar .vp-nav a[aria-current="page"]:hover {
+  background: var(--vp-lime);
+  color: var(--vp-primary);
+}
+.vp-sidebar .vp-signout,
+.vp-sidebar .vp-signout:hover { color: #FFFFFF; }

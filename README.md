@@ -1,173 +1,275 @@
-# Pharmacy login and registration
+# Valora Pharma
 
-A Django project implementing the pharmacy design's customer and staff login and registration pages. The frontend lives in `frontend/`; Django handles forms, authentication, sessions and data storage in `backend/`.
+Valora Pharma is a Django pharmacy application with public Home, Shop, About
+and Contact pages, customer accounts, and protected pharmacist, pharmacy
+manager and administrator workspaces.
 
-This package covers authentication only. A successful login displays a confirmation on the login page. Registration returns you to the corresponding login page. Pharmacy dashboards, medicine inventory, prescriptions, ordering and payments are outside this package.
+The project uses Django 5.2.17, SQLite for local development, Django templates,
+and locally bundled CSS and JavaScript. There is no Node.js build step.
 
-## Start on Windows
+## Features
 
-1. Install **Python 3.10 through 3.14** from [python.org](https://www.python.org/downloads/). A recent Python 3.12 or 3.13 release is a good choice. Enable the Python launcher during installation.
-2. Extract the ZIP completely into a folder.
-3. Double-click **`run_windows.bat`**.
-4. Wait for the dependencies and database to finish preparing, then open **http://127.0.0.1:8000/login/**.
+- Customers can browse medicines, manage a cart, submit prescriptions and
+  place orders with simulated online payment.
+- Pharmacists can review prescriptions, process online orders, record walk-in
+  sales, allocate batches and issue receipts.
+- Pharmacy managers can manage medicines, batches, suppliers, purchase orders,
+  stock receipts, adjustments, expiry alerts and reports.
+- Administrators can manage accounts, assign roles, review audit logs and
+  control customer registration.
+- Shared authentication includes direct customer registration, password recovery,
+  server-side validation, CSRF protection and request limits.
 
-The first run needs an internet connection to download dependencies. The starter creates a project-local `.venv`, installs `requirements.txt`, applies database migrations and starts the development server. Later runs reuse that environment and your database. Keep the console window open; press **Ctrl+C** to stop.
+## Shared inventory and payments
 
-You can also open PowerShell in the extracted project folder and run:
+`inventory.Medicine` owns medicine information, selling prices, selling units,
+prescription requirements and reorder levels. `inventory.Batch` owns physical
+stock and expiry dates. Manager, shop and pharmacist workflows share these
+records. `shop.Product` links explicitly to a medicine and provides storefront
+information such as artwork and category placement.
 
-```powershell
-.\run_windows.bat
-```
+Shop availability excludes expired batches and accounts for pending online
+orders. Checkout records one simulated payment in the shared order system;
+pharmacist completion reuses that payment and deducts the allocated batch stock.
+Prescription approval and stock validation remain required before fulfilment.
+Pickup has no delivery fee; delivery uses the configured shop fee. No real
+payment is processed.
 
-For a different local port:
+## Run an existing installation
 
-```powershell
-.\run_windows.bat -Address 127.0.0.1:8001
-```
-
-The batch file runs `start.ps1` with a temporary, process-only execution-policy setting. It does not change your system's PowerShell policy. The starter checks `py`, then `python3`, then `python` for an installed, supported runtime. If `py` says there is no runtime installed, install Python itself using the link above.
-
-## Start on macOS or Linux
-
-Install Python 3.10 through 3.14, extract the ZIP, open a terminal in the project folder and run:
-
-```bash
-bash run.sh
-```
-
-For a different local port, use `bash run.sh 127.0.0.1:8001`. On Linux, your distribution may require its `python3-venv` package before creating a virtual environment.
-
-## Pages
-
-| Page | Local URL |
-| --- | --- |
-| Customer login | http://127.0.0.1:8000/login/ |
-| Customer registration | http://127.0.0.1:8000/register/ |
-| Staff login | http://127.0.0.1:8000/staff/login/ |
-| Staff registration | http://127.0.0.1:8000/staff/register/ |
-| Django administration | http://127.0.0.1:8000/admin/ |
-
-Login uses email and password. Registration collects first name, last name, date of birth, gender, email, phone number and password. Passwords must contain at least eight characters, cannot be entirely numeric or commonly used, and cannot closely resemble the account details. Duplicate email addresses are rejected.
-
-Customer accounts can log in after registering. Staff registration creates an **inactive account awaiting administrator approval**. A pharmacy staff account does not receive Django administration access. Customer and staff login forms accept their corresponding account types.
-
-Passwords are stored using Django's password hashing. Forms include CSRF protection and server-side validation. Login failures are limited by IP address and login flow to eight attempts per fifteen minutes; the development limiter uses a per-process cache.
-
-## Create an administrator and approve staff
-
-After the first startup, open a second PowerShell window in the project folder:
+From the project root, start Django with the existing virtual environment:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
-python backend/manage.py createsuperuser
-```
-
-If PowerShell blocks activation, use the environment's interpreter directly:
-
-```powershell
-.\.venv\Scripts\python.exe backend/manage.py createsuperuser
+.\.venv\Scripts\python.exe backend/manage.py runserver
 ```
 
 On macOS or Linux:
 
 ```bash
-source .venv/bin/activate
-python backend/manage.py createsuperuser
+.venv/bin/python backend/manage.py runserver
 ```
 
-Open `/admin/`, sign in with that administrator, find the pending staff user, enable **Active**, and save. Approve the pharmacy staff account by changing its active status only; do not grant **Staff status** or **Superuser status** for ordinary pharmacy staff.
+Open http://127.0.0.1:8000/. Keep the terminal open and press `Ctrl+C` to stop.
+To use another port, append `127.0.0.1:8001` to the command.
 
-## Optional development account
+## First-time setup
 
-Accounts are not created automatically. You can register through the pages or explicitly create a development-only sample customer:
-
-```powershell
-.\.venv\Scripts\python.exe backend/manage.py seed_demo
-```
-
-On macOS/Linux, use `.venv/bin/python backend/manage.py seed_demo`.
-
-- Email: `Shahil@valora.mu`
-- Password: `Shahili1234`
-
-This command runs only with `DJANGO_DEBUG=true`. Use the sample credentials only for local development.
-
-## Folder layout
-
-```text
-pharmacy-auth/
-├── backend/             Django project, accounts, migrations and tests
-│   ├── manage.py
-│   └── db.sqlite3       Created after the first migration
-├── frontend/
-│   ├── templates/       Login and registration HTML
-│   └── static/          Styles, scripts and design assets
-├── requirements.txt     Pinned Python dependency
-├── .env.example         Environment-variable reference
-├── start.ps1            Windows PowerShell starter
-├── run_windows.bat      Windows double-click starter
-└── run.sh               macOS/Linux starter
-```
-
-There is no separate Node.js build step. Django serves the frontend templates and static files locally. SQLite stores accounts in `backend/db.sqlite3`; keep that file to retain your local users.
-
-## Manual setup and checks
-
-If you prefer manual setup, run the following in PowerShell from the project folder:
+Install Python 3.10 through 3.14. The integrated project was verified using
+Python 3.12. From the project root on Windows:
 
 ```powershell
 py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python backend/manage.py migrate
-python backend/manage.py runserver
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe backend/manage.py migrate
+.\.venv\Scripts\python.exe backend/manage.py createsuperuser
+.\.venv\Scripts\python.exe backend/manage.py runserver
 ```
 
-After activation, `python` refers to the virtual environment, even if `python` was unavailable before setup. If activation is blocked, substitute `.\.venv\Scripts\python.exe` for `python` in the remaining commands.
+On macOS or Linux:
 
-For macOS/Linux, substitute `python3 -m venv .venv` and `source .venv/bin/activate` for the first two commands.
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python backend/manage.py migrate
+.venv/bin/python backend/manage.py createsuperuser
+.venv/bin/python backend/manage.py runserver
+```
 
-Run Django's system check and the included backend tests with:
+The convenience launchers `run_windows.bat` and `run.sh` create or reuse `.venv`,
+install dependencies, apply migrations automatically and start the development
+server. Use them only after reviewing migrations for any database you need to
+preserve. The direct server command above does not apply migrations.
+
+## Database, uploads and upgrades
+
+The default database is `backend/db.sqlite3`. Private uploaded documents are
+stored in `backend/private_uploads` and served through permission-checked views.
+Preserve both when moving or backing up an installation. Database files,
+uploads, local secrets and passwords must not be committed to Git.
+
+Before upgrading an existing installation, stop the development server, create
+and verify backups outside the repository, and inspect the migration plan:
 
 ```powershell
-python backend/manage.py check
-python backend/manage.py test
+.\.venv\Scripts\python.exe backend/manage.py migrate --plan
+.\.venv\Scripts\python.exe backend/manage.py makemigrations --check --dry-run
 ```
 
-## Configuration and deployment
+Apply reviewed migrations with `migrate`, then run `check`. Do not reset or
+reseed an existing database or delete migration history.
 
-Local development works with the default settings. **`.env.example` is a configuration reference; neither Django nor the starter scripts automatically load `.env` files.** Set variables in the current terminal or through your hosting service. For example, in PowerShell:
+The nine integration migrations were applied to the local showcase database on
+30 October 2026. Verification confirmed database integrity, preserved existing
+business records and accounts, checked all 52 batch links, and verified 24
+prescription uploads. No migrations remained pending afterward. This describes
+that local installation; each checkout must inspect its own migration state.
+
+## Pages and access
+
+Paths below use http://127.0.0.1:8000 as the local base URL.
+
+| Page | Path | Access |
+| --- | --- | --- |
+| Home | `/` | Public |
+| Shop | `/shop/` | Public browsing |
+| Cart | `/cart/` | Customer workflow |
+| About | `/about/` | Public |
+| Contact | `/contact/` | Public; submissions are stored, not emailed |
+| Shared login | `/login/` | All account roles |
+| Customer registration | `/register/` | When enabled by an administrator |
+| Email verification | `/email/verify/` | Customer verification |
+| Resend verification code | `/email/resend/` | Customer verification |
+| Password recovery | `/password/forgot/` | Active accounts |
+| Pharmacist workspace | `/pharmacist/` | Active staff in the Pharmacist group |
+| Manager workspace | `/manager/` | Authorized active staff or administrators |
+| Administrator workspace | `/superadmin/` | Active administrator superusers |
+| Django administration | `/admin/` | Authorized Django administrators |
+| Terms | `/terms/` | Public; draft text |
+
+After shared login, pharmacists reach their dashboard, authorized managers
+reach the manager dashboard, and administrator superusers reach the
+administrator workspace. Customers default to Home and retain approved local
+return destinations. If staff belong to both operational groups, the pharmacist
+dashboard takes priority. Access is checked on each protected request.
+
+Older `/staff/login/` bookmarks redirect to shared login. `/account/admin/`
+redirects to the administrator workspace. Ordinary staff and supplier landing
+routes remain available for accounts without an operational dashboard role.
+
+## Accounts and email
+
+Customer registration creates an inactive account and sends a six-digit email
+verification code. Codes expire after 15 minutes and allow five attempts.
+Password recovery codes expire after ten minutes and allow five attempts.
+Passwords are stored using Django password hashing.
+
+Public staff registration is closed. Use `/superadmin/` to create accounts and
+assign Customer, Pharmacist, Pharmacy Manager or Super Administrator roles.
+Use Django administration for supplier accounts and other account settings.
+Review activation explicitly when provisioning accounts. Ordinary pharmacy
+staff do not need Django staff or superuser flags. Existing accounts and
+passwords are retained during upgrades.
+
+In development, verification and recovery emails appear in the server terminal.
+Configure SMTP to deliver them to an inbox. Never include credentials in the
+README or commit them to the repository.
+
+The Terms and Conditions page contains draft example text. Replace it with
+approved terms before launch and update `TERMS_VERSION` when the terms change.
+
+## Checks and tests
+
+Use the project's virtual environment. Run test discovery from `backend` so
+the full installed-app suite is discovered:
 
 ```powershell
-$env:DJANGO_DEBUG = "false"
-$env:DJANGO_SECRET_KEY = "your-long-random-private-secret"
-$env:DJANGO_ALLOWED_HOSTS = "your-pharmacy.example"
-$env:DJANGO_CSRF_TRUSTED_ORIGINS = "https://your-pharmacy.example"
+.\.venv\Scripts\python.exe backend/manage.py check
+.\.venv\Scripts\python.exe backend/manage.py makemigrations --check --dry-run
+.\.venv\Scripts\python.exe backend/manage.py migrate --plan
+Push-Location backend
+..\.venv\Scripts\python.exe manage.py test --noinput
+Pop-Location
 ```
 
-On macOS/Linux, use `export DJANGO_DEBUG=false`, and similarly export the other values.
+On macOS or Linux, run the equivalent checks with `.venv/bin/python`, then
+`cd backend` and run `../.venv/bin/python manage.py test --noinput`.
 
-| Variable | Development default / purpose |
+The combined integration suite passed 324 tests. It covers accounts, inventory,
+prescriptions, orders, pharmacist, shop, public pages, manager and administrator
+workflows. Fresh migrations and upgrading a disposable copy of the existing
+database were also verified. Django tests use a separate test database.
+
+Browser verification should cover responsive layouts, navigation, login and
+logout, prescription document access, checkout and fulfilment, manager stock
+and purchasing screens, and administrator account and role management.
+
+## Configuration
+
+`.env.example` documents supported settings. Django and the launchers do not
+automatically load `.env` files. Set environment variables in the current
+terminal or through the hosting environment.
+
+| Variable | Purpose / development default |
 | --- | --- |
-| `DJANGO_DEBUG` | `true`; use `false` for production |
-| `DJANGO_SECRET_KEY` | Generated locally in `backend/.dev-secret-key`; supply a private, unique value in production |
-| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1,[::1]`; provide your domain in production |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | Optional comma-separated HTTPS origins |
-| `DJANGO_DATABASE_PATH` | Optional database location; otherwise `backend/db.sqlite3` |
-| `DJANGO_SECURE_SSL_REDIRECT` | `false` in development, `true` in production |
-| `DJANGO_CACHE_BACKEND` | `django.core.cache.backends.locmem.LocMemCache`; choose a shared cache for multiple server workers |
-| `DJANGO_CACHE_LOCATION` | `pharmacy-auth`; the cache location or table name required by the selected backend |
+| `DJANGO_DEBUG` | `true`; use `false` in production |
+| `DJANGO_SECRET_KEY` | Local key in `backend/.dev-secret-key`; provide a private production value |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1,[::1]` in development |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Optional comma-separated trusted HTTPS origins |
+| `DJANGO_DATABASE_PATH` | Override `backend/db.sqlite3` |
+| `DJANGO_MEDIA_ROOT` | Override `backend/private_uploads` |
+| `DJANGO_SECURE_SSL_REDIRECT` | Disabled in development; enabled by default in production |
+| `DJANGO_CACHE_BACKEND` | Local memory cache by default; use a shared cache with multiple workers |
+| `DJANGO_CACHE_LOCATION` | Cache location; default `pharmacy-auth` |
+| `DJANGO_EMAIL_BACKEND` | Console in development; SMTP by default in production |
+| `DJANGO_DEFAULT_FROM_EMAIL` | Sender address; required in production |
+| `DJANGO_EMAIL_HOST` / `DJANGO_EMAIL_PORT` | SMTP server and port; default port `587` |
+| `DJANGO_EMAIL_HOST_USER` / `DJANGO_EMAIL_HOST_PASSWORD` | Private SMTP credentials |
+| `DJANGO_EMAIL_USE_TLS` / `DJANGO_EMAIL_USE_SSL` | Mutually exclusive SMTP transport options |
 
-For Django's built-in shared database cache, set `DJANGO_CACHE_BACKEND=django.core.cache.backends.db.DatabaseCache` and `DJANGO_CACHE_LOCATION=pharmacy_auth_cache`, then run `python backend/manage.py createcachetable` after applying migrations. All server workers must use the same database and cache configuration.
+For deployment, use HTTPS and a production WSGI/ASGI server, configure SMTP and
+a shared cache, collect static files, run `check --deploy` with production
+settings, and establish database and private-upload backups. The included
+launchers use Django's development server.
 
-Before deployment, use a production WSGI/ASGI server and HTTPS, run `python backend/manage.py collectstatic`, run `python backend/manage.py check --deploy` with the production settings, configure a shared cache for the login limiter, and plan database backups. The included starters run Django's local development server. See Django's [deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/) for hosting configuration.
+## Project layout and further documentation
 
-The project uses **Django 5.2.17 LTS**, the latest 5.2 patch listed on the [official downloads page](https://www.djangoproject.com/download/) when this package was prepared. Django 5.2 supports [Python 3.10–3.14](https://docs.djangoproject.com/en/5.2/releases/5.2/).
+```text
+Valora_Pharma/
+|-- backend/
+|   |-- accounts/       Authentication and shared roles
+|   |-- inventory/      Authoritative medicines and physical batches
+|   |-- prescriptions/  Private documents and clinical review records
+|   |-- orders/         Shared orders, allocations, payments and receipts
+|   |-- pharmacist/     Pharmacist workspace
+|   |-- manager/        Inventory management, suppliers and purchasing
+|   |-- superadmin/     Account governance, roles, settings and audit logs
+|   |-- shop/           Storefront metadata, cart and checkout endpoints
+|   |-- pages/          Home, About and Contact pages
+|   `-- config/         Django settings and root URLs
+|-- frontend/
+|   |-- templates/      Django page templates
+|   `-- static/         Styles, scripts, fonts and images
+|-- requirements.txt
+`-- .env.example
+```
 
-## Design source
+- [Team integration notes](TEAM_INTEGRATION.md)
+- [Home and shop integration history](HOME_INTEGRATION.md)
+- [Shop data model](backend/shop/README.md)
+- [Manager integration](backend/manager/README.md)
+- [About and Contact design notes](ABOUT.md)
 
-- [Registration reference — node 187:675](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-675&m=dev)
-- [Customer login reference — node 49:76](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=49-76&m=dev)
-- [Earlier staff reference — node 187:559](https://www.figma.com/design/Iln0hUDEeDOBDozXc1PwdZ/UI-UX-System-Specification-Pharmacy-System?node-id=187-559&m=dev)
+Integration reports describe the state when they were written; use current
+checks and the migration plan to establish the state of your installation.
 
-The requested screens are implemented as responsive pages, with working Django forms and locally bundled frontend assets.
+
+## Integration audit — 31 October 2026
+
+See [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md) for the current merge checks,
+shared database/image design, verification results and remaining limitations.
+Home, Product, product details and cart APIs read the same saved catalogue image.
+Local SQLite data is not transferred by a Git pull; preserve your database and
+back it up before applying migrations. Existing standalone shop databases need
+an explicit inventory mapping before the integration migration can be applied.
+
+
+## Keeping two local checkouts on the same data
+
+Use the same Git branch and pull its latest commits in both folders. Git does not
+synchronise uncommitted edits between folders.
+
+By default each checkout still uses its own backend directory for local data.
+To share the existing database, private uploads and development session key,
+put the absolute path of the existing backend directory in the other checkout's
+backend/.data-directory file. That pointer is ignored by Git. DJANGO_DATA_DIR can
+also select the directory and takes precedence over the pointer. The directory
+must already exist; configuration errors do not create a fresh empty database.
+DJANGO_DATABASE_PATH, DJANGO_MEDIA_ROOT and DJANGO_SECRET_KEY still override their
+individual values. No computer-specific paths or private files belong in commits.
+
+
+The public pages share includes/public_header.html and public-header.css/js.
+Brand typography, pill artwork, cart icon, active navigation and mobile menu
+therefore have one implementation. The cart badge reads the saved customer cart
+through a lazy context processor; it is hidden when the cart is empty and updated
+when items are added. Page body content is independent of this shared header.
