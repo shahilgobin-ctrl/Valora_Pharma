@@ -135,6 +135,9 @@ class PrescriptionDocumentPreviewTests(TestCase):
     def test_review_page_embeds_pdf_and_keeps_download_link(self):
         response = self.client.get(self.detail_url)
 
+        # Browser PDF viewers can create nested frames. The containing review
+        # page and private preview must both permit same-origin framing.
+        self.assertEqual(response["X-Frame-Options"], "SAMEORIGIN")
         self.assertContains(response, "<iframe")
         self.assertContains(response, f'src="{self.preview_url}"')
         self.assertContains(response, "Open in new tab")
@@ -145,6 +148,11 @@ class PrescriptionDocumentPreviewTests(TestCase):
                 args=[self.prescription.pk],
             ),
         )
+
+    def test_other_pharmacist_pages_keep_frame_protection(self):
+        response = self.client.get(reverse("pharmacist:prescription_queue"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["X-Frame-Options"], "DENY")
 
     def test_image_formats_use_image_content_type_and_template(self):
         for extension, content_type in (

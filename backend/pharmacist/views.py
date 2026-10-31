@@ -343,6 +343,7 @@ def prescription_queue(request):
 @never_cache
 @pharmacist_required
 @require_http_methods(["GET", "POST"])
+@xframe_options_sameorigin
 def prescription_detail(request, pk):
     """Display a prescription and record its first review decision."""
     prescription = get_object_or_404(
