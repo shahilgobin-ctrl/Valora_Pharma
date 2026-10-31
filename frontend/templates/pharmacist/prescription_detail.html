@@ -47,7 +47,7 @@
           </time>
         </p>
 
-        {% if prescription.document %}
+        {% if document_available %}
           {% url 'pharmacist:prescription_document_preview' prescription.pk as preview_url %}
 
           <div class="vp-document-viewer">
@@ -91,7 +91,8 @@
           </p>
         {% else %}
           <p class="vp-review-errors">
-            No document is available for this prescription.
+            The prescription document is unavailable. Restore the uploaded file
+            before approving this prescription.
           </p>
         {% endif %}
       </section>

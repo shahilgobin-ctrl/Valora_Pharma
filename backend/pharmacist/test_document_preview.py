@@ -117,6 +117,14 @@ class PrescriptionDocumentPreviewTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_review_page_does_not_embed_missing_document(self):
+        self.prescription.document.storage.delete(self.prescription.document.name)
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "<iframe")
+        self.assertNotContains(response, 'href="' + self.preview_url + '"')
+        self.assertContains(response, "The prescription document is unavailable.")
+
     def test_unknown_prescription_returns_404(self):
         url = reverse(
             "pharmacist:prescription_document_preview",

@@ -439,6 +439,9 @@ def prescription_detail(request, pk):
             "prescription": prescription,
             "form": form,
             "uses_database": True,
+            "document_available": bool(prescription.document) and prescription.document.storage.exists(
+                prescription.document.name
+            ),
             "document_extension": Path(prescription.document.name or "").suffix.lower(),
         },
         status=response_status,
