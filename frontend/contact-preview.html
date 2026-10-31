@@ -15,7 +15,7 @@
         a { color: inherit; text-decoration: none; }
         button, input, textarea { font: inherit; }
         img { display: block; }
-        .skip-link { position: fixed; top: 8px; left: 8px; z-index: 10; padding: 10px 16px; color: #fff; background: #062c2c; transform: translateY(-200%); }
+        .skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 10px 16px; color: #fff; background: #062c2c; transform: translateY(-200%); }
         .skip-link:focus { transform: translateY(0); }
         :focus-visible { outline: 3px solid #d97706; outline-offset: 4px; }
         .brand, .brand-mark, .primary-nav, .account-actions { display: flex; align-items: center; }
@@ -26,6 +26,12 @@
         [aria-disabled="true"] { cursor: default; }
         .primary-nav a:hover, .sign-in:hover { background: rgba(11, 107, 100, .1); }
         .register:hover, .send-button:hover { filter: brightness(.9); }
+        .vp-header { text-rendering: auto; -webkit-font-smoothing: antialiased; }
+        @media (max-width: 360px) {
+            .about-page .vp-header__inner, .contact-page .vp-header__inner { padding-inline: 8px; gap: 6px; }
+            .about-page .vp-actions, .contact-page .vp-actions { gap: 4px; }
+            .about-page .vp-header .vp-register, .contact-page .vp-header .vp-register { padding-inline: 8px; }
+        }
 
 /*
 Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
@@ -481,6 +487,28 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             </div>
 </main>
     </div>
+    <script>
+    (() => {
+      const header = document.getElementById("header");
+      const menu = document.getElementById("hamburger");
+      const links = document.getElementById("navLinks");
+      if (!header || !menu || !links) return;
+      const closeMenu = () => {
+        links.classList.remove("open");
+        menu.setAttribute("aria-expanded", "false");
+      };
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && links.classList.contains("open")) {
+          closeMenu();
+          menu.focus();
+        }
+      });
+      document.addEventListener("click", event => {
+        if (!header.contains(event.target)) closeMenu();
+      });
+      matchMedia("(min-width:601px)").addEventListener("change", closeMenu);
+    })();
+    </script>
 <script>(() => {
   const header = document.getElementById("header");
   const menu = document.getElementById("hamburger");
