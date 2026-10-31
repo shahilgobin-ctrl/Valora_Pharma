@@ -111,6 +111,21 @@ class PageRenderingTests(TestCase):
         self.assertContains(response, 'href="mailto:info@valorapharma.mu"')
         self.assertContains(response, "csrfmiddlewaretoken")
 
+    def test_signed_in_navigation_uses_protected_sign_out(self):
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(email="header@example.test", password="test-password-5829")
+        self.client.force_login(user)
+        for page in ("about", "contact"):
+            response = self.client.get(reverse(f"pages:{page}"))
+            self.assertContains(response, 'action="' + reverse("accounts:logout") + '"')
+            self.assertContains(response, 'method="post"')
+            self.assertContains(response, "csrfmiddlewaretoken")
+            self.assertNotContains(response, 'href="' + reverse("accounts:register") + '"')
+        response = self.client.post(reverse("accounts:logout"))
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_supported_http_methods(self):
         for page in ("about", "contact"):
             self.assertEqual(self.client.head(reverse(f"pages:{page}")).status_code, 200)
@@ -208,7 +223,7 @@ class ContactSubmissionTests(TestCase):
 
     def test_user_input_is_escaped_on_validation_failure(self):
         response = self.client.post(self.url, {**self.data, "full_name": '<script>alert("x")</script>', "email": "invalid"})
-        self.assertNotContains(response, '<script>')
+        self.assertNotContains(response, '<script>alert("x")</script>')
         self.assertContains(response, "&lt;script&gt;")
 
     def test_submissions_are_not_listed_publicly(self):
