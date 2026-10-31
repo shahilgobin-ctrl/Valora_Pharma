@@ -343,6 +343,7 @@ def prescription_queue(request):
 @never_cache
 @pharmacist_required
 @require_http_methods(["GET", "POST"])
+@xframe_options_sameorigin
 def prescription_detail(request, pk):
     """Display a prescription and record its first review decision."""
     prescription = get_object_or_404(
@@ -438,6 +439,9 @@ def prescription_detail(request, pk):
             "prescription": prescription,
             "form": form,
             "uses_database": True,
+            "document_available": bool(prescription.document) and prescription.document.storage.exists(
+                prescription.document.name
+            ),
             "document_extension": Path(prescription.document.name or "").suffix.lower(),
         },
         status=response_status,
